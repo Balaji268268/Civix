@@ -1,0 +1,8 @@
+django
+djangorestframework
+django-cors-headers
+numpy
+pandas
+scikit-learn
+pillow
+requests
