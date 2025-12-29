@@ -65,7 +65,7 @@
 
 ### **AI & ML Layer**
 *   **Google Generative AI (Gemini)**: Visual analysis, categorization, and priority scoring.
-*   **Python (Flask)**: Auxiliary ML microservices for predictive analytics.
+*   **Python (Django)**: robust ML microservices for predictive analytics.
 
 ---
 
@@ -89,9 +89,9 @@ npm start
 
 ### 3. Frontend Setup
 ```bash
-cd ../  # (Back to root)
+cd src  # or root, depending on script
 npm install
-npm run dev
+npm start
 ```
 
 ### 4. Python ML Service (Optional)
