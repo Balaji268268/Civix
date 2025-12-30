@@ -1,71 +1,128 @@
-const Poll = require('../models/poll');
-const Notification = require('../models/notification');
-const { asyncHandler } = require('../utils/asyncHandler');
+const Poll = require('../models/poll.js');
+const User = require('../models/userModel');
+const { awardPoints } = require('./gamificationController');
 
-const getPolls = asyncHandler(async (req, res) => {
-    const polls = await Poll.find({ isActive: true }).sort({ createdAt: -1 });
-    res.json(polls);
-});
+/**
+ * Create a new Poll (Admin/Officer only)
+ */
+const createPoll = async (req, res) => {
+    try {
+        const { question, options, expiresAt, category, description } = req.body;
+        const clerkUserId = req.user.sub; // From Clerk/JWT Middleware
 
-const createPoll = asyncHandler(async (req, res) => {
-    const { title, options } = req.body;
+        // Resolve User ID
+        const user = await User.findOne({ clerkUserId });
+        if (!user) return res.status(404).json({ error: 'User not found' });
 
-    if (!title || !options || options.length < 2) {
-        return res.status(400).json({ error: 'Invalid poll data' });
+        if (!['admin', 'officer'].includes(user.role)) {
+            return res.status(403).json({ error: 'Unauthorized' });
+        }
+
+        // Validate Options
+        if (!options || options.length < 2) {
+            return res.status(400).json({ error: 'Poll must have at least 2 options' });
+        }
+
+        const formattedOptions = options.map(opt => ({ text: opt, votes: 0 }));
+
+        const poll = new Poll({
+            question,
+            description,
+            options: formattedOptions,
+            createdBy: user._id,
+            category,
+            expiresAt: new Date(expiresAt)
+        });
+
+        await poll.save();
+        res.status(201).json(poll);
+    } catch (error) {
+        console.error('Create Poll Error:', error);
+        res.status(500).json({ error: 'Failed to create poll' });
     }
+};
 
-    const poll = await Poll.create({
-        title,
-        options,
-        votes: new Array(options.length).fill(0),
-        createdBy: req.user?.id
-    });
+/**
+ * Get Active Polls
+ */
+const getActivePolls = async (req, res) => {
+    try {
+        const polls = await Poll.find({
+            isActive: true,
+            expiresAt: { $gt: new Date() }
+        })
+            .sort({ createdAt: -1 })
+            .populate('createdBy', 'name role') // Populate creator info
+            .lean(); // Faster query
 
-    // Notify Users (Optional: Create a 'global' notification or just rely on them seeing it)
-    // For now, let's create a visual alert for admins maybe? Or generic.
-    // Real-time: The plan said "triggers notification". Let's create one for 'all' (conceptually, but we use 'public' or similar)
-    // For MVP: Let's accept that users pull data.
+        // Add 'hasVoted' flag if user is logged in
+        let userId = null;
+        if (req.user) {
+            const user = await User.findOne({ clerkUserId: req.user.sub });
+            userId = user?._id;
+        }
 
-    res.status(201).json(poll);
-});
+        const pollsWithStatus = polls.map(poll => ({
+            ...poll,
+            hasVoted: userId ? poll.votedBy.some(id => id.equals(userId)) : false,
+            totalVotes: poll.options.reduce((acc, curr) => acc + curr.votes, 0)
+        }));
 
-const votePoll = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    const { optionIndex } = req.body;
-
-    // Safety check for body
-    if (typeof optionIndex === 'undefined' || optionIndex === null) {
-        console.error("Vote Error: Missing optionIndex", req.body);
-        return res.status(400).json({ error: 'Missing optionIndex' });
+        res.status(200).json(pollsWithStatus);
+    } catch (error) {
+        console.error('Fetch Polls Error:', error);
+        res.status(500).json({ error: 'Failed to fetch polls' });
     }
+};
 
-    // Fix: Clerk uses 'sub', standard JWT uses 'id'. fallback to IP.
-    const userId = req.user?.sub || req.user?.id || req.ip;
+/**
+ * Vote on a Poll
+ */
+const votePoll = async (req, res) => {
+    try {
+        const { pollId } = req.params;
+        const { optionIndex } = req.body;
+        const clerkUserId = req.user.sub;
 
-    console.log("Voting on poll:", id, "Option:", optionIndex, "User:", userId);
+        const user = await User.findOne({ clerkUserId });
+        if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const poll = await Poll.findById(id);
-    if (!poll) return res.status(404).json({ error: 'Poll not found' });
+        const poll = await Poll.findById(pollId);
+        if (!poll) return res.status(404).json({ error: 'Poll not found' });
 
-    if (poll.votedBy.includes(userId)) {
-        console.warn("User already voted:", userId);
-        return res.status(400).json({ error: 'You have already voted' });
+        // Checks
+        if (!poll.isActive || new Date() > poll.expiresAt) {
+            return res.status(400).json({ error: 'Poll is closed' });
+        }
+        if (poll.votedBy.includes(user._id)) {
+            return res.status(400).json({ error: 'You have already voted' });
+        }
+        if (optionIndex < 0 || optionIndex >= poll.options.length) {
+            return res.status(400).json({ error: 'Invalid option' });
+        }
+
+        // Update Vote
+        poll.options[optionIndex].votes += 1;
+        poll.votedBy.push(user._id);
+        await poll.save();
+
+        // Award Points for Voting (Gamification Hook)
+        await awardPoints(user._id, 'VOTE_POLL');
+
+        res.status(200).json({
+            message: 'Vote recorded',
+            updatedOptions: poll.options,
+            totalVotes: poll.totalVotes // Virtual might not work on save result directly without re-fetch, but easy to calc
+        });
+
+    } catch (error) {
+        console.error('Vote Error:', error);
+        res.status(500).json({ error: 'Failed to vote' });
     }
+};
 
-    // Update vote count with bounds check
-    if (optionIndex < 0 || optionIndex >= poll.votes.length) {
-        return res.status(400).json({ error: 'Invalid option index' });
-    }
-
-    poll.votes[optionIndex] = (poll.votes[optionIndex] || 0) + 1;
-    poll.votedBy.push(userId);
-    await poll.markModified('votes'); // Essential for array updates
-    await poll.save();
-
-    // Create Notification if it triggers a milestone? (e.g. 100 votes)
-    // Skipping for simplicity.
-
-    res.json(poll);
-});
-
-module.exports = { getPolls, createPoll, votePoll };
+module.exports = {
+    createPoll,
+    getActivePolls,
+    votePoll
+};

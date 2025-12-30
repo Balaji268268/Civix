@@ -22,3 +22,36 @@ header.bg-white\/95 {
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   animation-fill-mode: forwards;
 }
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply transition-colors duration-300 ease-in-out selection:bg-green-200 selection:text-green-900 dark:selection:bg-green-900 dark:selection:text-white;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 dark:bg-gray-700 rounded-full border-4 border-transparent bg-clip-content;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400 dark:bg-gray-600;
+}
+
+/* Hover Utilities */
+.hover-card {
+  @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-lg;
+}

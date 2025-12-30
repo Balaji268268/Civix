@@ -1,33 +1,49 @@
 const mongoose = require('mongoose');
 
 const pollSchema = new mongoose.Schema({
-    title: {
+    question: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
-    options: {
-        type: [String],
-        required: true
+    description: {
+        type: String,
+        default: ''
     },
-    votes: {
-        type: [Number], // Array of vote counts corresponding to options
-        default: function () { return new Array(this.options.length).fill(0); }
-    },
+    options: [{
+        text: { type: String, required: true },
+        votes: { type: Number, default: 0 }
+    }],
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
+        ref: 'User',
+        required: true
     },
-    votedBy: [{ // Track who voted to prevent double voting (basic)
-        type: String // UserId or IP if anonymous (using UserId for now)
+    votedBy: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
     }],
+    category: {
+        type: String,
+        enum: ['Infrastructure', 'Events', 'Policy', 'General'],
+        default: 'General'
+    },
+    expiresAt: {
+        type: Date,
+        required: true
+    },
     isActive: {
         type: Boolean,
         default: true
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
     }
+}, { timestamps: true });
+
+// Virtual to calculate total votes
+pollSchema.virtual('totalVotes').get(function () {
+    return this.options.reduce((acc, curr) => acc + curr.votes, 0);
 });
+
+// Index for fetching active polls
+pollSchema.index({ isActive: 1, expiresAt: 1 });
 
 module.exports = mongoose.model('Poll', pollSchema);

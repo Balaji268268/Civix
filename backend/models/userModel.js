@@ -11,6 +11,17 @@ const userSchema = new mongoose.Schema({
   trustScore: { type: Number, default: 100 },
   department: { type: String, default: null }, // e.g. 'Sanitation', 'Roads'
   activeTasks: { type: Number, default: 0 }, // For load balancing
+  isAvailable: { type: Boolean, default: true },
+  gamification: {
+    points: { type: Number, default: 0 },
+    level: { type: Number, default: 1 },
+    badges: [{
+      id: { type: String },
+      name: { type: String },
+      icon: { type: String },
+      awardedAt: { type: Date, default: Date.now }
+    }]
+  },
 }, { timestamps: true });
 
 // Method to check if profile is complete

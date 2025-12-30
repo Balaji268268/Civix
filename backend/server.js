@@ -110,7 +110,9 @@ if (cluster.isPrimary) {
   const analyticsRoutes = require("./routes/analytics");
   const contactRoutes = require("./routes/contact");
   const postRoutes = require("./routes/posts"); // New Post Routes
+
   const moderatorRoutes = require("./routes/moderator");
+  const gamificationRoutes = require("./routes/gamificationRoutes");
 
   // CSRF token endpoint
   app.get("/api/csrf-token", (req, res) => {
@@ -129,6 +131,7 @@ if (cluster.isPrimary) {
   app.use("/api/contact", contactRoutes);
   app.use("/api/lost-items", require("./routes/lostItem"));
   app.use("/api/moderator", moderatorRoutes);
+  app.use("/api/gamification", gamificationRoutes);
 
   // === Swagger API Docs ===
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));

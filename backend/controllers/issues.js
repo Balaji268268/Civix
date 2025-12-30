@@ -446,6 +446,73 @@ const getAssignedIssues = asyncHandler(async (req, res) => {
   res.json(issues);
 });
 
+// AI Officer Suggestions
+const suggestOfficer = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const issue = await Issue.findById(id);
+
+  if (!issue) return res.status(404).json({ error: "Issue not found" });
+
+  const department = issue.category || 'General';
+
+  // Fetch officers in department
+  const officers = await User.find({
+    role: 'officer',
+    department: department,
+    isAvailable: true
+  });
+
+  if (officers.length === 0) {
+    // Fallback to general officers if specific department empty
+    if (department !== 'General') {
+      const generalOfficers = await User.find({ role: 'officer', isAvailable: true });
+      if (generalOfficers.length === 0) return res.json({ suggestions: [] });
+
+      // Use general officers but mark logic
+      const scored = generalOfficers.map(off => {
+        const score = Math.max(0, 100 - (off.activeTasks * 10)); // Simple load score
+        return {
+          _id: off._id,
+          name: off.name,
+          activeTasks: off.activeTasks,
+          score,
+          reason: "Cross-department backup"
+        };
+      }).sort((a, b) => b.score - a.score);
+      return res.json({ suggestions: scored });
+    }
+    return res.json({ suggestions: [] });
+  }
+
+  // Scoring Algorithm
+  const scoredOfficers = officers.map(officer => {
+    // 1. Load Factor: Start at 100, deduct 10 per active task.
+    let loadScore = 100 - (officer.activeTasks * 15);
+
+    // 2. Logic: If tasks > 5, heavily penalize
+    if (officer.activeTasks > 5) loadScore -= 50;
+
+    // 3. Trust Bonus (Optional, implies reliability)
+    const trustBonus = Math.max(0, (officer.trustScore - 100) / 2);
+
+    const totalScore = Math.max(0, Math.ceil(loadScore + trustBonus));
+
+    return {
+      _id: officer._id,
+      name: officer.name,
+      activeTasks: officer.activeTasks,
+      score: totalScore,
+      isOverloaded: officer.activeTasks >= 5,
+      reason: officer.activeTasks === 0 ? "Currently idle" : "Balanced workload"
+    };
+  });
+
+  // Sort by Score Descending
+  scoredOfficers.sort((a, b) => b.score - a.score);
+
+  res.json({ suggestions: scoredOfficers });
+});
+
 /* --- Moderator Tools --- */
 
 // Manual override for Moderators
@@ -503,5 +570,4 @@ module.exports = {
   findDuplicatesForIssue,
   getAssignedIssues,
   manualAssignIssue,
-  getOfficersByDepartment
 };
