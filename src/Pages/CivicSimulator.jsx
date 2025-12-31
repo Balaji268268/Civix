@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Building, 
-  Users, 
-  DollarSign, 
-  Award, 
-  RotateCcw, 
-  TrendingUp, 
+import { useAuth } from '@clerk/clerk-react';
+import csrfManager from '../utils/csrfManager';
+import toast from 'react-hot-toast';
+import {
+  Building,
+  Users,
+  DollarSign,
+  Award,
+  RotateCcw,
+  TrendingUp,
   Shield,
   Heart,
   Lightbulb,
@@ -34,29 +37,29 @@ const CivicSimulator = () => {
   });
   const [showResult, setShowResult] = useState(false);
   const [selectedDifficulty, setSelectedDifficulty] = useState('medium');
-  const [simulationHistory, setSimulationHistory] = useState([]);
+  const { isSignedIn, getToken, user } = useAuth();
+  const title = "Civic Simulator";
 
-  // Load data from localStorage on component mount
+  // Fetch initial stats from backend
   useEffect(() => {
-    const savedProfile = localStorage.getItem('civicSimulatorProfile');
-    const savedHistory = localStorage.getItem('civicSimulatorHistory');
-    
-    if (savedProfile) {
-      setUserProfile(JSON.parse(savedProfile));
+    if (isSignedIn) {
+      const fetchStats = async () => {
+        try {
+          const token = await getToken();
+          const res = await csrfManager.secureFetch('/api/gamification/stats', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setUserProfile(prev => ({ ...prev, ...data }));
+          }
+        } catch (error) {
+          console.error("Failed to load gamification stats", error);
+        }
+      };
+      fetchStats();
     }
-    if (savedHistory) {
-      setSimulationHistory(JSON.parse(savedHistory));
-    }
-  }, []);
-
-  // Save data to localStorage whenever profile or history changes
-  useEffect(() => {
-    localStorage.setItem('civicSimulatorProfile', JSON.stringify(userProfile));
-  }, [userProfile]);
-
-  useEffect(() => {
-    localStorage.setItem('civicSimulatorHistory', JSON.stringify(simulationHistory));
-  }, [simulationHistory]);
+  }, [isSignedIn, getToken]);
 
   const startNewSimulation = () => {
     const scenario = getRandomScenario(selectedDifficulty);
@@ -73,33 +76,43 @@ const CivicSimulator = () => {
     }));
   };
 
-  const submitDecisions = () => {
+  const submitDecisions = async () => {
     const result = calculateResults(currentScenario, userDecisions);
     setSimulationResult(result);
     setShowResult(true);
-    
-    // Update user profile
-    const newXP = userProfile.xp + result.xpGained;
-    const newLevel = Math.floor(newXP / 100) + 1;
-    const newBadges = [...userProfile.badges];
-    
-    // Check for new badges
-    if (result.badgeEarned && !newBadges.includes(result.badgeEarned)) {
-      newBadges.push(result.badgeEarned);
+
+    if (isSignedIn) {
+      try {
+        const token = await getToken();
+        const res = await csrfManager.secureFetch('/api/gamification/progress', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            xpGained: result.xpGained,
+            scenarioId: currentScenario.id,
+            badgeEarned: result.badgeEarned
+          })
+        });
+
+        if (res.ok) {
+          const updatedStats = await res.json();
+          setUserProfile(prev => ({ ...prev, ...updatedStats }));
+        }
+      } catch (error) {
+        toast.error("Failed to save progress");
+      }
+    } else {
+      // Fallback for guests (optional, or just show warning)
+      // For now we just update local state visually but don't persist
+      const newXP = userProfile.xp + result.xpGained;
+      const newLevel = Math.floor(newXP / 100) + 1;
+      setUserProfile(prev => ({ ...prev, xp: newXP, level: newLevel }));
     }
-    
-    const updatedProfile = {
-      ...userProfile,
-      xp: newXP,
-      level: newLevel,
-      badges: newBadges,
-      civicStyle: result.civicStyle,
-      completedScenarios: [...userProfile.completedScenarios, currentScenario.id]
-    };
-    
-    setUserProfile(updatedProfile);
-    
-    // Add to simulation history
+
+    // Add to simulation history (local state only for session history)
     const historyEntry = {
       id: Date.now(),
       scenario: currentScenario,
@@ -108,8 +121,8 @@ const CivicSimulator = () => {
       timestamp: new Date().toISOString(),
       difficulty: selectedDifficulty
     };
-    
-    setSimulationHistory(prev => [historyEntry, ...prev.slice(0, 9)]); // Keep last 10
+
+    setSimulationHistory(prev => [historyEntry, ...prev.slice(0, 9)]);
   };
 
   const resetSimulation = () => {
@@ -130,17 +143,17 @@ const CivicSimulator = () => {
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       transition: { staggerChildren: 0.1 }
     }
   };
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { 
-      y: 0, 
-      opacity: 1, 
+    visible: {
+      y: 0,
+      opacity: 1,
       transition: { duration: 0.5 }
     }
   };
@@ -162,7 +175,7 @@ const CivicSimulator = () => {
                 <h1 className="text-xl font-bold text-gray-900 dark:text-white">Civic Simulator</h1>
               </div>
             </div>
-            
+
             {/* User Profile Summary */}
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2 bg-emerald-100 dark:bg-emerald-900 rounded-full px-3 py-1">
@@ -195,7 +208,7 @@ const CivicSimulator = () => {
               Civic Simulator
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Experience real civic dilemmas and learn about the complexities of public decision-making. 
+              Experience real civic dilemmas and learn about the complexities of public decision-making.
               Make choices, see consequences, and develop your civic leadership skills.
             </p>
           </motion.div>
@@ -211,7 +224,7 @@ const CivicSimulator = () => {
                 <Users className="h-8 w-8 text-emerald-500" />
               </div>
             </div>
-            
+
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
@@ -221,7 +234,7 @@ const CivicSimulator = () => {
                 <Target className="h-8 w-8 text-blue-500" />
               </div>
             </div>
-            
+
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
@@ -231,7 +244,7 @@ const CivicSimulator = () => {
                 <Award className="h-8 w-8 text-purple-500" />
               </div>
             </div>
-            
+
             <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between">
                 <div>
@@ -264,24 +277,23 @@ const CivicSimulator = () => {
                       <p className="text-gray-600 dark:text-gray-300 mb-8">
                         Choose your difficulty level and begin a civic simulation
                       </p>
-                      
+
                       {/* Difficulty Selection */}
                       <div className="flex justify-center space-x-4 mb-8">
                         {['easy', 'medium', 'hard'].map((difficulty) => (
                           <button
                             key={difficulty}
                             onClick={() => setSelectedDifficulty(difficulty)}
-                            className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                              selectedDifficulty === difficulty
-                                ? 'bg-emerald-600 text-white shadow-lg scale-105'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                            }`}
+                            className={`px-4 py-2 rounded-lg font-medium transition-all ${selectedDifficulty === difficulty
+                              ? 'bg-emerald-600 text-white shadow-lg scale-105'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                              }`}
                           >
                             {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
                           </button>
                         ))}
                       </div>
-                      
+
                       <motion.button
                         onClick={startNewSimulation}
                         whileHover={{ scale: 1.05 }}
@@ -379,7 +391,7 @@ const CivicSimulator = () => {
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${(userProfile.xp % 100)}%` }}
                     />

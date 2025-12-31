@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, Smartphone, Shield, MapPin, MessageSquare, BarChart3, Bell, Users, Star, Globe } from 'lucide-react';
 import DownloadPageQRCode from '../components/DownloadPageQRCode';
 
@@ -37,28 +37,28 @@ const DownloadAndroid = () => {
   ];
 
   const features = [
-    { 
-      title: "Live Civic Updates", 
+    {
+      title: "Live Civic Updates",
       subtitle: "Stay notified of local events, alerts, and policy changes in real-time.",
       icon: Bell
     },
-    { 
-      title: "Location-Based Services", 
+    {
+      title: "Location-Based Services",
       subtitle: "Get accurate civic info tailored to your neighborhood or region.",
       icon: MapPin
     },
-    { 
-      title: "Raise Issues to Authorities", 
+    {
+      title: "Raise Issues to Authorities",
       subtitle: "Report public problems directly to local officials through the app.",
       icon: MessageSquare
     },
-    { 
-      title: "Polls & Surveys", 
+    {
+      title: "Polls & Surveys",
       subtitle: "Participate in shaping civic decisions via community surveys.",
       icon: BarChart3
     },
-    { 
-      title: "Secure & Private", 
+    {
+      title: "Secure & Private",
       subtitle: "Your data is protected with industry-leading security measures.",
       icon: Shield
     }
@@ -76,28 +76,28 @@ const DownloadAndroid = () => {
         <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
           <div className="text-center">
-           
-            
+
+
             <h1 className="text-5xl lg:text-7xl font-bold bg-gradient-to-r from-gray-900 via-green-800 to-emerald-700 dark:from-white dark:via-green-300 dark:to-emerald-300 bg-clip-text text-transparent mb-6">
               Civix for Android
             </h1>
-            
+
             <p className="text-xl lg:text-2xl text-gray-600 dark:text-gray-300 mb-12 max-w-3xl mx-auto leading-relaxed">
               Transform how you engage with your community. Stay informed, stay empowered with the power of Android.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-              <button 
+              <button
                 className="group relative px-8 py-4 bg-gradient-to-r from-gray-400 to-gray-500 text-white rounded-2xl font-semibold text-lg cursor-not-allowed overflow-hidden"
                 disabled
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-gray-300 to-gray-400 opacity-50"></div>
                 <span className="relative flex items-center gap-2">
-                  
+
                   Coming Soon
                 </span>
               </button>
-              
+
               <button className="group px-8 py-4 border-2 border-green-500 text-green-600 hover:bg-green-500 hover:text-white dark:border-green-400 dark:text-green-400 dark:hover:bg-green-400 dark:hover:text-gray-900 rounded-2xl font-semibold text-lg transition-all duration-300 transform hover:scale-105">
                 <span className="flex items-center gap-2">
                   <Bell className="w-5 h-5" />
@@ -105,10 +105,10 @@ const DownloadAndroid = () => {
                 </span>
               </button>
             </div>
-            
+
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 rounded-full text-sm font-medium">
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
               Currently under development
             </div>
@@ -122,8 +122,8 @@ const DownloadAndroid = () => {
             {stats.map((stat, i) => {
               const IconComponent = stat.icon;
               return (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-lg text-center border border-gray-100 dark:border-gray-700"
                 >
                   <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl mb-4">
@@ -152,23 +152,23 @@ const DownloadAndroid = () => {
               Discover advanced tools designed to revolutionize your civic engagement and community connection.
             </p>
           </div>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, i) => {
               const IconComponent = feature.icon;
               return (
-                <div 
-                  key={i} 
+                <div
+                  key={i}
                   className="group bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-lg hover:shadow-2xl dark:shadow-gray-900/50 transition-all duration-300 transform hover:-translate-y-2 border border-gray-100 dark:border-gray-700"
                 >
                   <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl mb-6 group-hover:scale-110 transition-transform duration-300">
                     <IconComponent className="w-7 h-7 text-white" />
                   </div>
-                  
+
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">
                     {feature.title}
                   </h3>
-                  
+
                   <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
                     {feature.subtitle}
                   </p>
@@ -189,7 +189,7 @@ const DownloadAndroid = () => {
               Everything you need to know about Civix for Android.
             </p>
           </div>
-          
+
           <div className="space-y-4">
             {faqs.map((faq, index) => (
               <div
@@ -203,13 +203,12 @@ const DownloadAndroid = () => {
                   <span className="text-lg font-semibold text-gray-900 dark:text-white">
                     {faq.question}
                   </span>
-                  <ChevronDown 
-                    className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-300 ${
-                      openFAQ === index ? 'rotate-180' : ''
-                    }`}
+                  <ChevronDown
+                    className={`w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-300 ${openFAQ === index ? 'rotate-180' : ''
+                      }`}
                   />
                 </button>
-                
+
                 {openFAQ === index && (
                   <div className="px-8 pb-6 pt-0">
                     <div className="h-px bg-gray-200 dark:bg-gray-600 mb-4"></div>
@@ -235,8 +234,8 @@ const DownloadAndroid = () => {
               Scan the QR code below with your Android camera to be redirected to Google Play when Civix launches.
             </p>
           </div>
-          
-          <DownloadPageQRCode 
+
+          <DownloadPageQRCode
             title="Civix for Android"
             subtitle="Coming Soon to Google Play"
             size="large"
@@ -250,11 +249,11 @@ const DownloadAndroid = () => {
           <h2 className="text-4xl lg:text-5xl font-bold text-white mb-6">
             Ready to Transform Your Civic Engagement?
           </h2>
-          
+
           <p className="text-xl text-green-100 mb-12 max-w-2xl mx-auto leading-relaxed">
             Join thousands already making their voices heard. Be the first to know when Civix launches on Android.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button className="group px-8 py-4 bg-white text-green-600 hover:bg-gray-50 dark:bg-gray-800 dark:text-green-400 dark:hover:bg-gray-700 rounded-2xl font-semibold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg">
               <span className="flex items-center gap-2">
@@ -262,7 +261,7 @@ const DownloadAndroid = () => {
                 Notify Me on Launch
               </span>
             </button>
-            
+
             <button className="group px-8 py-4 border-2 border-white/30 text-white hover:bg-white/10 dark:border-gray-600 dark:hover:bg-gray-700 rounded-2xl font-semibold text-lg transition-all duration-300">
               <span className="flex items-center gap-2">
                 <Smartphone className="w-5 h-5" />
@@ -273,7 +272,7 @@ const DownloadAndroid = () => {
         </div>
       </section>
 
-      
+
     </div>
   );
 };

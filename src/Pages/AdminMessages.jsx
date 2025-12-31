@@ -20,7 +20,7 @@ const AdminMessages = () => {
         try {
             const token = await getToken();
             if (!token) return;
-            const res = await csrfManager.secureFetch('http://localhost:5000/api/contact', {
+            const res = await csrfManager.secureFetch('/api/contact', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 

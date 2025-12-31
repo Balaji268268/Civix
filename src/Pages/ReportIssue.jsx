@@ -8,6 +8,8 @@ import UserLayout from "../components/layout/UserLayout";
 
 import DuplicateIssueModal from "../components/DuplicateIssueModal";
 
+import useFormPersistence from "../hooks/useFormPersistence"; // Import Hook
+
 const ReportIssue = () => {
   const navigate = useNavigate();
   const { user } = useUser();
@@ -21,7 +23,7 @@ const ReportIssue = () => {
   const [duplicateData, setDuplicateData] = useState(null);
 
   // Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData, clearFormData] = useFormPersistence('report_issue_form', { // PERSISTENCE
     title: '',
     description: '',
     location: '',
@@ -29,7 +31,7 @@ const ReportIssue = () => {
     contact: '',
     isAnonymous: false,
     files: null
-  });
+  }, false); // Use localStorage (false) instead of sessionStorage
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [isAnalyzingFiles, setIsAnalyzingFiles] = useState(false);
@@ -116,7 +118,7 @@ const ReportIssue = () => {
 
     try {
       // Use csrfManager.secureFetch to handle tokens and credentials automatically
-      const response = await csrfManager.secureFetch("http://localhost:5000/api/issues", {
+      const response = await csrfManager.secureFetch("/api/issues", {
         method: "POST",
         body: data
       });
@@ -134,6 +136,7 @@ const ReportIssue = () => {
       if (!response.ok) throw new Error(result.error || "Failed to submit issue");
 
       toast.success("Issue Submitted Successfully!");
+      clearFormData(); // Clear persistence
       navigate('/user/dashboard');
 
     } catch (error) {
@@ -273,6 +276,7 @@ const ReportIssue = () => {
               <input
                 required
                 type="tel"
+                inputMode="numeric"
                 placeholder="e.g., 9876543210"
                 pattern="[0-9]{10}"
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500"

@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/clerk-react';
+import { useUser, useAuth } from "@clerk/clerk-react";
+import csrfManager from '../utils/csrfManager';
 
 const useProfileStatus = () => {
   const { user, isSignedIn } = useUser();
+  const { getToken } = useAuth();
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
@@ -15,13 +17,19 @@ const useProfileStatus = () => {
 
     try {
       console.log('Fetching profile data for user:', user.id);
+      const token = await getToken();
+
       // The API endpoint expects clerkUserId, not just id
-      const response = await fetch(`http://localhost:5000/api/profile/${user.id}`, {
+      const response = await csrfManager.secureFetch(`/api/profile/${user.id}`, {
         credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
-      
-      console.log('Profile API response status:', response.status);
-      
+
+      // Fetch logic
+
+
       if (response.ok) {
         // Ensure we can parse JSON; guard against HTML error pages
         const contentType = response.headers.get('content-type') || '';

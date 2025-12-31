@@ -1,5 +1,6 @@
-// import { useState, useEffect, useRef } from 'react';
-// import { FiMessageSquare, FiX, FiSend, FiChevronDown } from 'react-icons/fi';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiMessageSquare, FiX, FiSend, FiChevronDown } from 'react-icons/fi';
 
 // const ChatBot = () => {
 //   const [isOpen, setIsOpen] = useState(false);

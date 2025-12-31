@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from "react-router-dom";
 import { ChevronDown, ChevronUp, Users, Vote, Building, Heart, BookOpen, Download, Play, CheckCircle, XCircle, RotateCcw, Trophy, Star, Brain, Target, Lightbulb, Award, Clock, TrendingUp, MessageCircle, Share2, Bookmark, Calendar, MapPin, Phone, Mail, ExternalLink, Zap, Globe, Shield, Scale, Gavel, FileText, PieChart, BarChart3, Activity, Sparkles, Rocket, Gamepad2, Gift, Medal, Crown, Flame } from 'lucide-react';
+import { useAuth } from '@clerk/clerk-react';
+import csrfManager from '../utils/csrfManager';
+import toast from 'react-hot-toast';
 
 const CivicEducation = () => {
   const [activeAccordion, setActiveAccordion] = useState(null);
@@ -23,23 +26,48 @@ const CivicEducation = () => {
   const [streakCount, setStreakCount] = useState(0);
 
   // Load saved data from localStorage
+  const { isSignedIn, getToken } = useAuth();
+
+  // Load saved data from localStorage OR Backend
   useEffect(() => {
+    // Keep local prefs in local storage
     const savedScore = localStorage.getItem('civicEducationQuizScore');
     const savedBookmarks = localStorage.getItem('civicEducationBookmarks');
     const savedProgress = localStorage.getItem('civicEducationProgress');
-    const savedXP = localStorage.getItem('civicEducationXP');
-    const savedLevel = localStorage.getItem('civicEducationLevel');
-    const savedAchievements = localStorage.getItem('civicEducationAchievements');
     const savedStreak = localStorage.getItem('civicEducationStreak');
 
     if (savedScore) setQuizScore(parseInt(savedScore));
     if (savedBookmarks) setBookmarkedSections(JSON.parse(savedBookmarks));
     if (savedProgress) setReadingProgress(parseInt(savedProgress));
-    if (savedXP) setUserXP(parseInt(savedXP));
-    if (savedLevel) setUserLevel(parseInt(savedLevel));
-    if (savedAchievements) setAchievements(JSON.parse(savedAchievements));
     if (savedStreak) setStreakCount(parseInt(savedStreak));
-  }, []);
+
+    // Fetch XP/Level from Backend if logged in
+    if (isSignedIn) {
+      const fetchStats = async () => {
+        try {
+          const token = await getToken();
+          const res = await csrfManager.secureFetch('/api/gamification/stats', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setUserXP(data.xp);
+            setUserLevel(data.level);
+            setAchievements(data.badges);
+          }
+        } catch (e) {
+          console.error("Failed to load gamification stats");
+        }
+      };
+      fetchStats();
+    } else {
+      // Fallback to local
+      const savedXP = localStorage.getItem('civicEducationXP');
+      const savedLevel = localStorage.getItem('civicEducationLevel');
+      if (savedXP) setUserXP(parseInt(savedXP));
+      if (savedLevel) setUserLevel(parseInt(savedLevel));
+    }
+  }, [isSignedIn, getToken]);
 
   // Track reading progress
   useEffect(() => {
@@ -117,41 +145,55 @@ const CivicEducation = () => {
     }
   };
 
-  const awardXP = (points, reason) => {
-    const newXP = userXP + points;
-    const newLevel = Math.floor(newXP / 100) + 1;
+  const awardXP = async (points, reason) => {
+    if (isSignedIn) {
+      try {
+        const token = await getToken();
+        const res = await csrfManager.secureFetch('/api/gamification/progress', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            xpGained: points,
+            badgeEarned: null // Can be enhanced to check specific logic
+          })
+        });
 
-    setUserXP(newXP);
-    localStorage.setItem('civicEducationXP', newXP.toString());
+        if (res.ok) {
+          const data = await res.json();
 
-    if (newLevel > userLevel) {
-      setUserLevel(newLevel);
-      localStorage.setItem('civicEducationLevel', newLevel.toString());
-      setShowCelebration(true);
-      setTimeout(() => setShowCelebration(false), 3000);
+          // Check for level up
+          if (data.level > userLevel) {
+            setShowCelebration(true);
+            setTimeout(() => setShowCelebration(false), 3000);
+          }
+
+          setUserXP(data.xp);
+          setUserLevel(data.level);
+          // setAchievements(data.badges); // Sync badges if returned
+        }
+      } catch (error) {
+        console.error("Failed to update XP", error);
+      }
+    } else {
+      // Local fallback
+      const newXP = userXP + points;
+      const newLevel = Math.floor(newXP / 100) + 1;
+      setUserXP(newXP);
+      if (newLevel > userLevel) {
+        setUserLevel(newLevel);
+        setShowCelebration(true);
+        setTimeout(() => setShowCelebration(false), 3000);
+      }
     }
-
-    // Check for achievements
-    checkAchievements(newXP, reason);
   };
 
   const checkAchievements = (xp, reason) => {
-    const newAchievements = [...achievements];
-
-    if (xp >= 50 && !achievements.includes('first-steps')) {
-      newAchievements.push('first-steps');
-    }
-    if (quizScore >= 4 && !achievements.includes('quiz-master')) {
-      newAchievements.push('quiz-master');
-    }
-    if (bookmarkedSections.length >= 3 && !achievements.includes('collector')) {
-      newAchievements.push('collector');
-    }
-
-    if (newAchievements.length > achievements.length) {
-      setAchievements(newAchievements);
-      localStorage.setItem('civicEducationAchievements', JSON.stringify(newAchievements));
-    }
+    // This client-side check is less critical now as backend handles it, 
+    // but keeping for immediate UI feedback if needed, 
+    // though realistically backend should return 'badgeEarned' response.
   };
 
   const accordionData = [
@@ -807,12 +849,11 @@ const CivicEducation = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-shrink-0 flex items-center justify-center space-x-2 py-3 px-4 sm:px-6 transition-colors ${
-                  activeTab === tab.id
+                className={`flex-shrink-0 flex items-center justify-center space-x-2 py-3 px-4 sm:px-6 transition-colors ${activeTab === tab.id
                   ? 'bg-emerald-50 dark:bg-emerald-900 text-emerald-600 dark:text-emerald-300 border-b-2 border-emerald-500'
                   : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
-            }`}
-                >
+                  }`}
+              >
                 {tab.icon}
                 <span className="font-medium">{tab.label}</span>
               </button>
@@ -1178,14 +1219,14 @@ const CivicEducation = () => {
                           <div className="flex items-center space-x-3">
                             <div
                               className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${selectedAnswer === index
-                                  ? showResult
-                                    ? index === currentQuestion.correct
-                                      ? 'border-emerald-500 bg-emerald-500'
-                                      : 'border-red-500 bg-red-500'
-                                    : 'border-purple-500 bg-purple-500'
-                                  : showResult && index === currentQuestion.correct
+                                ? showResult
+                                  ? index === currentQuestion.correct
                                     ? 'border-emerald-500 bg-emerald-500'
-                                    : 'border-gray-400'
+                                    : 'border-red-500 bg-red-500'
+                                  : 'border-purple-500 bg-purple-500'
+                                : showResult && index === currentQuestion.correct
+                                  ? 'border-emerald-500 bg-emerald-500'
+                                  : 'border-gray-400'
                                 }`}
                             >
                               {showResult && index === currentQuestion.correct ? (
@@ -1345,11 +1386,11 @@ const CivicEducation = () => {
               <div className="grid md:grid-cols-3 gap-4">
                 {/* Tax Impact Calculator */}
                 <Link to="/tax-impact">
-                <div className="bg-gradient-to-br from-yellow-400 to-orange-500 text-white p-6 rounded-lg text-center hover:scale-105 transition-transform cursor-pointer">
-                  <PieChart className="w-12 h-12 mx-auto mb-3" />
-                  <h5 className="font-semibold mb-2">Tax Impact Calculator</h5>
-                  <p className="text-sm text-white/90">See how your taxes fund local services</p>
-                </div>
+                  <div className="bg-gradient-to-br from-yellow-400 to-orange-500 text-white p-6 rounded-lg text-center hover:scale-105 transition-transform cursor-pointer">
+                    <PieChart className="w-12 h-12 mx-auto mb-3" />
+                    <h5 className="font-semibold mb-2">Tax Impact Calculator</h5>
+                    <p className="text-sm text-white/90">See how your taxes fund local services</p>
+                  </div>
                 </Link>
 
                 {/* Voting Guide */}
@@ -1361,11 +1402,11 @@ const CivicEducation = () => {
 
                 {/* Representative Finder */}
                 <Link to='/repersentative-finder'>
-                <div className="bg-gradient-to-br from-blue-400 to-purple-500 text-white p-6 rounded-lg text-center hover:scale-105 transition-transform cursor-pointer">
-                  <Users className="w-12 h-12 mx-auto mb-3" />
-                  <h5 className="font-semibold mb-2">Representative Finder</h5>
-                  <p className="text-sm text-white/90">Contact your elected officials</p>
-                </div>
+                  <div className="bg-gradient-to-br from-blue-400 to-purple-500 text-white p-6 rounded-lg text-center hover:scale-105 transition-transform cursor-pointer">
+                    <Users className="w-12 h-12 mx-auto mb-3" />
+                    <h5 className="font-semibold mb-2">Representative Finder</h5>
+                    <p className="text-sm text-white/90">Contact your elected officials</p>
+                  </div>
                 </Link>
               </div>
             </div>

@@ -6,6 +6,7 @@ import { useAuth, useUser } from '@clerk/clerk-react';
 import logo from '../assets/logo.png';
 import { title } from 'process';
 import { Info, Phone, Users, User, LogOut, Shield, LayoutDashboard, BookOpen, Menu, X, AlertTriangle, Vote, Map, Bell } from 'lucide-react';
+import csrfManager from '../utils/csrfManager';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ const Navbar = () => {
         const email = user.emailAddresses[0]?.emailAddress;
         if (!email) return;
 
-        const response = await fetch(`http://localhost:5000/api/issues/my-issues?email=${email}`);
+        const response = await csrfManager.secureFetch(`/api/issues/my-issues?email=${email}`);
         if (response.ok) {
           const issues = await response.json();
           // Map recent 5 issues to notifications
@@ -178,8 +179,8 @@ const Navbar = () => {
                   key={navItem.title}
                   to={navItem.href}
                   className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-300 group relative overflow-hidden ${isActive
-                      ? 'text-green-700 dark:text-green-300 bg-white/60 dark:bg-white/10 backdrop-blur-lg border border-green-200/50 dark:border-green-700/50'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/50'
+                    ? 'text-green-700 dark:text-green-300 bg-white/60 dark:bg-white/10 backdrop-blur-lg border border-green-200/50 dark:border-green-700/50'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/50'
                     }`}
                 >
                   {isActive && (
@@ -357,8 +358,8 @@ const Navbar = () => {
                       to={navItem.href}
                       onClick={() => handleNav()}
                       className={`flex items-center gap-4 px-4 py-4 text-lg font-medium rounded-xl transition-all duration-300 group relative overflow-hidden ${isActive
-                          ? 'text-green-700 dark:text-green-300 bg-white/60 dark:bg-white/10 backdrop-blur-lg border border-green-200/50 dark:border-green-700/50 shadow-lg shadow-green-100/50 dark:shadow-green-900/30'
-                          : 'text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/50'
+                        ? 'text-green-700 dark:text-green-300 bg-white/60 dark:bg-white/10 backdrop-blur-lg border border-green-200/50 dark:border-green-700/50 shadow-lg shadow-green-100/50 dark:shadow-green-900/30'
+                        : 'text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/50'
                         }`}
                     >
                       {isActive && (

@@ -1,7 +1,4 @@
-/**
- * CSRF Token Management Utility
- * Handles CSRF token fetching and inclusion in requests
- */
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 class CSRFManager {
   constructor() {
@@ -13,9 +10,9 @@ class CSRFManager {
    * Fetch CSRF token from server
    * @returns {Promise<string>} CSRF token
    */
-  async fetchToken() {
+  async getCSRFToken() {
     try {
-      const response = await fetch("http://localhost:5000/api/csrf-token", {
+      const response = await fetch(`${BACKEND_URL}/api/csrf-token`, {
         method: "GET",
         credentials: "include",
       });
@@ -46,7 +43,7 @@ class CSRFManager {
       return this.tokenPromise;
     }
 
-    this.tokenPromise = this.fetchToken();
+    this.tokenPromise = this.getCSRFToken(); // FIXED from fetchToken
     try {
       await this.tokenPromise;
       return this.token;
@@ -84,6 +81,9 @@ class CSRFManager {
    * @returns {Promise<Response>} Fetch response
    */
   async secureFetch(url, options = {}) {
+    // SMART URL HANDLING
+    const requestUrl = url.startsWith('http') ? url : `${BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+
     const method = options.method || "GET";
     const needsCSRF = ["POST", "PUT", "PATCH", "DELETE"].includes(
       method.toUpperCase()
@@ -117,7 +117,7 @@ class CSRFManager {
 
     options.credentials = options.credentials || "include";
 
-    const response = await fetch(url, options);
+    const response = await fetch(requestUrl, options);
 
     // If CSRF token is invalid, clear it and retry once
     if (response.status === 403 && needsCSRF) {
@@ -139,7 +139,7 @@ class CSRFManager {
             options.headers = newHeaders;
           }
 
-          const retryResponse = await fetch(url, options);
+          const retryResponse = await fetch(requestUrl, options);
           return retryResponse;
         } catch (retryError) {
           console.error("CSRF retry failed:", retryError);
@@ -156,5 +156,5 @@ class CSRFManager {
 const csrfManager = new CSRFManager();
 
 // Export both the class and singleton for flexibility
-export { CSRFManager, csrfManager };
+export { CSRFManager, csrfManager, BACKEND_URL };
 export default csrfManager;

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, AlertTriangle, MapPin, ArrowRight, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import csrfManager from "../utils/csrfManager";
 import { useNavigate } from 'react-router-dom';
+import csrfManager from '../utils/csrfManager';
 
 const TrendingFeed = () => {
     const [issues, setIssues] = useState([]);
@@ -15,7 +15,7 @@ const TrendingFeed = () => {
 
     const fetchTrendingIssues = async () => {
         try {
-            const res = await csrfManager.secureFetch('http://localhost:5000/api/issues');
+            const res = await csrfManager.secureFetch('/api/issues');
             const data = await res.json();
             // Sort by Priority (High first) then Recency
             const sorted = data.sort((a, b) => {

@@ -5,14 +5,15 @@ const { verifyToken, isAdmin, isModerator } = require("../middlewares/validate")
 const { upload } = require("../middlewares/multer.middleware");
 
 
-router.post("/", upload.single("file"), issueController.createIssue);
+
+router.post("/", verifyToken, upload.single("file"), issueController.createIssue);
 
 
 router.patch("/:id/status", verifyToken, isModerator, issueController.updateIssueStatus);
 
 // GET: All issues
-router.get("/", issueController.getAllIssues);
-router.get("/my-issues", issueController.getMyIssues);
+router.get("/", issueController.getAllIssues); // Public feed
+router.get("/my-issues", verifyToken, issueController.getMyIssues);
 router.get("/assigned", verifyToken, issueController.getAssignedIssues);
 router.get("/:id/duplicates", verifyToken, isAdmin, issueController.findDuplicatesForIssue);
 // Moderator routes must be before /:id to avoid ID collision

@@ -3,6 +3,7 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { SignIn, SignUp, useAuth } from '@clerk/clerk-react';
 import { AnimatePresence } from 'framer-motion';
+import csrfManager from './utils/csrfManager';
 
 import Home from './Home';
 import Login from './components/Login';
@@ -26,6 +27,7 @@ const ModeratorDashboard = lazy(() => import('./Pages/ModeratorDashboard'));
 
 
 // Standard Imports for lighter pages (to avoid layout shift on simple clicks)
+import RequireProfile from './components/auth/RequireProfile';
 import RequireAdmin from './components/auth/RequireAdmin';
 import DuplicateIssues from './Pages/DuplicateIssues';
 import AdminAllIssues from './Pages/AdminAllIssues';
@@ -130,7 +132,7 @@ const App = () => {
             return;
           }
 
-          const response = await fetch(`http://localhost:5000/api/profile/${userId}`, {
+          const response = await csrfManager.secureFetch(`/api/profile/${userId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
 
@@ -176,7 +178,8 @@ const App = () => {
     }
 
     if (!isProfileComplete) {
-      return <Navigate to="/profile-setup" replace />;
+      // Pass the current location (or existing state) so ProfileSetup knows where to go back to
+      return <Navigate to="/profile-setup" state={{ from: location.state?.from || location }} replace />;
     }
 
     return (
@@ -204,16 +207,29 @@ const App = () => {
           <Route path="/contact" element={<Contact />} />
           <Route path="/login/*" element={<Login />} />
           <Route path="/signup/*" element={<Signup />} />
-          <Route path="/report-issue" element={<ReportIssue />} />
+          <Route
+            path="/report-issue"
+            element={<ReportIssue />}
+          />
           <Route path="/download-android" element={<DownloadAndroid />} />
           <Route path="/download-ios" element={<DownloadIOS />} />
-          <Route path="/issues/new" element={<NewIssue />} />
+          <Route
+            path="/issues/new"
+            element={<NewIssue />}
+          />
           <Route path="/issues/:id" element={<IssueDetail />} />
           <Route path="/civic-education" element={<CivicEducation />} />
           <Route path="/civic-simulator" element={<CivicSimulator />} />
           <Route path="/community-voting" element={<CommunityVotingPage />} />
           <Route path="/voting-system" element={<VotingSystem />} />
-          <Route path="/user/dashboard" element={renderDashboard()} />
+          <Route
+            path="/user/dashboard"
+            element={
+              <PortalGuard allowedRoles={['user']}>
+                <UserDashboard />
+              </PortalGuard>
+            }
+          />
 
           {/* Officer Portal */}
           <Route

@@ -11,7 +11,7 @@ const DuplicateIssues = () => {
     useEffect(() => {
         const fetchIssues = async () => {
             try {
-                const response = await csrfManager.secureFetch(`http://localhost:5000/api/issues?t=${Date.now()}`);
+                const response = await csrfManager.secureFetch(`/api/issues?t=${Date.now()}`);
                 if (response.ok) {
                     const data = await response.json();
                     // Filter only rejected issues

@@ -1,20 +1,21 @@
 // src/components/ui/CopyLinkButton.jsx
 import { FiCopy } from 'react-icons/fi';
+import { toast } from 'react-toastify';
 import { useToast } from '../../hooks/useToast';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 
 export default function CopyLinkButton() {
   const { toast } = useToast();
   const location = useLocation();
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(`${window.location.origin}${location.pathname}`)
+    navigator.clipboard.writeText(`${window.location.origin}${location.pathname} `)
       .then(() => toast.success('Link copied!'))
       .catch(() => toast.error('Failed to copy'));
   };
 
   return (
-    <button 
+    <button
       onClick={handleCopy}
       className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
       aria-label="Copy link"

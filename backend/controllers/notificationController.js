@@ -45,12 +45,18 @@ const getNotifications = asyncHandler(async (req, res) => {
 
     // Check role in multiple places (Clerk metadata structure)
     const role = req.user?.role || req.user?.public_metadata?.role || req.user?.unsafe_metadata?.role;
-    const isAdminEmail = req.user?.email?.includes("admin") || req.user?.email === 'venkatabalaji529@gmail.com' || req.user?.email === 'rupesh23489@gmail.com';
-    // Added specific emails for testing convenience
+    const email = req.user?.email || "";
 
-    if (role === 'admin' || isAdminEmail) {
-        // Admins see their personal + admin alerts
+    // Role-based filtering
+    if (role === 'admin' || email.includes("admin")) {
+        // Admins see their requests + global admin alerts
         query = { $or: [{ recipient: userId }, { recipient: 'admin' }] };
+    } else if (role === 'moderator') {
+        // Moderators see their requests + moderator alerts
+        query = { $or: [{ recipient: userId }, { recipient: 'moderator' }] };
+    } else if (role === 'officer') {
+        // Officers see their requests + officer alerts + alerts for their specific department (future proofing)
+        query = { $or: [{ recipient: userId }, { recipient: 'officer' }] };
     }
 
     const notifications = await Notification.find(query).sort({ createdAt: -1 });

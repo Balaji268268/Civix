@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   User,
@@ -104,7 +105,7 @@ const Profile = () => {
         location: formData.location
       };
 
-      const response = await csrfManager.secureFetch('http://localhost:5000/api/profile/create-or-update', {
+      const response = await csrfManager.secureFetch('/api/profile/create-or-update', {
         method: 'POST',
         body: JSON.stringify(backendBody)
       });
@@ -183,8 +184,8 @@ const Profile = () => {
                       value={formData.username}
                       disabled={!isEditing}
                       onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                      className={`w-full px-6 py-4 rounded-2xl border-2 outline-none transition-all duration-300 text-lg font-medium ${isEditing ? 'border-emerald-200 bg-white focus:border-emerald-400' : 'border-slate-200/50 bg-slate-50/50 text-slate-600'
-                        }`}
+                      className={`w - full px - 6 py - 4 rounded - 2xl border - 2 outline - none transition - all duration - 300 text - lg font - medium ${isEditing ? 'border-emerald-200 bg-white focus:border-emerald-400' : 'border-slate-200/50 bg-slate-50/50 text-slate-600'
+                        } `}
                     />
                   </div>
 
@@ -213,8 +214,8 @@ const Profile = () => {
                       value={formData.location}
                       disabled={!isEditing}
                       onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      className={`w-full px-6 py-4 rounded-2xl border-2 outline-none transition-all duration-300 text-lg font-medium ${isEditing ? 'border-emerald-200 bg-white focus:border-emerald-400' : 'border-slate-200/50 bg-slate-50/50 text-slate-600'
-                        }`}
+                      className={`w - full px - 6 py - 4 rounded - 2xl border - 2 outline - none transition - all duration - 300 text - lg font - medium ${isEditing ? 'border-emerald-200 bg-white focus:border-emerald-400' : 'border-slate-200/50 bg-slate-50/50 text-slate-600'
+                        } `}
                     />
                   </div>
                 </div>

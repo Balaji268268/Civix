@@ -30,7 +30,7 @@ const Analytics = () => {
         }
 
         // Pass token in headers explicitly for middleware
-        const res = await csrfManager.secureFetch('http://localhost:5000/api/admin/analytics', {
+        const res = await csrfManager.secureFetch('/api/admin/analytics', {
           headers: {
             'Authorization': `Bearer ${token}`
           }

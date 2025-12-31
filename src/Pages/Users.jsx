@@ -35,7 +35,7 @@ const Users = () => {
         if (roleFilter !== 'all') query += `role=${roleFilter}&`;
         if (searchTerm) query += `search=${encodeURIComponent(searchTerm)}&`;
 
-        const res = await csrfManager.secureFetch(`http://localhost:5000/api/admin/users${query}`, {
+        const res = await csrfManager.secureFetch(`/api/admin/users${query}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 

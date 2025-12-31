@@ -1,6 +1,8 @@
+
 import React, { useEffect } from 'react';
 import { SignIn, useUser } from '@clerk/clerk-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import csrfManager from '../utils/csrfManager';
 import { ToastContainer } from 'react-toastify';
 
 import { motion } from "framer-motion";
@@ -10,17 +12,29 @@ import loginImage from "../assets/signup.png";
 const Login = () => {
   const { isSignedIn, user } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const performRedirect = async () => {
       if (isSignedIn && user) {
+        // 0. Smart Redirect: Check if we were sent here from a specific page
+        // location.state might be lost if Clerk does a hard redirect, so standard Clerk pattern
+        // is often to use the `redirectUrl` param, but we'll try state first.
+        // If the user came from a protected route (PortalGuard), state.from will be set.
+        const intendedDestination = location.state?.from?.pathname;
+        if (intendedDestination && intendedDestination !== '/' && intendedDestination !== '/login') {
+          // Smart Redirect Logic
+          navigate(intendedDestination, { replace: true });
+          return;
+        }
+
         let role = 'user'; // Default
 
         // 1. Fetch Latest Role from Backend (Priority Source of Truth)
         try {
           const token = await window.Clerk?.session?.getToken();
-          const res = await fetch(`http://localhost:5000/api/profile/${user.id}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+          const res = await csrfManager.secureFetch(`/ api / profile / ${user.id} `, {
+            headers: { 'Authorization': `Bearer ${token} ` }
           });
           if (res.ok) {
             const data = await res.json();
@@ -53,7 +67,7 @@ const Login = () => {
     };
 
     performRedirect();
-  }, [isSignedIn, user, navigate]);
+  }, [isSignedIn, user, navigate, location]);
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen items-center justify-center font-inter relative bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-emerald-950/30">

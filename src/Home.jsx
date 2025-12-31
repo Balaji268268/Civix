@@ -1,16 +1,15 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import "./Home.css";
-import { motion } from "framer-motion";
-import Switch from "./DarkModeToggle";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth, useUser, SignInButton, SignUpButton, UserButton } from "@clerk/clerk-react";
 import { toast, ToastContainer } from 'react-toastify';
-import Navbar from "./components/Navbar";
+import csrfManager from './utils/csrfManager';
 
-import TestimonialCarousel from "./components/TestimonialCarousel";
-import { AnimatePresence } from "framer-motion";
+import "./Home.css";
 import favv from './favv.svg';
+import Navbar from "./components/Navbar";
+import TestimonialCarousel from "./components/TestimonialCarousel";
 import EnhancedQRCode from "./components/EnhancedQRCode";
 import ProfileCompletionBanner from "./components/ProfileCompletionBanner";
 import useProfileStatus from "./hooks/useProfileStatus";
@@ -41,26 +40,26 @@ function Home() {
     return () => window.removeEventListener("scroll", animateOnScroll);
   }, []);
 
-  // Redirect incomplete profiles to profile-setup, or dashboards if complete
+  //Redirect incomplete profiles to profile-setup, or dashboards if complete
   useEffect(() => {
     const handleRedirect = async () => {
       const profileJustSubmitted = sessionStorage.getItem('profileJustSubmitted') === 'true';
 
       if (isSignedIn && !profileLoading) {
-        // 1. Profile Setup Check
+        //1. Profile Setup Check
         if (!isProfileComplete && !profileJustSubmitted) {
           navigate('/profile-setup');
           return;
         }
 
-        // 2. Robust Role Check
+        //2. Robust Role Check
         let role = user?.publicMetadata?.role;
 
-        // Fallback to backend if not found in metadata
+        //Fallback to backend if not found in metadata
         if (!role) {
           try {
-            // Attempt to fetch from backend source of truth
-            const res = await fetch(`http://localhost:5000/api/profile/${user.id}`);
+            //Attempt to fetch from backend source of truth
+            const res = await csrfManager.secureFetch(`/api/profile/${user.id} `);
             if (res.ok) {
               const data = await res.json();
               if (data.role) role = data.role;
@@ -70,7 +69,7 @@ function Home() {
           }
         }
 
-        // 3. Routing
+        //3. Routing
         switch (role) {
           case 'admin':
             navigate('/admin/dashboard');
@@ -224,7 +223,7 @@ function Home() {
       {[...Array(5)].map((_, i) => (
         <svg
           key={i}
-          className={`w-4 h-4 ${i < rating ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'}`}
+          className={`w-4 h-4 ${i < rating ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'} `}
           fill="currentColor"
           viewBox="0 0 20 20"
         >
@@ -330,7 +329,7 @@ function Home() {
   ];
 
 
-  // Render Home Page UI with JSX
+  //Render Home Page UI with JSX
   return (
     <div className="flex min-h-screen flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <ToastContainer
@@ -385,7 +384,13 @@ function Home() {
                       <nav aria-label="primary actions" className="flex flex-col sm:flex-row gap-4">
                         <button
                           className="flex h-12 items-center justify-center rounded-lg bg-emerald-500 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02] group"
-                          onClick={() => navigate('/signup')}
+                          onClick={() => {
+                            if (isSignedIn) {
+                              navigate('/user/dashboard');
+                            } else {
+                              navigate('/signup');
+                            }
+                          }}
                         >
                           Get Started
                           <svg
@@ -751,9 +756,9 @@ function Home() {
                   <button
                     key={type}
                     className={`px-4 py-2 rounded-full transition
-              ${faqFilter === type
+             ${faqFilter === type
                         ? "bg-emerald-500 text-white font-semibold"
-                        : "bg-emerald-100 text-emerald-800"}`}
+                        : "bg-emerald-100 text-emerald-800"} `}
                     onClick={() => setFaqFilter(type)}
                     aria-pressed={faqFilter === type}
                   >
@@ -777,15 +782,14 @@ function Home() {
                   }}
                 >
                   <button
-                    className={`w-full text-left flex items-center justify-between px-4 py-3 border-0 outline-none focus:outline-none focus:ring-2 focus:ring-emerald-400 shadow-none rounded-lg transition-colors duration-300 text-base md:text-lg
-              ${activeFaq === faq.id
+                    className={`w-full text-left flex items-center justify-between px-4 py-3 border-0 outline-none focus: outline-none focus: ring-2 focus: ring-emerald-400 shadow-none rounded-lg transition-colors duration-300 text-base md: text-lg
+             ${activeFaq === faq.id
                         ? "bg-white dark:bg-emerald-700/30 text-emerald-900 dark:text-white font-semibold"
-                        : "bg-emerald-50 dark:bg-[#181e2f] text-emerald-800 dark:text-white hover:bg-emerald-100 dark:hover:bg-[#22273b]"
-                      }`}
+                        : "bg-emerald-50 dark:bg-[#181e2f] text-emerald-800 dark:text-white hover:bg-emerald-100 dark:hover:bg-[#22273b]"} `}
                     style={{ minHeight: 56 }}
                     onClick={() => setActiveFaq(activeFaq === faq.id ? null : faq.id)}
                     aria-expanded={activeFaq === faq.id}
-                    aria-controls={`faq-answer-${faq.id}`}
+                    aria-controls={`faq-answer-${faq.id} `}
                   >
                     <span className="flex items-center gap-2 font-medium">
                       {faq.icon}
@@ -810,7 +814,7 @@ function Home() {
                   <AnimatePresence initial={false}>
                     {activeFaq === faq.id && (
                       <motion.div
-                        id={`faq-answer-${faq.id}`}
+                        id={`faq-answer-${faq.id} `}
                         className="mt-1 px-4 bg-white/90 dark:bg-[#151c29ef] rounded-b-lg shadow-sm overflow-hidden"
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
@@ -832,9 +836,9 @@ function Home() {
                     src={faq.media}
                     alt="FAQ explainer"
                     className="mb-2 rounded-lg shadow-sm w-full max-w-xs"
-                    style={{ pointerEvents: "none" }}
+                    style={{ pointerEvents: "none"}}
                     loading="lazy"
-                  />
+                 />
                 )} */}
                       </motion.div>
                     )}
@@ -844,30 +848,26 @@ function Home() {
             </div>
 
             <style>{`
-      .faq-card-glass {
-        background: rgba(255,255,255,0.85);
-        border-radius: 1rem;
-        box-shadow: 0 2px 16px rgba(44,62,80,0.05);
-        backdrop-filter: blur(6px);
-        border: 1px solid rgba(52,211,153,0.12);
-        margin-bottom: 18px;
-        transition: box-shadow 0.3s, background 0.3s;
-      }
-      .faq-card-glass:focus-within,
-      .faq-card-glass:hover {
-        box-shadow: 0 6px 48px rgba(32,90,90,0.14);
-        background: rgba(240,253,250,0.97);
-      }
-      .dark .faq-card-glass {
-        background: rgba(18,22,34,0.83);
-        border: 1px solid rgba(16,185,129,0.09);
-      }
-      .dark .faq-card-glass:focus-within,
-      .dark .faq-card-glass:hover {
-        background: rgba(16,185,129,0.04);
-        box-shadow: 0 10px 48px rgba(16,185,129,0.14);
-      }
-    `}</style>
+              .faq-card-glass {
+              background: rgba(255, 255, 255, 0.85);
+              border-radius: 1rem;
+              box-shadow: 0 2px 16px rgba(44, 62, 80, 0.05);
+              backdrop-filter: blur(6px);
+              border: 1px solid rgba(52, 211, 153, 0.12);
+              margin-bottom: 18px;
+              transition: box-shadow 0.3s, background 0.3s;}
+                  .faq-card-glass:focus-within,
+                  .faq-card-glass:hover {
+              box-shadow: 0 6px 48px rgba(32, 90, 90, 0.14);
+              background: rgba(240, 253, 250, 0.97);}
+                  .dark.faq-card-glass {
+              background: rgba(18, 22, 34, 0.83);
+              border: 1px solid rgba(16, 185, 129, 0.09);}
+                  .dark.faq-card-glass:focus-within,
+                  .dark.faq-card-glass:hover {
+              background: rgba(16, 185, 129, 0.04);
+              box-shadow: 0 10px 48px rgba(16, 185, 129, 0.14);}
+            `}</style>
           </div>
 
 

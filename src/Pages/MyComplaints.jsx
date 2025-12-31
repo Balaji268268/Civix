@@ -17,7 +17,7 @@ const MyComplaints = () => {
         const email = user.primaryEmailAddress?.emailAddress;
         if (!email) return;
 
-        const response = await csrfManager.secureFetch(`http://localhost:5000/api/issues/my-issues?email=${email}`);
+        const response = await csrfManager.secureFetch(`/api/issues/my-issues?email=${email}`);
         if (response.ok) {
           const data = await response.json();
           setComplaints(data);

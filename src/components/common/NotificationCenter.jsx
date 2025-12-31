@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Bell, X } from "lucide-react";
+import { Bell, Check, X } from 'lucide-react';
+import csrfManager from '../../utils/csrfManager';
 import { useUser } from "@clerk/clerk-react";
 
 const NotificationCenter = () => {
@@ -13,25 +14,25 @@ const NotificationCenter = () => {
 
         const fetchNotifications = async () => {
             try {
-                // Fetch users issues to check for updates
-                // For Officers/Moderators, we might want a different logic eventually (e.g. Assigned Tasks)
-                // But for now, let's reuse this endpoint or create a new one. 
-                // Logic: Use same endpoint but filter by role in backend? 
-                // OR: Just fetch "My Issues" for everyone for now.
-                const response = await fetch(`http://localhost:5000/api/issues/my-issues?email=${user.emailAddresses[0].emailAddress}`);
+                // Get Clerk Token
+                const token = await window.Clerk?.session?.getToken();
+
+                const response = await csrfManager.secureFetch(`/api/notifications`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
                 if (response.ok) {
-                    const issues = await response.json();
-                    // Map to notifications
-                    const recentUpdates = issues
-                        .slice(0, 5) // Last 5
-                        .map(issue => ({
-                            id: issue._id,
-                            title: `Update: ${issue.title.substring(0, 20)}...`,
-                            message: `Status: ${issue.status} • Priority: ${issue.priority}`,
-                            time: new Date(issue.updatedAt || issue.createdAt).toLocaleDateString(),
-                            unread: true
-                        }));
-                    setNotifications(recentUpdates);
+                    const data = await response.json();
+                    setNotifications(data.map(n => ({
+                        id: n._id,
+                        title: n.title,
+                        message: n.message,
+                        time: new Date(n.createdAt).toLocaleDateString(), // or relative time
+                        type: n.type,
+                        unread: !n.read
+                    })));
                 }
             } catch (error) {
                 console.error("Failed to fetch notifications", error);
@@ -39,7 +40,7 @@ const NotificationCenter = () => {
         };
 
         fetchNotifications();
-        const interval = setInterval(fetchNotifications, 30000);
+        const interval = setInterval(fetchNotifications, 30000); // Poll every 30s
         return () => clearInterval(interval);
     }, [user, isLoaded]);
 

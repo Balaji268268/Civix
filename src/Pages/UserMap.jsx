@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, useMap, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { Globe, MapPin, ArrowLeft, Filter, Layers, Sparkles } from "lucide-react";
-// import { useNavigate } from "react-router-dom"; // Removed for artifact compatibility
+import { useNavigate } from "react-router-dom";
 
 // Custom marker icon (green pin)
 const customIcon = new L.Icon({
@@ -20,15 +20,14 @@ function FlyToLocation({ position }) {
 }
 
 export default function UserMap() {
-  // const navigate = useNavigate(); // Commented out for artifact compatibility
+  const navigate = useNavigate();
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [statusFilter, setStatusFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [mapView, setMapView] = useState("street");
 
   const handleBackClick = () => {
-    // In a real app, this would be: navigate("/user/dashboard");
-    console.log("Navigate back to dashboard");
+    navigate("/user/dashboard");
   };
 
   const userIssues = [
@@ -75,7 +74,7 @@ export default function UserMap() {
             onClick={handleBackClick}
             className="absolute left-0 top-0 group flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-lg shadow-green-500/5 hover:shadow-xl hover:shadow-green-500/10 border border-green-200/50 dark:border-green-700/50 text-green-700 dark:text-green-300 font-medium transition-all duration-300 hover:scale-105"
           >
-            <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform duration-300" /> 
+            <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform duration-300" />
             Back to Dashboard
           </button>
 
@@ -106,7 +105,7 @@ export default function UserMap() {
                 <Filter size={20} />
                 <span className="font-semibold">Filters</span>
               </div>
-              
+
               <select
                 className="bg-white/90 dark:bg-slate-700/90 backdrop-blur-sm border-2 border-green-200/50 dark:border-slate-600/50 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-green-400 focus:ring-4 focus:ring-green-400/10 transition-all duration-300 cursor-pointer hover:bg-white dark:hover:bg-slate-700"
                 value={statusFilter}
@@ -142,14 +141,13 @@ export default function UserMap() {
                 <Layers size={18} />
                 <span className="font-medium text-sm">View</span>
               </div>
-              
+
               <button
                 onClick={() => setMapView("street")}
-                className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 ${
-                  mapView === "street" 
-                    ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20" 
+                className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 ${mapView === "street"
+                    ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20"
                     : "bg-white/60 dark:bg-slate-700/60 text-green-600 dark:text-green-400 hover:bg-white/80 dark:hover:bg-slate-700/80 border border-green-200/50 dark:border-green-700/50"
-                }`}
+                  }`}
               >
                 <MapPin size={16} className={mapView === "street" ? "animate-pulse" : ""} />
                 Street
@@ -157,11 +155,10 @@ export default function UserMap() {
 
               <button
                 onClick={() => setMapView("satellite")}
-                className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 ${
-                  mapView === "satellite" 
-                    ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20" 
+                className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 ${mapView === "satellite"
+                    ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20"
                     : "bg-white/60 dark:bg-slate-700/60 text-green-600 dark:text-green-400 hover:bg-white/80 dark:hover:bg-slate-700/80 border border-green-200/50 dark:border-green-700/50"
-                }`}
+                  }`}
               >
                 <Globe size={16} className={mapView === "satellite" ? "animate-pulse" : ""} />
                 Satellite
@@ -211,7 +208,7 @@ export default function UserMap() {
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Popup Content */}
                         <div className="bg-white dark:bg-slate-800 p-4 rounded-b-2xl">
                           <p className="text-slate-700 dark:text-slate-300 mb-4 leading-relaxed">{issue.description}</p>

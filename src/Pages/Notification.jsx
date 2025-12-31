@@ -19,7 +19,7 @@ const Notifications = () => {
         const token = await getToken();
         if (!token) return;
 
-        const response = await csrfManager.secureFetch('http://localhost:5000/api/notifications', {
+        const response = await csrfManager.secureFetch('/api/notifications', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -45,7 +45,7 @@ const Notifications = () => {
       const token = await getToken();
       if (!token) return;
 
-      await csrfManager.secureFetch(`http://localhost:5000/api/notifications/${id}/read`, {
+      await csrfManager.secureFetch(`/api/notifications/${id}/read`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -64,7 +64,15 @@ const Notifications = () => {
 
           <div className="space-y-4 max-w-4xl">
             {notifications.length === 0 ? (
-              <div className="text-gray-500 text-center py-10">No notifications to display.</div>
+              <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-gray-800 rounded-3xl border border-dashed border-gray-300 dark:border-gray-700">
+                <div className="bg-emerald-50 dark:bg-gray-700/50 p-6 rounded-full mb-4 animate-in zoom-in duration-500">
+                  <Bell className="w-10 h-10 text-emerald-300 dark:text-gray-500" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">All Caught Up!</h3>
+                <p className="text-gray-500 dark:text-gray-400 max-w-xs text-center">
+                  You have no new notifications. We'll alert you when there's an update.
+                </p>
+              </div>
             ) : (
               notifications.map((notif) => (
                 <div key={notif._id} className={`p-5 rounded-xl border flex gap-4 ${notif.read ? 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700' : 'bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800'}`}>

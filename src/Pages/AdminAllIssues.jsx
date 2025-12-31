@@ -12,7 +12,7 @@ const AdminAllIssues = () => {
     useEffect(() => {
         const fetchIssues = async () => {
             try {
-                const response = await csrfManager.secureFetch(`http://localhost:5000/api/issues?t=${Date.now()}`);
+                const response = await csrfManager.secureFetch(`/api/issues?t=${Date.now()}`);
                 if (response.ok) {
                     const data = await response.json();
                     // Filter out rejected issues from main view, similar to Dashboard
@@ -57,8 +57,8 @@ const AdminAllIssues = () => {
                             key={status}
                             onClick={() => setFilter(status)}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === status
-                                    ? 'bg-emerald-500 text-white shadow-md'
-                                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                ? 'bg-emerald-500 text-white shadow-md'
+                                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
                                 }`}
                         >
                             {status}
@@ -104,8 +104,8 @@ const AdminAllIssues = () => {
                                     </td>
                                     <td className="py-4">
                                         <span className={`px-2 py-1 rounded-md text-xs font-bold ${issue.priority === 'High' ? 'bg-red-100 text-red-700' :
-                                                issue.priority === 'Medium' ? 'bg-orange-100 text-orange-700' :
-                                                    'bg-green-100 text-green-700'
+                                            issue.priority === 'Medium' ? 'bg-orange-100 text-orange-700' :
+                                                'bg-green-100 text-green-700'
                                             }`}>
                                             {issue.priority}
                                         </span>
@@ -115,12 +115,12 @@ const AdminAllIssues = () => {
                                     </td>
                                     <td className="py-4">
                                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${issue.status === 'Resolved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                                                issue.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                                    'bg-blue-50 text-blue-700 border-blue-200'
+                                            issue.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                'bg-blue-50 text-blue-700 border-blue-200'
                                             }`}>
                                             <span className={`w-1.5 h-1.5 rounded-full ${issue.status === 'Resolved' ? 'bg-emerald-500' :
-                                                    issue.status === 'Pending' ? 'bg-amber-500' :
-                                                        'bg-blue-500'
+                                                issue.status === 'Pending' ? 'bg-amber-500' :
+                                                    'bg-blue-500'
                                                 }`} />
                                             {issue.status}
                                         </span>

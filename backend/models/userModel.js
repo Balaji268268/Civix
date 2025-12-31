@@ -6,16 +6,28 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: { type: String, default: 'user' }, // could be 'admin' or 'user'
   location: { type: String, default: null },
+  coordinates: {
+    lat: { type: Number },
+    lng: { type: Number }
+  },
   profilePictureUrl: { type: String, default: null },
   clerkUserId: { type: String, unique: true, sparse: true }, // For Clerk integration
   trustScore: { type: Number, default: 100 },
   department: { type: String, default: null }, // e.g. 'Sanitation', 'Roads'
   activeTasks: { type: Number, default: 0 }, // For load balancing
+  gamification: {
+    xp: { type: Number, default: 0 },
+    level: { type: Number, default: 1 },
+    badges: [{ type: String }],
+    streak: { type: Number, default: 0 },
+    completedScenarios: [{ type: String }] // IDs of completed scenarios
+  },
+  profileSetupCompleted: { type: Boolean, default: false }
 }, { timestamps: true });
 
 // Method to check if profile is complete
 userSchema.methods.isProfileComplete = function () {
-  return this.name && this.email && this.location;
+  return Boolean(this.name && this.email && this.location);
 };
 
 // Static method to find user by Clerk ID

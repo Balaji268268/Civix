@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import {
-    Shield, CheckCircle, XCircle, AlertTriangle, Cpu, TrendingUp, Filter,
-    Loader2, Search, RefreshCw, ClipboardList, CheckSquare, UserPlus,
-    ArrowUpRight, Clock, MapPin, AlignLeft
+    LayoutDashboard, Shield, AlertTriangle, CheckCircle, XCircle,
+    MapPin, Calendar, Search, Filter, RefreshCw, ChevronLeft, ChevronRight, Loader2,
+    ArrowUpRight, Clock, AlignLeft, UserPlus, ClipboardList, CheckSquare, Cpu, TrendingUp
 } from "lucide-react";
 import { toast } from 'react-hot-toast';
 import ModeratorLayout from "../components/layout/ModeratorLayout";
@@ -52,7 +52,7 @@ export default function ModeratorDashboard() {
     const fetchIssues = async () => {
         setLoading(true);
         try {
-            const res = await csrfManager.secureFetch('http://localhost:5000/api/issues');
+            const res = await csrfManager.secureFetch('/api/issues');
             const data = await res.json();
             // Filter relevant: Pending, Open, In Progress
             const activeIssues = data.filter(i =>
@@ -93,7 +93,7 @@ export default function ModeratorDashboard() {
     const runAiAnalysis = async (issue) => {
         setAnalyzing(true);
         try {
-            const response = await csrfManager.secureFetch('http://localhost:5000/api/moderator/analyze', {
+            const response = await csrfManager.secureFetch('/api/moderator/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -136,8 +136,8 @@ export default function ModeratorDashboard() {
             // Fetch officers by department (category)
             const dept = selectedIssue.category || selectedIssue.aiAnalysis?.category || 'General';
             const token = await getToken();
-            const res = await csrfManager.secureFetch(`http://localhost:5000/api/issues/officers?department=${dept}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const res = await csrfManager.secureFetch(`/ api / issues / officers ? department = ${dept} `, {
+                headers: { 'Authorization': `Bearer ${token} ` }
             });
             const data = await res.json();
             setAvailableOfficers(data);
@@ -153,11 +153,11 @@ export default function ModeratorDashboard() {
         if (!selectedIssue) return;
         try {
             const token = await getToken();
-            const res = await csrfManager.secureFetch('http://localhost:5000/api/issues/assign-manual', {
+            const res = await csrfManager.secureFetch('/api/issues/assign-manual', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Authorization': `Bearer ${token} `
                 },
                 body: JSON.stringify({
                     issueId: selectedIssue._id,
@@ -184,7 +184,7 @@ export default function ModeratorDashboard() {
 
         try {
             const token = await getToken();
-            const res = await csrfManager.secureFetch(`http://localhost:5000/api/issues/${id}/status`, {
+            const res = await csrfManager.secureFetch(`/ api / issues / ${id}/status`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

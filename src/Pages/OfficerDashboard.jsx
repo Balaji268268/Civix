@@ -26,7 +26,7 @@ export default function OfficerDashboard() {
             try {
                 // Fetch tasks assigned to this officer
                 const token = await getToken();
-                const res = await csrfManager.secureFetch('http://localhost:5000/api/issues/assigned', {
+                const res = await csrfManager.secureFetch('/api/issues/assigned', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -48,7 +48,7 @@ export default function OfficerDashboard() {
         setStatusUpdating(true);
         try {
             const token = await getToken();
-            const res = await csrfManager.secureFetch(`http://localhost:5000/api/issues/${issueId}/status`, {
+            const res = await csrfManager.secureFetch(`/api/issues/${issueId}/status`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

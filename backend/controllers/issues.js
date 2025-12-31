@@ -29,6 +29,16 @@ const assignIssueToOfficer = async (issue, category) => {
       // Update Officer Load
       officer.activeTasks += 1;
       await officer.save();
+
+      // ALERT: Notify the Officer
+      await Notification.create({
+        recipient: officer._id.toString(), // or officer.email if using email-based notifications
+        title: "New Task Assigned",
+        message: `You have been assigned a new ${issue.priority} priority issue: "${issue.title}".`,
+        type: 'info',
+        relatedId: issue._id
+      });
+
       console.log(`[Smart Assignment] Issue ${issue.complaintId} assigned to ${officer.name}`);
     } else {
       console.log(`[Smart Assignment] No officer found for department: ${category}`);
@@ -431,17 +441,21 @@ const findDuplicatesForIssue = asyncHandler(async (req, res) => {
 });
 
 const getAssignedIssues = asyncHandler(async (req, res) => {
-  const { email } = req.query;
+  // 1. Get Clerk ID from token (sub)
+  const clerkId = req.user.sub || req.user.id;
 
-  if (!email) {
-    return res.status(400).json({ error: "Email is required" });
+  if (!clerkId) {
+    return res.status(401).json({ error: "Invalid token: User ID missing" });
   }
 
-  const user = await User.findOne({ email });
+  // 2. Find MongoDB User
+  const user = await User.findOne({ clerkUserId: clerkId }); // or findByClerkId if available
+
   if (!user) {
-    return res.status(404).json({ error: "Officer not found" });
+    return res.status(404).json({ error: "User profile not found. Complete profile set up." });
   }
 
+  // 3. Query using MongoDB _id
   const issues = await Issue.find({ assignedOfficer: user._id }).sort({ createdAt: -1 });
   res.json(issues);
 });
@@ -472,6 +486,15 @@ const manualAssignIssue = asyncHandler(async (req, res) => {
   // Update Officer Load
   officer.activeTasks = (officer.activeTasks || 0) + 1;
   await officer.save();
+
+  // ALERT: Notify the Officer (Fixed: Was missing in manual assignment)
+  await Notification.create({
+    recipient: officer._id.toString(),
+    title: "New Manual Assignment",
+    message: `Moderator assigned you: "${issue.title}". Check your dashboard.`,
+    type: 'info',
+    relatedId: issue._id
+  });
 
   return res.json({ message: "Assignment successful", issue });
 });

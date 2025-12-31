@@ -61,7 +61,7 @@ const ContactForm = () => {
 
     setIsLoading(true);
     try {
-      const response = await csrfManager.secureFetch('http://localhost:5000/api/contact', {
+      const response = await csrfManager.secureFetch('/api/contact', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -101,7 +101,8 @@ const ContactForm = () => {
     type = "text",
     icon,
     placeholder,
-    isTextArea = false
+    isTextArea = false,
+    inputMode = "text"
   ) => {
     const IconComponent = icon;
     return (
@@ -139,6 +140,7 @@ const ContactForm = () => {
           ) : (
             <input
               type={type}
+              inputMode={inputMode}
               id={name}
               name={name}
               value={formData[name]}
@@ -198,7 +200,7 @@ const ContactForm = () => {
   return (
     <div className="space-y-5">
       {renderFormField("name", "text", User, "Your Name")}
-      {renderFormField("email", "email", Mail, "Your Email")}
+      {renderFormField("email", "email", Mail, "Your Email", false, "email")}
       {renderFormField("message", "text", MessageCircle, "Your Message", true)}
       <button
         type="button"
