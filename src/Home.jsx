@@ -46,11 +46,11 @@ function Home() {
       const profileJustSubmitted = sessionStorage.getItem('profileJustSubmitted') === 'true';
 
       if (isSignedIn && !profileLoading) {
-        //1. Profile Setup Check
-        if (!isProfileComplete && !profileJustSubmitted) {
-          navigate('/profile-setup');
-          return;
-        }
+        // 1. Profile Setup Check - (DISABLED PER USER REQUEST)
+        // if (!isProfileComplete && !profileJustSubmitted) {
+        //   navigate('/profile-setup');
+        //   return;
+        // }
 
         //2. Robust Role Check
         let role = user?.publicMetadata?.role;

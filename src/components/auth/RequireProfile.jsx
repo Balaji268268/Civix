@@ -5,28 +5,7 @@ import useProfileStatus from '../../hooks/useProfileStatus';
 import { Loader2 } from 'lucide-react';
 
 const RequireProfile = ({ children }) => {
-    const { isSignedIn, isLoaded: isAuthLoaded } = useUser();
-    const { isProfileComplete, isLoading: isProfileLoading } = useProfileStatus();
-    const location = useLocation();
-
-    if (!isAuthLoaded || isProfileLoading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-                <Loader2 className="w-12 h-12 text-emerald-500 animate-spin" />
-            </div>
-        );
-    }
-
-    if (!isSignedIn) {
-        return <Navigate to="/login" state={{ from: location }} replace />;
-    }
-
-    // Strict Check: If profile is NOT complete, force them to setup
-    if (!isProfileComplete) {
-        return <Navigate to="/profile-setup" replace />;
-    }
-
-    // If complete, allow access
+    // Enforcement Disabled by User Request
     return children;
 };
 
