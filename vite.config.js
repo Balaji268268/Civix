@@ -28,6 +28,17 @@ export default defineConfig(({ mode }) => {
         },
         build: {
             outDir: 'build',
+            rollupOptions: {
+                output: {
+                    manualChunks: {
+                        vendor: ['react', 'react-dom', 'react-router-dom'],
+                        ui: ['framer-motion', 'lucide-react', 'react-icons'],
+                        charts: ['recharts', 'chart.js'],
+                        maps: ['leaflet', 'react-leaflet'],
+                        three: ['three'],
+                    }
+                }
+            }
         },
     };
 });

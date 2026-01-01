@@ -14,12 +14,13 @@ const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [rightDropdownOpen, setRightDropdownOpen] = useState(false);
   const rightDropdownRef = useRef(null);
-  const { isSignedIn, signOut } = useAuth();
+  // Fetch Notifications
+  // Use `useAuth` to get the token context
+  const { isSignedIn, signOut, getToken } = useAuth();
   const { user } = useUser();
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // Fetch Notifications
   useEffect(() => {
     if (!isSignedIn || !user) return;
 
@@ -28,7 +29,19 @@ const Navbar = () => {
         const email = user.emailAddresses[0]?.emailAddress;
         if (!email) return;
 
-        const response = await csrfManager.secureFetch(`/api/issues/my-issues?email=${email}`);
+        // Get the token securely from Clerk
+        const token = await getToken();
+        if (!token) {
+          // console.log("No auth token available for notifications fetch");
+          return;
+        }
+
+        const response = await csrfManager.secureFetch(`/api/issues/my-issues?email=${email}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
         if (response.ok) {
           const issues = await response.json();
           // Map recent 5 issues to notifications
@@ -42,6 +55,8 @@ const Navbar = () => {
               unread: true
             }));
           setNotifications(recentUpdates);
+        } else if (response.status === 401) {
+          console.warn("Unauthorized fetch for notifications - checks token validity.");
         }
       } catch (error) {
         console.error("Nav Notification Error", error);
@@ -51,7 +66,7 @@ const Navbar = () => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 60000); // Poll every minute
     return () => clearInterval(interval);
-  }, [isSignedIn, user]);
+  }, [isSignedIn, user, getToken]);
 
   const handleNav = (cb) => {
     setMobileMenuOpen(false);

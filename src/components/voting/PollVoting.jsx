@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
-  Vote, 
-  Shield, 
-  CheckCircle, 
+import {
+  X,
+  Vote,
+  Shield,
+  CheckCircle,
   AlertCircle,
   Eye,
   EyeOff,
@@ -59,8 +59,8 @@ const PollVoting = ({ poll, onClose, onVoteSubmitted }) => {
   const handleVerification = async () => {
     try {
       // Here you would make API call to verify voter
-      console.log('Verifying voter:', voterData.email);
-      
+      // console.log('Verifying voter:', voterData.email);
+
       // Simulate verification
       setIsVerified(true);
       setShowVerification(true);
@@ -73,8 +73,8 @@ const PollVoting = ({ poll, onClose, onVoteSubmitted }) => {
   const handleVerifyCode = async () => {
     try {
       // Here you would verify the code with API
-      console.log('Verifying code:', voterData.verificationCode);
-      
+      // console.log('Verifying code:', voterData.verificationCode);
+
       // Simulate verification
       if (voterData.verificationCode === '123456') { // Demo code
         setIsVerified(true);
@@ -93,11 +93,11 @@ const PollVoting = ({ poll, onClose, onVoteSubmitted }) => {
       ...prev,
       [questionId]: {
         questionId,
-        selectedOptions: questionType === 'single_choice' ? [value] : 
-                        questionType === 'multiple_choice' ? 
-                          (prev[questionId]?.selectedOptions || []).includes(value) ?
-                            (prev[questionId]?.selectedOptions || []).filter(v => v !== value) :
-                            [...(prev[questionId]?.selectedOptions || []), value] : [],
+        selectedOptions: questionType === 'single_choice' ? [value] :
+          questionType === 'multiple_choice' ?
+            (prev[questionId]?.selectedOptions || []).includes(value) ?
+              (prev[questionId]?.selectedOptions || []).filter(v => v !== value) :
+              [...(prev[questionId]?.selectedOptions || []), value] : [],
         rankedOptions: questionType === 'ranked_voting' ? value : undefined,
         textAnswer: questionType === 'text_input' ? value : undefined
       }
@@ -109,8 +109,8 @@ const PollVoting = ({ poll, onClose, onVoteSubmitted }) => {
       // Validate all required questions are answered
       const requiredQuestions = poll.questions.filter(q => q.required);
       const answeredQuestions = Object.keys(answers);
-      
-      const missingQuestions = requiredQuestions.filter(q => 
+
+      const missingQuestions = requiredQuestions.filter(q =>
         !answeredQuestions.includes(q._id)
       );
 
@@ -120,11 +120,11 @@ const PollVoting = ({ poll, onClose, onVoteSubmitted }) => {
       }
 
       // Here you would make API call to submit vote
-      console.log('Submitting vote:', {
-        answers: Object.values(answers),
-        voterEmail: voterData.email,
-        voterName: voterData.name
-      });
+      // console.log('Submitting vote:', {
+      //   answers: Object.values(answers),
+      //   voterEmail: voterData.email,
+      //   voterName: voterData.name
+      // });
 
       toast.success('Vote submitted successfully!');
       onVoteSubmitted?.();
@@ -430,7 +430,7 @@ const PollVoting = ({ poll, onClose, onVoteSubmitted }) => {
             >
               Cancel
             </button>
-            
+
             {currentStep === 2 && (
               <button
                 onClick={handleSubmitVote}

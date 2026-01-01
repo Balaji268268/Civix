@@ -210,6 +210,9 @@ const ReportIssue = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Issue Title</label>
               <input
                 required
+                id="title"
+                name="title"
+                autoComplete="off"
                 type="text"
                 placeholder={issueType === 'Public' ? "e.g., Deep Pothole on Main St" : "e.g., Incorrect Bill Amount"}
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
@@ -251,6 +254,9 @@ const ReportIssue = () => {
                   <div className="relative flex-1">
                     <MapPin className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
                     <input
+                      id="issue-location"
+                      name="location"
+                      autoComplete="street-address"
                       type="text"
                       placeholder="e.g., Near City Center Bus Stop"
                       className="w-full pl-10 px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500"
@@ -275,6 +281,9 @@ const ReportIssue = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone Contact</label>
               <input
                 required
+                id="contact"
+                name="contact"
+                autoComplete="tel"
                 type="tel"
                 inputMode="numeric"
                 placeholder="e.g., 9876543210"

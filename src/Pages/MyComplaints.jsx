@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import csrfManager from "../utils/csrfManager";
 import { Link } from "react-router-dom";
 
 const MyComplaints = () => {
   const { user, isLoaded } = useUser();
+  const { getToken } = useAuth();
   const [filter, setFilter] = useState("All");
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +18,12 @@ const MyComplaints = () => {
         const email = user.primaryEmailAddress?.emailAddress;
         if (!email) return;
 
-        const response = await csrfManager.secureFetch(`/api/issues/my-issues?email=${email}`);
+        const token = await getToken();
+        const response = await csrfManager.secureFetch(`/api/issues/my-issues?email=${email}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         if (response.ok) {
           const data = await response.json();
           setComplaints(data);

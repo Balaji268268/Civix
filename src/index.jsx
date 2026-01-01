@@ -6,8 +6,13 @@ import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter } from "react-router-dom";
 
 import ErrorBoundary from "./components/ErrorBoundary";
+import { ProfileProvider } from "./context/ProfileContext";
 
-const clerkPubKey = "pk_test_bWlnaHR5LWRvZS0zNy5jbGVyay5hY2NvdW50cy5kZXYk";
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+if (!clerkPubKey) {
+  throw new Error("Missing Publishable Key. Check VITE_CLERK_PUBLISHABLE_KEY in .env");
+}
 // const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
@@ -26,7 +31,9 @@ if (!clerkPubKey) {
         <ClerkProvider publishableKey={clerkPubKey}>
           <HelmetProvider>
             <BrowserRouter>
-              <App />
+              <ProfileProvider>
+                <App />
+              </ProfileProvider>
             </BrowserRouter>
           </HelmetProvider>
         </ClerkProvider>

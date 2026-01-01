@@ -13,8 +13,8 @@ const LocationAutocomplete = ({ value, onChange, placeholder, className, require
 
     // Sync internal query if external value changes (e.g. via geolocation button or hydration)
     useEffect(() => {
-        if (value !== query) {
-            setQuery(value);
+        if (value !== undefined && value !== query) {
+            setQuery(value || '');
         }
     }, [value]);
 
@@ -25,7 +25,7 @@ const LocationAutocomplete = ({ value, onChange, placeholder, className, require
             placesService.current = new window.google.maps.places.PlacesService(document.createElement('div'));
             setUsingGoogle(true);
         } else {
-            console.warn("Google Maps API not loaded. Falling back to OpenStreetMap.");
+            // console.log("Google Maps API not loaded. Using OpenStreetMap.");
             setUsingGoogle(false);
         }
     }, []);

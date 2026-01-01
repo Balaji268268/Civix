@@ -49,7 +49,7 @@ const Login = () => {
         }
 
         // 2. Redirect based on resolved role
-        console.log("Redirecting for role:", role);
+        // console.log("Redirecting for role:", role);
         switch (role) {
           case 'admin':
             navigate('/admin/dashboard');

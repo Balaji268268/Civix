@@ -40,55 +40,52 @@ function Home() {
     return () => window.removeEventListener("scroll", animateOnScroll);
   }, []);
 
-  //Redirect incomplete profiles to profile-setup, or dashboards if complete
-  useEffect(() => {
-    const handleRedirect = async () => {
-      const profileJustSubmitted = sessionStorage.getItem('profileJustSubmitted') === 'true';
+  // Smart "Get Started" Logic (No more passive loops)
+  const handleGetStarted = async () => {
+    if (!isSignedIn) {
+      navigate('/signup');
+      return;
+    }
 
-      if (isSignedIn && !profileLoading && isProfileComplete !== null) {
-        //1. Profile Setup Check
-        if (isProfileComplete === false && !profileJustSubmitted) {
-          navigate('/profile-setup');
-          return;
+    if (activeFaq) setActiveFaq(null); // Clear any UI state
+
+    // 1. If profile is loading, we can't decide yet.
+    // Ideally show a spinner, but for now, we just wait or let them click again.
+    if (profileLoading) return;
+
+    // 2. Strict Profile Check
+    if (!isProfileComplete) {
+      navigate('/profile-setup');
+      return;
+    }
+
+    // 3. Role-Based Navigation (Pro Flow)
+    // Robust check: Metadata > Backend > Default
+    let role = user?.publicMetadata?.role;
+    if (!role) {
+      try {
+        // Double-check backend if metadata is missing/stale
+        const res = await csrfManager.secureFetch(`/api/profile/${user.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          role = data.role;
         }
-
-        //2. Robust Role Check
-        let role = user?.publicMetadata?.role;
-
-        //Fallback to backend if not found in metadata
-        if (!role) {
-          try {
-            //Attempt to fetch from backend source of truth
-            const res = await csrfManager.secureFetch(`/api/profile/${user.id} `);
-            if (res.ok) {
-              const data = await res.json();
-              if (data.role) role = data.role;
-            }
-          } catch (e) {
-            console.warn("Home redirect role check failed:", e);
-          }
-        }
-
-        //3. Routing
-        switch (role) {
-          case 'admin':
-            navigate('/admin/dashboard');
-            break;
-          case 'moderator':
-            navigate('/moderator');
-            break;
-          case 'officer':
-            navigate('/officer/dashboard');
-            break;
-          case 'user':
-          default:
-            navigate('/user/dashboard');
-        }
+      } catch (e) {
+        console.warn("Role fetch fallback failed:", e);
       }
-    };
+    }
 
-    handleRedirect();
-  }, [isSignedIn, profileLoading, isProfileComplete, navigate, user]);
+    switch (role) {
+      case 'admin': navigate('/admin/dashboard'); break;
+      case 'moderator': navigate('/moderator'); break;
+      case 'officer': navigate('/officer/dashboard'); break;
+      case 'user':
+      default: navigate('/user/dashboard');
+    }
+  };
+
+  // Removed passive useEffect redirect to prevent loops on Home page visits.
+  // Users now explicitly choose to enter the app via "Get Started".
 
   const handleLogout = async () => {
     try {
@@ -384,13 +381,7 @@ function Home() {
                       <nav aria-label="primary actions" className="flex flex-col sm:flex-row gap-4">
                         <button
                           className="flex h-12 items-center justify-center rounded-lg bg-emerald-500 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 duration-300 shadow-lg hover:shadow-xl hover:scale-[1.02] group"
-                          onClick={() => {
-                            if (isSignedIn) {
-                              navigate('/user/dashboard');
-                            } else {
-                              navigate('/signup');
-                            }
-                          }}
+                          onClick={handleGetStarted}
                         >
                           Get Started
                           <svg
