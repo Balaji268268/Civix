@@ -14,6 +14,7 @@ import { useUser } from '@clerk/clerk-react';
 import { toast } from 'react-hot-toast';
 import useProfileStatus from '../hooks/useProfileStatus';
 import csrfManager from '../utils/csrfManager';
+import PageTransition from '../components/PageTransition';
 
 const Profile = () => {
   const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
@@ -135,138 +136,158 @@ const Profile = () => {
   if (!clerkUser) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-green-50/40 relative overflow-hidden">
-      {/* Background effects */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(16,185,129,0.08)_0%,transparent_50%)] pointer-events-none"></div>
+    <PageTransition>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-green-50/40 relative overflow-hidden">
+        {/* Background effects */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(16,185,129,0.08)_0%,transparent_50%)] pointer-events-none"></div>
 
-      <div className="relative z-10 p-4 sm:p-6 lg:p-8">
-        <div className="max-w-3xl mx-auto">
-          {/* Card */}
-          <div className="bg-white/60 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/30 overflow-hidden relative">
+        <div className="relative z-10 p-4 sm:p-6 lg:p-8">
+          <div className="max-w-3xl mx-auto">
+            {/* Card */}
+            <div className="bg-white/60 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/30 overflow-hidden relative">
 
-            {/* Header */}
-            <div className="relative bg-gradient-to-br from-emerald-500 via-green-600 to-teal-600 px-8 py-10">
-              <div className="relative z-10 flex items-center gap-6">
-                <div className="relative">
-                  <div className="w-20 h-20 rounded-3xl overflow-hidden border-2 border-white/40 shadow-2xl">
-                    <img
-                      src={clerkUser.imageUrl}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
+              {/* Header */}
+              <div className="relative bg-gradient-to-br from-emerald-500 via-green-600 to-teal-600 px-8 py-10">
+                <div className="relative z-10 flex items-center gap-6">
+                  <div className="relative">
+                    <div className="w-20 h-20 rounded-3xl overflow-hidden border-2 border-white/40 shadow-2xl">
+                      <img
+                        src={clerkUser.imageUrl}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="text-white">
-                  <h1 className="text-3xl font-bold mb-1 drop-shadow-sm">
-                    {clerkUser.fullName}
-                  </h1>
-                  <p className="text-emerald-50/90 text-lg font-medium drop-shadow-sm">
-                    {clerkUser.primaryEmailAddress?.emailAddress}
-                  </p>
+                  <div className="text-white">
+                    <h1 className="text-3xl font-bold mb-1 drop-shadow-sm">
+                      {clerkUser.fullName}
+                    </h1>
+                    <p className="text-emerald-50/90 text-lg font-medium drop-shadow-sm">
+                      {clerkUser.primaryEmailAddress?.emailAddress}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Content */}
-            <div className="relative z-10 p-8">
-              <div className="space-y-8">
+              {/* Content */}
+              <div className="relative z-10 p-8">
+                <div className="space-y-8">
 
-                {/* Form */}
-                <div className="grid gap-6">
-                  {/* Name */}
-                  <div className="space-y-3">
-                    <label className="flex items-center gap-3 text-sm font-bold text-slate-700 uppercase tracking-wide">
-                      <div className="p-2 rounded-xl bg-emerald-100/60"><User className="w-4 h-4 text-emerald-600" /></div>
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.username}
-                      disabled={!isEditing}
-                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                      className={`w - full px - 6 py - 4 rounded - 2xl border - 2 outline - none transition - all duration - 300 text - lg font - medium ${isEditing ? 'border-emerald-200 bg-white focus:border-emerald-400' : 'border-slate-200/50 bg-slate-50/50 text-slate-600'
-                        } `}
-                    />
-                  </div>
-
-                  {/* Email (Read Only) */}
-                  <div className="space-y-3">
-                    <label className="flex items-center gap-3 text-sm font-bold text-slate-700 uppercase tracking-wide">
-                      <div className="p-2 rounded-xl bg-blue-100/60"><Mail className="w-4 h-4 text-blue-600" /></div>
-                      Email Address (Managed via Account)
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.email}
-                      disabled={true}
-                      className="w-full px-6 py-4 rounded-2xl border-2 border-slate-200/50 bg-slate-50/50 text-slate-500 cursor-not-allowed outline-none text-lg font-medium"
-                    />
-                  </div>
-
-                  {/* Location */}
-                  <div className="space-y-3">
-                    <label className="flex items-center gap-3 text-sm font-bold text-slate-700 uppercase tracking-wide">
-                      <div className="p-2 rounded-xl bg-purple-100/60"><MapPin className="w-4 h-4 text-purple-600" /></div>
-                      Location
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.location}
-                      disabled={!isEditing}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      className={`w - full px - 6 py - 4 rounded - 2xl border - 2 outline - none transition - all duration - 300 text - lg font - medium ${isEditing ? 'border-emerald-200 bg-white focus:border-emerald-400' : 'border-slate-200/50 bg-slate-50/50 text-slate-600'
-                        } `}
-                    />
-                  </div>
-                </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
-                  <div className="relative bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-100 rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2.5 bg-red-100 rounded-xl"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
-                      <span className="text-sm font-bold text-red-700 uppercase tracking-wide">Total Complaints</span>
+                  {/* Form */}
+                  <div className="grid gap-6">
+                    {/* Name */}
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-3 text-sm font-bold text-slate-700 uppercase tracking-wide">
+                        <div className="p-2 rounded-xl bg-emerald-100/60"><User className="w-4 h-4 text-emerald-600" /></div>
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.username}
+                        disabled={!isEditing}
+                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                        className={`w-full px-6 py-4 rounded-2xl border-2 outline-none transition-all duration-300 text-lg font-medium ${isEditing ? 'border-emerald-200 bg-white focus:border-emerald-400' : 'border-slate-200/50 bg-slate-50/50 text-slate-600'
+                          }`}
+                      />
                     </div>
-                    <div className="text-3xl font-bold text-red-700">{stats.complaints}</div>
-                  </div>
 
-                  <div className="relative bg-gradient-to-br from-emerald-50 to-green-50 border-2 border-emerald-100 rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="p-2.5 bg-emerald-100 rounded-xl"><Clock className="w-5 h-5 text-emerald-600" /></div>
-                      <span className="text-sm font-bold text-emerald-700 uppercase tracking-wide">Last Active</span>
+                    {/* Email (Read Only) */}
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-3 text-sm font-bold text-slate-700 uppercase tracking-wide">
+                        <div className="p-2 rounded-xl bg-blue-100/60"><Mail className="w-4 h-4 text-blue-600" /></div>
+                        Email Address (Managed via Account)
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.email}
+                        disabled={true}
+                        className="w-full px-6 py-4 rounded-2xl border-2 border-slate-200/50 bg-slate-50/50 text-slate-500 cursor-not-allowed outline-none text-lg font-medium"
+                      />
                     </div>
-                    <div className="text-sm font-semibold text-emerald-700">{stats.lastActivity}</div>
+
+                    {/* Location */}
+                    <div className="space-y-3">
+                      <label className="flex items-center gap-3 text-sm font-bold text-slate-700 uppercase tracking-wide">
+                        <div className="p-2 rounded-xl bg-purple-100/60"><MapPin className="w-4 h-4 text-purple-600" /></div>
+                        Location
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.location}
+                        disabled={!isEditing}
+                        onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                        className={`w-full px-6 py-4 rounded-2xl border-2 outline-none transition-all duration-300 text-lg font-medium ${isEditing ? 'border-emerald-200 bg-white focus:border-emerald-400' : 'border-slate-200/50 bg-slate-50/50 text-slate-600'
+                          }`}
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* Actions */}
-                <div className="flex flex-col sm:flex-row gap-4 pt-8 border-t border-slate-200/50">
-                  {isEditing ? (
-                    <button
-                      onClick={handleSave}
-                      disabled={isSaving}
-                      className="flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-emerald-600 to-green-700 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all"
-                    >
-                      <Save className="w-5 h-5" />
-                      {isSaving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-emerald-600 to-green-700 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all"
-                    >
-                      <Edit3 className="w-5 h-5" />
-                      Edit Profile
-                    </button>
-                  )}
-                </div>
+                  {/* Stats */}
+                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 pt-4">
+                    <div className="relative bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-100 rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-red-100 rounded-xl"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
+                        <span className="text-sm font-bold text-red-700 uppercase tracking-wide">Complaints</span>
+                      </div>
+                      <div className="text-3xl font-bold text-red-700">{stats.complaints}</div>
+                    </div>
 
+                    {/* Gamification Stats */}
+                    <div className="relative bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-100 rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-yellow-100 rounded-xl">⭐</div>
+                        <span className="text-sm font-bold text-yellow-700 uppercase tracking-wide">Points</span>
+                      </div>
+                      <div className="text-3xl font-bold text-yellow-700">{profileData?.gamification?.points || 0}</div>
+                    </div>
+
+                    <div className="relative bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-100 rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-blue-100 rounded-xl">👑</div>
+                        <span className="text-sm font-bold text-blue-700 uppercase tracking-wide">Level</span>
+                      </div>
+                      <div className="text-3xl font-bold text-blue-700">{profileData?.gamification?.level || 1}</div>
+                    </div>
+
+                    {/* Badge Preview */}
+                    <div className="relative bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-100 rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="p-2.5 bg-purple-100 rounded-xl">🏅</div>
+                        <span className="text-sm font-bold text-purple-700 uppercase tracking-wide">Badges</span>
+                      </div>
+                      <div className="text-3xl font-bold text-purple-700">{profileData?.gamification?.badges?.length || 0}</div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex flex-col sm:flex-row gap-4 pt-8 border-t border-slate-200/50">
+                    {isEditing ? (
+                      <button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-emerald-600 to-green-700 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all"
+                      >
+                        <Save className="w-5 h-5" />
+                        {isSaving ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setIsEditing(true)}
+                        className="flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-emerald-600 to-green-700 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transition-all"
+                      >
+                        <Edit3 className="w-5 h-5" />
+                        Edit Profile
+                      </button>
+                    )}
+                  </div>
+
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </PageTransition>
   );
 };
 

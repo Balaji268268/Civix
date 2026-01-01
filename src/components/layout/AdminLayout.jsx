@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import AdminSidebar from '../AdminSidebar';
 import NotificationCenter from '../common/NotificationCenter';
+import PageTransition from '../PageTransition';
 
 const AdminLayout = ({ children, title, subtitle }) => {
     const navigate = useNavigate();
@@ -46,7 +47,9 @@ const AdminLayout = ({ children, title, subtitle }) => {
                         </div>
                     )}
 
-                    {children}
+                    <PageTransition>
+                        {children}
+                    </PageTransition>
                 </div>
             </main>
         </div>

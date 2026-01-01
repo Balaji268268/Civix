@@ -18,11 +18,17 @@ const userSchema = new mongoose.Schema({
   gamification: {
     xp: { type: Number, default: 0 },
     level: { type: Number, default: 1 },
-    badges: [{ type: String }],
-    streak: { type: Number, default: 0 },
+    points: { type: Number, default: 0 },
+    badges: [{
+      id: { type: String },
+      name: { type: String },
+      icon: { type: String },
+      awardedAt: { type: Date, default: Date.now }
+    }],
     completedScenarios: [{ type: String }] // IDs of completed scenarios
   },
-  profileSetupCompleted: { type: Boolean, default: false }
+  profileSetupCompleted: { type: Boolean, default: false },
+  isAvailable: { type: Boolean, default: true }
 }, { timestamps: true });
 
 // Method to check if profile is complete

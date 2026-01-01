@@ -12,6 +12,9 @@ import OfficerLayout from "../components/layout/OfficerLayout";
  * - Update status (Resolve/Reject)
  * - Timeline tracking
  */
+import PollCreation from "../components/voting/PollCreation";
+import { PlusCircle } from "lucide-react";
+
 export default function OfficerDashboard() {
     const { user } = useUser();
     const { getToken } = useAuth();
@@ -19,6 +22,7 @@ export default function OfficerDashboard() {
     const [loading, setLoading] = useState(true);
     const [selectedTask, setSelectedTask] = useState(null);
     const [statusUpdating, setStatusUpdating] = useState(false);
+    const [showPollModal, setShowPollModal] = useState(false);
 
     useEffect(() => {
         const fetchTasks = async () => {
@@ -75,6 +79,20 @@ export default function OfficerDashboard() {
 
     return (
         <OfficerLayout>
+            <div className="flex justify-between items-center mb-6">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Field Operations</h1>
+                    <p className="text-gray-500 dark:text-gray-400">Manage assigned tasks and civic engagement</p>
+                </div>
+                <button
+                    onClick={() => setShowPollModal(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg transition-transform hover:scale-105"
+                >
+                    <PlusCircle className="w-5 h-5" />
+                    Create Poll
+                </button>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Task List */}
                 <div className="space-y-4">
@@ -161,6 +179,15 @@ export default function OfficerDashboard() {
                     )}
                 </div>
             </div>
+
+            {showPollModal && (
+                <PollCreation
+                    onClose={() => setShowPollModal(false)}
+                    onPollCreated={() => {
+                        toast.success("Poll published to citizens!");
+                    }}
+                />
+            )}
         </OfficerLayout>
     );
 }

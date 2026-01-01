@@ -1,14 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const { getPolls, createPoll, votePoll } = require('../controllers/pollController');
+const pollController = require('../controllers/pollController');
 const { verifyToken } = require('../middlewares/validate');
 
-// Public read (users can see polls), but voting/creating requires auth
-// For simplicity, requiring auth for all for now as per app design
-router.use(verifyToken);
+// Public/Authenticated
+router.get('/', verifyToken, pollController.getActivePolls); // Optional auth done in controller via middleware presence
 
-router.get('/', getPolls);
-router.post('/', createPoll);
-router.post('/:id/vote', votePoll);
+// Authenticated Routes
+router.post('/create', verifyToken, pollController.createPoll);
+router.post('/:pollId/vote', verifyToken, pollController.votePoll);
 
 module.exports = router;

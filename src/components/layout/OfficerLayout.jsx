@@ -3,6 +3,7 @@ import { useAuth, useUser } from "@clerk/clerk-react";
 import { Shield, LogOut, CheckCircle, List } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import NotificationCenter from "../common/NotificationCenter";
+import PageTransition from "../PageTransition";
 
 const OfficerLayout = ({ children }) => {
     const { signOut } = useAuth();
@@ -55,7 +56,9 @@ const OfficerLayout = ({ children }) => {
                         </div>
                     </div>
                 </header>
-                {children}
+                <PageTransition>
+                    {children}
+                </PageTransition>
             </main>
         </div>
     );

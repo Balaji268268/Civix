@@ -127,21 +127,25 @@ export default function ModeratorDashboard() {
         }
     };
 
-    // 2. Fetch Officers for Modal
+    // 2. Fetch Officers for Modal (Enhanced with AI Suggestions)
     const openAssignModal = async () => {
         if (!selectedIssue) return;
         setShowAssignModal(true);
         setLoadingOfficers(true);
         try {
-            // Fetch officers by department (category)
-            const dept = selectedIssue.category || selectedIssue.aiAnalysis?.category || 'General';
             const token = await getToken();
+<<<<<<< HEAD
             const res = await csrfManager.secureFetch(`/ api / issues / officers ? department = ${dept} `, {
                 headers: { 'Authorization': `Bearer ${token} ` }
+=======
+            const res = await csrfManager.secureFetch(`http://localhost:5000/api/issues/ai-suggest/${selectedIssue._id}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+>>>>>>> bd191549b4d1acf566f2f903976e623962773d66
             });
             const data = await res.json();
-            setAvailableOfficers(data);
+            setAvailableOfficers(data.suggestions || []);
         } catch (err) {
+            console.error("Fetch officers error:", err);
             toast.error("Could not fetch officers");
         } finally {
             setLoadingOfficers(false);
@@ -558,26 +562,43 @@ export default function ModeratorDashboard() {
                                 ) : availableOfficers.length === 0 ? (
                                     <div className="text-center py-12 text-gray-500">No officers found for this department.</div>
                                 ) : (
-                                    <div className="space-y-1">
-                                        {availableOfficers.map(officer => (
+                                    <div className="space-y-2">
+                                        {availableOfficers.map((officer, idx) => (
                                             <button
                                                 key={officer._id}
                                                 onClick={() => handleAssignOfficer(officer._id)}
-                                                className="w-full p-4 flex justify-between items-center hover:bg-indigo-50 rounded-xl transition group border border-transparent hover:border-indigo-100 text-left"
+                                                className={`w-full p-4 flex justify-between items-center rounded-xl transition group border text-left relative overflow-hidden ${idx === 0 ? 'bg-indigo-50 border-indigo-200 hover:bg-indigo-100' : 'bg-white border-transparent hover:border-gray-200 hover:bg-gray-50'
+                                                    }`}
                                             >
+                                                {/* Best Fit Badge */}
+                                                {idx === 0 && (
+                                                    <div className="absolute top-0 right-0 bg-indigo-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">
+                                                        AI RECOMMENDED
+                                                    </div>
+                                                )}
+
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 font-bold group-hover:bg-indigo-200 group-hover:text-indigo-700">
+                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${idx === 0 ? 'bg-indigo-200 text-indigo-700' : 'bg-gray-100 text-gray-600'
+                                                        }`}>
                                                         {officer.name.charAt(0)}
                                                     </div>
                                                     <div>
-                                                        <h4 className="font-bold text-gray-900">{officer.name}</h4>
-                                                        <p className="text-xs text-gray-500">{officer.email}</p>
+                                                        <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                                                            {officer.name}
+                                                            {officer.score > 80 && <span className="text-xs text-green-600 font-normal">({officer.score}% Match)</span>}
+                                                        </h4>
+                                                        <p className="text-xs text-gray-500">{officer.reason || (officer.activeTasks === 0 ? "Idle" : "Active")}</p>
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <span className={`text-xs px-2 py-1 rounded-full ${officer.activeTasks > 5 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                                                    <span className={`text-xs px-2 py-1 rounded-full ${officer.isOverloaded || officer.activeTasks > 5 ? 'bg-red-100 text-red-700 font-bold' : 'bg-green-100 text-green-700'}`}>
                                                         {officer.activeTasks} Active Tasks
                                                     </span>
+                                                    {officer.activeTasks > 5 && (
+                                                        <div className="text-[10px] text-red-500 font-bold mt-1 flex items-center justify-end gap-1">
+                                                            <AlertTriangle size={10} /> HIGH LOAD
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </button>
                                         ))}

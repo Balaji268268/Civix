@@ -19,6 +19,7 @@ router.get("/:id/duplicates", verifyToken, isAdmin, issueController.findDuplicat
 // Moderator routes must be before /:id to avoid ID collision
 router.post("/assign-manual", verifyToken, issueController.manualAssignIssue);
 router.get("/officers", verifyToken, issueController.getOfficersByDepartment);
+router.get("/ai-suggest/:id", verifyToken, issueController.suggestOfficer);
 
 router.get("/:id", issueController.getIssueById);
 

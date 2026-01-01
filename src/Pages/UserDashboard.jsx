@@ -31,6 +31,9 @@ import {
 } from "lucide-react";
 
 import TrendingFeed from "./TrendingFeed";
+import Leaderboard from "../components/gamification/Leaderboard";
+import PageTransition from "../components/PageTransition";
+
 
 const UserDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -255,13 +258,20 @@ const UserDashboard = () => {
               ))}
           </div>
 
-          {/* Trending Feed Sidebar */}
-          <div className="lg:w-96 shrink-0">
+          {/* Trending Feed and Leaderboard Sidebar */}
+          <div className="lg:w-96 shrink-0 space-y-8">
+            {/* Leaderboard Section */}
+            <div className="h-[500px]">
+              <Leaderboard />
+            </div>
+
             <TrendingFeed />
           </div>
         </div>
       </main>
+
     </div>
+    </PageTransition >
   );
 };
 

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
-  Plus, 
-  Trash2, 
-  Save, 
-  ArrowRight, 
+import {
+  X,
+  Plus,
+  Trash2,
+  Save,
+  ArrowRight,
   ArrowLeft,
   Eye,
   EyeOff,
@@ -15,6 +15,8 @@ import {
   Settings
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '@clerk/clerk-react';
+import csrfManager from '../../utils/csrfManager';
 
 const PollCreation = ({ onClose, onPollCreated }) => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -87,13 +89,13 @@ const PollCreation = ({ onClose, onPollCreated }) => {
   ];
 
   const categories = [
-    'Politics', 'Community', 'Education', 'Business', 
+    'Politics', 'Community', 'Education', 'Business',
     'Entertainment', 'Technology', 'Health', 'Environment'
   ];
 
   const handleTemplateSelect = (template) => {
     let questions = [];
-    
+
     switch (template.id) {
       case 'election':
         questions = [{
@@ -109,7 +111,7 @@ const PollCreation = ({ onClose, onPollCreated }) => {
           order: 0
         }];
         break;
-      
+
       case 'survey':
         questions = [
           {
@@ -140,7 +142,7 @@ const PollCreation = ({ onClose, onPollCreated }) => {
           }
         ];
         break;
-      
+
       case 'ranking':
         questions = [{
           text: 'Rank these options in order of preference:',
@@ -156,7 +158,7 @@ const PollCreation = ({ onClose, onPollCreated }) => {
           order: 0
         }];
         break;
-      
+
       case 'feedback':
         questions = [{
           text: 'Please provide your feedback:',
@@ -174,7 +176,7 @@ const PollCreation = ({ onClose, onPollCreated }) => {
       questions,
       category: template.name
     }));
-    
+
     setCurrentStep(2);
   };
 
@@ -201,7 +203,7 @@ const PollCreation = ({ onClose, onPollCreated }) => {
   const updateQuestion = (index, field, value) => {
     setPollData(prev => ({
       ...prev,
-      questions: prev.questions.map((q, i) => 
+      questions: prev.questions.map((q, i) =>
         i === index ? { ...q, [field]: value } : q
       )
     }));
@@ -210,8 +212,8 @@ const PollCreation = ({ onClose, onPollCreated }) => {
   const addOption = (questionIndex) => {
     setPollData(prev => ({
       ...prev,
-      questions: prev.questions.map((q, i) => 
-        i === questionIndex 
+      questions: prev.questions.map((q, i) =>
+        i === questionIndex
           ? { ...q, options: [...q.options, { text: '', order: q.options.length }] }
           : q
       )
@@ -221,14 +223,14 @@ const PollCreation = ({ onClose, onPollCreated }) => {
   const updateOption = (questionIndex, optionIndex, value) => {
     setPollData(prev => ({
       ...prev,
-      questions: prev.questions.map((q, i) => 
-        i === questionIndex 
+      questions: prev.questions.map((q, i) =>
+        i === questionIndex
           ? {
-              ...q,
-              options: q.options.map((opt, j) => 
-                j === optionIndex ? { ...opt, text: value } : opt
-              )
-            }
+            ...q,
+            options: q.options.map((opt, j) =>
+              j === optionIndex ? { ...opt, text: value } : opt
+            )
+          }
           : q
       )
     }));
@@ -243,6 +245,8 @@ const PollCreation = ({ onClose, onPollCreated }) => {
     }
   };
 
+  const { getToken } = useAuth();
+
   const handleSubmit = async () => {
     try {
       // Validate data
@@ -251,13 +255,48 @@ const PollCreation = ({ onClose, onPollCreated }) => {
         return;
       }
 
-      // Here you would make API call to create poll
-      console.log('Creating poll:', pollData);
-      
-      toast.success('Poll created successfully!');
-      onPollCreated?.();
+      const token = await getToken();
+      if (!token) {
+        toast.error("Authentication required");
+        return;
+      }
+
+      // Map to Simple Backend Schema (Single Question)
+      // Use Title/Description for context, and First Question for the poll
+      const mainQuestion = pollData.questions[0];
+      const payload = {
+        question: mainQuestion.text || pollData.title, // Fallback if question text empty
+        description: pollData.description,
+        options: mainQuestion.options.map(o => o.text).filter(t => t.trim() !== ""),
+        category: pollData.category,
+        expiresAt: pollData.endDate
+      };
+
+      if (payload.options.length < 2) {
+        toast.error("At least 2 options are required");
+        return;
+      }
+
+      const response = await csrfManager.secureFetch('http://localhost:5000/api/polls/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        toast.success('Poll created successfully!');
+        onPollCreated?.();
+        onClose();
+      } else {
+        const err = await response.json();
+        throw new Error(err.message || "Failed to create poll");
+      }
     } catch (error) {
-      toast.error('Failed to create poll');
+      console.error('Create poll error:', error);
+      toast.error(error.message || 'Failed to create poll');
     }
   };
 
@@ -294,11 +333,10 @@ const PollCreation = ({ onClose, onPollCreated }) => {
           <div className="flex items-center justify-between">
             {steps.map((step, index) => (
               <div key={step.number} className="flex items-center">
-                <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
-                  currentStep >= step.number
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-300 text-gray-600 dark:bg-gray-600 dark:text-gray-300'
-                }`}>
+                <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${currentStep >= step.number
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-300 text-gray-600 dark:bg-gray-600 dark:text-gray-300'
+                  }`}>
                   {step.number}
                 </div>
                 <div className="ml-3 hidden sm:block">
@@ -310,9 +348,8 @@ const PollCreation = ({ onClose, onPollCreated }) => {
                   </p>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`w-16 h-0.5 mx-4 ${
-                    currentStep > step.number ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
-                  }`} />
+                  <div className={`w-16 h-0.5 mx-4 ${currentStep > step.number ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                    }`} />
                 )}
               </div>
             ))}
@@ -582,7 +619,7 @@ const PollCreation = ({ onClose, onPollCreated }) => {
                       <Shield className="w-5 h-5 mr-2" />
                       Security Settings
                     </h4>
-                    
+
                     <label className="flex items-center">
                       <input
                         type="checkbox"
@@ -637,7 +674,7 @@ const PollCreation = ({ onClose, onPollCreated }) => {
                       <Eye className="w-5 h-5 mr-2" />
                       Display Settings
                     </h4>
-                    
+
                     <label className="flex items-center">
                       <input
                         type="checkbox"
@@ -710,7 +747,7 @@ const PollCreation = ({ onClose, onPollCreated }) => {
             >
               Cancel
             </button>
-            
+
             {currentStep < 4 ? (
               <button
                 onClick={() => setCurrentStep(currentStep + 1)}

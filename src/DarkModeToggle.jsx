@@ -3,7 +3,11 @@ import styled from 'styled-components';
 
 const Switch = () => {
   // State to track dark mode
-  const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') === 'dark');
+  const [isDark, setIsDark] = useState(() => {
+    const stored = localStorage.getItem('theme');
+    if (stored) return stored === 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
 
   useEffect(() => {
     if (isDark) {
@@ -48,7 +52,7 @@ const Switch = () => {
 
 const StyledWrapper = styled.div`
   .theme-switch {
-    --toggle-size: 10px;
+    --toggle-size: 7px;
     /* the size is adjusted using font-size,
        this is not transform scale,
        so you can choose any size */
