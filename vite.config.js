@@ -33,7 +33,7 @@ export default defineConfig(({ mode }) => {
                     manualChunks: {
                         vendor: ['react', 'react-dom', 'react-router-dom'],
                         ui: ['framer-motion', 'lucide-react', 'react-icons'],
-                        charts: ['recharts', 'chart.js'],
+                        charts: ['recharts'],
                         maps: ['leaflet', 'react-leaflet'],
                         three: ['three'],
                     }
