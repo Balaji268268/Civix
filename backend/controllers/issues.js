@@ -8,6 +8,9 @@ const { uploadOnCloudinary } = require("../utils/cloudinary.js");
 const { callGemini, callGeminiVision } = require("../utils/gemini");
 const axios = require('axios');
 
+// Helper: ML Service Config
+const ML_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+
 // Helper: Smart Assignment Algorithm
 const assignIssueToOfficer = async (issue, category) => {
   try {
@@ -113,10 +116,10 @@ const createIssue = asyncHandler(async (req, res) => {
     // 2. Generate Embedding & Predictions
     // We run parallel requests for maximum speed
     const [pRes, fRes, cRes, eRes] = await Promise.allSettled([
-      axios.post('http://localhost:8000/api/predict-priority/', mlPayload),
-      axios.post('http://localhost:8000/api/detect-fake/', mlPayload),
-      axios.post('http://localhost:8000/api/categorize/', mlPayload),
-      axios.post('http://localhost:8000/api/get-embedding/', { text: title + " " + description })
+      axios.post(`${ML_URL}/api/predict-priority/`, mlPayload),
+      axios.post(`${ML_URL}/api/detect-fake/`, mlPayload),
+      axios.post(`${ML_URL}/api/categorize/`, mlPayload),
+      axios.post(`${ML_URL}/api/get-embedding/`, { text: title + " " + description })
     ]);
 
     if (pRes.status === 'fulfilled') mlData.priority = pRes.value.data.priority;
@@ -165,7 +168,7 @@ const createIssue = asyncHandler(async (req, res) => {
   if (fileUrl) {
     try {
       // Analyze tags separately if needed
-      // const imgRes = await axios.post('http://localhost:8000/api/analyze-image/', { imageUrl: fileUrl });
+      // const imgRes = await axios.post(`${ML_URL}/api/analyze-image/`, { imageUrl: fileUrl });
       // mlData.tags = imgRes.data.tags; 
     } catch (e) {
       console.warn("ML Image analysis failed:", e.message);
@@ -180,7 +183,7 @@ const createIssue = asyncHandler(async (req, res) => {
         .limit(100)
         .select('title description complaintId _id');
 
-      const duplicateCheck = await axios.post('http://localhost:8000/api/find-duplicates/', {
+      const duplicateCheck = await axios.post(`${ML_URL}/api/find-duplicates/`, {
         candidate: { title, description },
         existing_issues: activeIssues
       });
@@ -424,7 +427,7 @@ const findDuplicatesForIssue = asyncHandler(async (req, res) => {
       .limit(100)
       .select('title description complaintId _id priority status');
 
-    const response = await axios.post('http://localhost:8000/api/find-duplicates/', {
+    const response = await axios.post(`${ML_URL}/api/find-duplicates/`, {
       candidate: { title: issue.title, description: issue.description },
       existing_issues: activeIssues
     });
