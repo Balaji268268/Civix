@@ -34,7 +34,6 @@ import TrendingFeed from "./TrendingFeed";
 import Leaderboard from "../components/gamification/Leaderboard";
 import PageTransition from "../components/PageTransition";
 
-
 const UserDashboard = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { user, isLoaded } = useUser();
@@ -211,17 +210,6 @@ const UserDashboard = () => {
     }
   ];
 
-  /* 
-   * Note: Original dashboardItems definition omitted for brevity, 
-   * assume it remains unchanged or we just replaced the top state logic.
-   * To safely replace, I must know exactly where dashboardItems starts.
-   * Based on file view, it started at line 42.
-   * I will just replace the state block and fetch logic.
-   */
-
-
-
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-gray-900 dark:to-black">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -258,20 +246,21 @@ const UserDashboard = () => {
               ))}
           </div>
 
-          {/* Trending Feed and Leaderboard Sidebar */}
+          {/* Right Sidebar */}
           <div className="lg:w-96 shrink-0 space-y-8">
-            {/* Leaderboard Section */}
+            {/* Leaderboard Section - Added from merge conflict */}
             <div className="h-[500px]">
               <Leaderboard />
             </div>
 
-            <TrendingFeed />
+            {/* Trending Feed */}
+            <div className="h-full">
+              <TrendingFeed />
+            </div>
           </div>
         </div>
-      </main>
-
+      </main >
     </div>
-    </PageTransition >
   );
 };
 
@@ -284,9 +273,9 @@ const DashboardCard = ({ title, description, onClick, icon: Icon, gradient, shad
       onKeyDown={(e) => {
         if (e.key === "Enter") onClick();
       }}
-      className={`group relative bg - white / 80 dark: bg - gray - 800 / 80 backdrop - blur - sm rounded - 3xl p - 6 border border - white / 20 dark: border - gray - 700 shadow - lg ${shadowColor} hover: shadow - 2xl hover: shadow - green - 500 / 30 cursor - pointer transition - all duration - 500 hover: -translate - y - 2 hover: scale - 105 overflow - hidden`}
+      className={`group relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-3xl p-6 border border-white/20 dark:border-gray-700 shadow-lg ${shadowColor} hover:shadow-2xl hover:shadow-green-500/30 cursor-pointer transition-all duration-500 hover:-translate-y-2 hover:scale-105 overflow-hidden`}
     >
-      <div className={`absolute inset - 0 bg - gradient - to - br ${gradient} opacity - 0 group - hover: opacity - 5 transition - opacity duration - 500 rounded - 3xl`} />
+      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 rounded-3xl`} />
 
       <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 opacity-0 group-hover:opacity-20 blur-sm transition-opacity duration-500" />
 
@@ -294,7 +283,7 @@ const DashboardCard = ({ title, description, onClick, icon: Icon, gradient, shad
 
       <div className="relative z-10">
 
-        <div className={`w - 20 h - 20 bg - gradient - to - br ${gradient} rounded - 2xl flex items - center justify - center mb - 6 group - hover: scale - 110 group - hover: rotate - 3 transition - all duration - 500 shadow - lg`}>
+        <div className={`w-20 h-20 bg-gradient-to-br ${gradient} rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-lg`}>
           <Icon className="w-10 h-10 text-white" />
         </div>
 
@@ -308,7 +297,7 @@ const DashboardCard = ({ title, description, onClick, icon: Icon, gradient, shad
 
       </div>
 
-      <div className={`absolute bottom - 0 left - 0 right - 0 h - 1 bg - gradient - to - r ${gradient} scale - x - 0 group - hover: scale - x - 100 transition - transform duration - 500 origin - left rounded - b - 3xl`} />
+      <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${gradient} scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left rounded-b-3xl`} />
 
 
       <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />

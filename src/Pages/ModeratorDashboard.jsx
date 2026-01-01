@@ -134,13 +134,8 @@ export default function ModeratorDashboard() {
         setLoadingOfficers(true);
         try {
             const token = await getToken();
-<<<<<<< HEAD
-            const res = await csrfManager.secureFetch(`/ api / issues / officers ? department = ${dept} `, {
-                headers: { 'Authorization': `Bearer ${token} ` }
-=======
-            const res = await csrfManager.secureFetch(`http://localhost:5000/api/issues/ai-suggest/${selectedIssue._id}`, {
+            const res = await csrfManager.secureFetch(`/api/issues/ai-suggest/${selectedIssue._id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
->>>>>>> bd191549b4d1acf566f2f903976e623962773d66
             });
             const data = await res.json();
             setAvailableOfficers(data.suggestions || []);

@@ -209,13 +209,21 @@ const App = () => {
           <Route path="/signup/*" element={<Signup />} />
           <Route
             path="/report-issue"
-            element={<ReportIssue />}
+            element={
+              <RequireProfile>
+                <ReportIssue />
+              </RequireProfile>
+            }
           />
           <Route path="/download-android" element={<DownloadAndroid />} />
           <Route path="/download-ios" element={<DownloadIOS />} />
           <Route
             path="/issues/new"
-            element={<NewIssue />}
+            element={
+              <RequireProfile>
+                <NewIssue />
+              </RequireProfile>
+            }
           />
           <Route path="/issues/:id" element={<IssueDetail />} />
           <Route path="/civic-education" element={<CivicEducation />} />

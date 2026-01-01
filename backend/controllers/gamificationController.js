@@ -1,5 +1,4 @@
 const User = require('../models/userModel');
-<<<<<<< HEAD
 const asyncHandler = require('express-async-handler');
 
 // @desc    Update user gamification progress
@@ -61,11 +60,6 @@ const getStats = asyncHandler(async (req, res) => {
 
     res.status(200).json(user.gamification || { xp: 0, level: 1, badges: [] });
 });
-
-module.exports = {
-    updateProgress,
-    getStats
-=======
 
 // Points System Configuration
 const POINTS_MAP = {
@@ -155,8 +149,9 @@ const awardPoints = async (userId, actionType) => {
 };
 
 module.exports = {
+    updateProgress,
+    getStats,
     getLeaderboard,
     getUserStats,
     awardPoints // Exported for use in other controllers
->>>>>>> bd191549b4d1acf566f2f903976e623962773d66
 };

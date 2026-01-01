@@ -593,4 +593,6 @@ module.exports = {
   findDuplicatesForIssue,
   getAssignedIssues,
   manualAssignIssue,
+  getOfficersByDepartment,
+  suggestOfficer
 };

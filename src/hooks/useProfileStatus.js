@@ -5,7 +5,8 @@ import csrfManager from '../utils/csrfManager';
 const useProfileStatus = () => {
   const { user, isSignedIn } = useUser();
   const { getToken } = useAuth();
-  const [isProfileComplete, setIsProfileComplete] = useState(false);
+  // Default to null so we know when it hasn't been checked yet
+  const [isProfileComplete, setIsProfileComplete] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState(null);
 

@@ -7,7 +7,8 @@ import { BrowserRouter } from "react-router-dom";
 
 import ErrorBoundary from "./components/ErrorBoundary";
 
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const clerkPubKey = "pk_test_bWlnaHR5LWRvZS0zNy5jbGVyay5hY2NvdW50cy5kZXYk";
+// const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 
