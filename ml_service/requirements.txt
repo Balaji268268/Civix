@@ -7,3 +7,4 @@ scikit-learn
 pillow
 requests
 gunicorn
+sentence-transformers
