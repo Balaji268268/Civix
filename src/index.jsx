@@ -7,6 +7,7 @@ import { BrowserRouter } from "react-router-dom";
 
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ProfileProvider } from "./context/ProfileContext";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 
 const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
@@ -27,6 +28,7 @@ if (!clerkPubKey) {
 } else {
   root.render(
     <React.StrictMode>
+      <SpeedInsights />
       <ErrorBoundary>
         <ClerkProvider publishableKey={clerkPubKey}>
           <HelmetProvider>
