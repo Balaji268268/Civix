@@ -104,9 +104,12 @@ if (cluster.isPrimary) {
   app.use(xssSanitizer);
 
   // CSRF Protection (skip for certain routes)
+  // CSRF Protection (skip for certain routes)
   const csrfSkipRoutes = [
     "/api-docs", // Swagger documentation
-    "/api/auth/webhook", // Potential webhooks (if any)
+    "/api/auth/webhook", // Potential webhooks
+    "/api/issues/analyze-image", // AI Image Analysis (Multipart)
+    "/api/issues/generate-caption", // AI Caption (Multipart)
   ];
   app.use(skipCSRFForRoutes(csrfSkipRoutes));
 
