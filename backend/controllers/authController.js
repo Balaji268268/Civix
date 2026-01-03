@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcrypt");
 const pool = require("../config/mongo.js"); // Assuming you have a pool setup for MongoDB
 require("dotenv").config();
-const {asyncHandler}=require("../utils/asyncHandler")
+const { asyncHandler } = require("../utils/asyncHandler")
 
 
 
@@ -85,6 +85,14 @@ exports.login = asyncHandler(async (req, res) => {
     process.env.JWT_SECRET,
     { expiresIn: "1h" }
   );
+
+  // Set Cookie for Cross-Domain Access (Vercel -> Render)
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: true, // Always true for Render (HTTPS)
+    sameSite: 'none', // Required for cross-site
+    maxAge: 3600000 // 1 hour
+  });
 
   return res.status(200).json({ token, message: "Login successful" });
 });
