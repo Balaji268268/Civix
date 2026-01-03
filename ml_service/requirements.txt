@@ -4,13 +4,10 @@ djangorestframework
 django-cors-headers
 numpy
 pandas
-scikit-learn
-pillow
 requests
 torch
-transformers
-sentence-transformers
 openai-whisper
 librosa
 groq
 gunicorn
+google-generativeai

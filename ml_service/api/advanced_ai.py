@@ -1,42 +1,51 @@
 
 import os
-import torch
+import google.generativeai as genai
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from sentence_transformers import SentenceTransformer, util
-from transformers import pipeline
 import whisper
-import numpy as np
+import logging
 
-# Global Model Cache (Lazy Loading to create startup not super slow)
+# Configure Logging
+logger = logging.getLogger(__name__)
+
+# Configure Gemini
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
+    
+# Global Model Cache (Only Whisper is local now)
 MODELS = {
-    "semantic": None,
-    "toxicity": None,
     "whisper": None,
-    "genai": None,
-    "regressor": None
+    "gemini": None
 }
 
-def load_semantic_model():
-    if MODELS["semantic"] is None:
-        print("Loading Semantic Model...")
-        MODELS["semantic"] = SentenceTransformer('all-MiniLM-L6-v2')
-    return MODELS["semantic"]
-
-def load_toxicity_model():
-    if MODELS["toxicity"] is None:
-        print("Loading Toxicity Model...")
-        # Using a small distilled model for speed
-        MODELS["toxicity"] = pipeline("text-classification", model="unitary/unbiased-toxic-roberta", top_k=1)
-    return MODELS["toxicity"]
+def get_gemini_model():
+    if not MODELS["gemini"] and GEMINI_API_KEY:
+        # Use 'gemini-1.5-flash' for speed and cost
+        MODELS["gemini"] = genai.GenerativeModel('gemini-1.5-flash')
+    return MODELS["gemini"]
 
 def load_whisper_model():
     if MODELS["whisper"] is None:
-        print("Loading Whisper Model...")
+        logger.info("Loading Whisper Model (Base)...")
         MODELS["whisper"] = whisper.load_model("base")
     return MODELS["whisper"]
 
-# --- 1. Semantic Duplicate Detection ---
+# --- Helper: Generic Gemini Prompt ---
+def ask_gemini(prompt, retries=1):
+    model = get_gemini_model()
+    if not model:
+        return None
+    try:
+        response = model.generate_content(prompt)
+        if response and response.text:
+            return response.text.strip()
+    except Exception as e:
+        logger.error(f"Gemini API Error: {e}")
+    return None
+
+# --- 1. Semantic Duplicate Detection (Using Embeddings or Prompt) ---
 @api_view(['POST'])
 def check_semantic_duplicate(req):
     try:
@@ -46,23 +55,37 @@ def check_semantic_duplicate(req):
         if not new_text or not existing_texts:
             return Response({"is_duplicate": False, "score": 0.0})
 
-        model = load_semantic_model()
+        if not GEMINI_API_KEY:
+             return Response({"is_duplicate": False, "score": 0.0, "reason": "No API Key"})
+
+        # Efficient Prompt Approach (Cheaper/Faster than embedding 1000 items each time)
+        # For large lists, you ideally want vector DB, but for this scale prompt is okay if list is small (<20)
+        # If list is huge, we just take last 20.
         
-        # Encode
-        new_embedding = model.encode(new_text, convert_to_tensor=True)
-        existing_embeddings = model.encode(existing_texts, convert_to_tensor=True)
+        recent_reports = existing_texts[:20] 
+        prompt = f"""
+        Compare the new report with existing reports.
+        New Report: "{new_text}"
         
-        # Compute Cosine Similarity
-        cosine_scores = util.cos_sim(new_embedding, existing_embeddings)
+        Existing Reports:
+        {recent_reports}
         
-        # Find best match
-        best_score = torch.max(cosine_scores).item()
+        Is the New Report a duplicate of any existing one? 
+        Return ONLY a JSON: {{"is_duplicate": boolean, "score": 0.0 to 1.0}}
+        """
         
-        return Response({
-            "is_duplicate": best_score > 0.75, # Threshold
-            "score": round(best_score * 100, 2)
-        })
+        response_text = ask_gemini(prompt)
+        # Clean markdown json if any
+        if response_text:
+             import json
+             clean_text = response_text.replace('```json', '').replace('```', '')
+             data = json.loads(clean_text)
+             return Response(data)
+             
+        return Response({"is_duplicate": False, "score": 0.0})
+
     except Exception as e:
+        logger.error(f"Duplicate Check Error: {e}")
         return Response({"error": str(e)}, status=500)
 
 # --- 2. Toxicity Analysis ---
@@ -72,29 +95,34 @@ def analyze_toxicity(req):
         text = req.data.get('text', '')
         if not text: return Response({"error": "No text provided"}, status=400)
         
-        model = load_toxicity_model()
-        results = model(text)
+        prompt = f"""
+        Analyze this text for toxicity, spam, or inappropriate content.
+        Text: "{text}"
         
-        # Example output: [{'label': 'toxic', 'score': 0.9}]
-        top_result = results[0][0]
+        Return ONLY a JSON: {{"is_toxic": boolean, "toxicity_score": 0.0 to 1.0, "label": "toxic" or "neutral" or "spam"}}
+        """
         
-        return Response({
-            "is_toxic": top_result['score'] > 0.7 and top_result['label'] != 'neutral', # Adjust labels based on model
-            "toxicity_score": round(top_result['score'] * 100, 2),
-            "label": top_result['label']
-        })
+        response_text = ask_gemini(prompt)
+        if response_text:
+             import json
+             clean_text = response_text.replace('```json', '').replace('```', '')
+             data = json.loads(clean_text)
+             return Response(data)
+             
+        return Response({"is_toxic": False, "toxicity_score": 0.0, "label": "neutral"})
+
     except Exception as e:
         return Response({"error": str(e)}, status=500)
 
-# --- 3. Audio Transcription (Whisper) ---
+# --- 3. Audio Transcription (Whisper - LOCAL) ---
 @api_view(['POST'])
 def transcribe_audio(req):
+    # KEPT AS IS (User Requested Local Whisper)
     try:
         audio_file = req.FILES.get('audio')
         if not audio_file:
             return Response({"error": "No audio file provided"}, status=400)
             
-        # Whisper needs a file path, so save temporarily
         temp_path = f"temp_{audio_file.name}"
         with open(temp_path, 'wb+') as destination:
             for chunk in audio_file.chunks():
@@ -103,98 +131,64 @@ def transcribe_audio(req):
         model = load_whisper_model()
         result = model.transcribe(temp_path)
         
-        # Cleanup
-        os.remove(temp_path)
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
         
-        return Response({
-            "text": result["text"]
-        })
+        return Response({"text": result["text"]})
     except Exception as e:
-        if os.path.exists(f"temp_{audio_file.name}"):
+        # Cleanup
+        if 'audio_file' in locals() and os.path.exists(f"temp_{audio_file.name}"):
             os.remove(f"temp_{audio_file.name}")
+        logger.error(f"Whisper Error: {e}")
         return Response({"error": str(e)}, status=500)
 
-# --- 4. Smart Auto-Reply (GenAI) ---
-def load_genai_model():
-    if MODELS["genai"] is None:
-        print("Loading GenAI Model (Flan-T5)...")
-        # flan-t5-base is good for instruction following
-        from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
-        tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-base")
-        model = AutoModelForSeq2SeqLM.from_pretrained("google/flan-t5-base")
-        MODELS["genai"] = (tokenizer, model)
-    return MODELS["genai"]
-
+# --- 4. Smart Auto-Reply ---
 @api_view(['POST'])
 def generate_reply(req):
     try:
         description = req.data.get('description', '')
         status = req.data.get('status', 'Received')
-        severity = req.data.get('severity', 'Medium')
         
-        if not description or len(description) < 5:
-            return Response({"reply": "Thank you for your report. We are investigating the issue and will update you shortly."})
+        if not description: return Response({"reply": ""})
 
-        tokenizer, model = load_genai_model()
-        
-        # Prompt Engineering for edge cases
         prompt = f"""
-        Act as a polite city officer. Write a short, professional response to a citizen.
+        Act as a polite city officer. Write a short, professional response to a citizen report.
         Issue: {description}
         Current Status: {status}
-        Severity: {severity}
         
-        Response:
+        Keep it under 2 sentences.
         """
         
-        inputs = tokenizer(prompt, return_tensors="pt", max_length=512, truncation=True)
-        outputs = model.generate(inputs.input_ids, max_length=150, num_beams=4, early_stopping=True)
-        reply = tokenizer.decode(outputs[0], skip_special_tokens=True)
-        
-        return Response({"reply": reply})
+        reply = ask_gemini(prompt)
+        return Response({"reply": reply or "Thank you for the report."})
     except Exception as e:
-        print(f"GenAI Error: {e}")
-        return Response({"reply": "Thank you for reporting. We have received your issue."}, status=200) # Fallback
+        return Response({"reply": "Thank you for reporting."}, status=200)
 
-# --- 5. Resolution Time Predictor (Regression) ---
-def load_regression_model():
-    if MODELS["regressor"] is None:
-        print("Training/Loading Regression Model...")
-        from sklearn.ensemble import RandomForestRegressor
-        import numpy as np
-        
-        # Mock Training Data (since we don't have historical DB access here easily)
-        # Features: [Severity(1-10), OfficerLoad(0-20), Category(0-5)]
-        # Target: Days to resolve
-        X_train = np.array([
-            [1, 0, 0], [10, 5, 0], [5, 2, 1], [8, 10, 1], [3, 1, 2],
-            [9, 15, 2], [2, 0, 3], [7, 8, 3], [4, 3, 4], [6, 6, 4]
-        ])
-        y_train = np.array([1, 14, 3, 10, 2, 12, 1, 8, 4, 7]) # Days
-        
-        regr = RandomForestRegressor(n_estimators=100, random_state=42)
-        regr.fit(X_train, y_train)
-        MODELS["regressor"] = regr
-    return MODELS["regressor"]
-
+# --- 5. Resolution Predictor ---
 @api_view(['POST'])
 def predict_resolution_time(req):
     try:
+        # Simple heuristic fallback or Gemini guess
         severity = int(req.data.get('severity', 5))
-        active_tasks = int(req.data.get('active_tasks', 0))
-        category_map = {'Pothole': 0, 'Garbage': 1, 'Water': 2, 'Electricity': 3, 'Other': 4}
-        category = category_map.get(req.data.get('category', 'Other'), 4)
+        category = req.data.get('category', 'General')
         
-        model = load_regression_model()
+        # We can ask Gemini for a "common sense" estimate based on category/severity
+        prompt = f"""
+        Estimate days to fix a civic issue.
+        Category: {category}
+        Severity (1-10): {severity}
         
-        # Predict
-        prediction = model.predict([[severity, active_tasks, category]])
-        days = max(1, round(prediction[0]))
-        
-        return Response({
-            "estimated_days": days,
-            "message": f"Based on current workload, estimated resolution in {days} days."
-        })
-    except Exception as e:
-        return Response({"estimated_days": 3, "message": "Estimated resolution: 3 days (Default)"})
+        Return ONLY a JSON: {{"estimated_days": integer}}
+        """
+        response_text = ask_gemini(prompt)
+        if response_text:
+             import json
+             clean_text = response_text.replace('```json', '').replace('```', '')
+             data = json.loads(clean_text)
+             return Response({"estimated_days": data.get("estimated_days", 3)})
+             
+        return Response({"estimated_days": 3})
+    except:
+        return Response({"estimated_days": 3})
+
 
