@@ -82,8 +82,17 @@ if (cluster.isPrimary) {
   app.use(cookieParser());
 
   // === Security Middlewares ===
+  const mongoSanitize = require('express-mongo-sanitize');
+  const hpp = require('hpp');
+
   // Global XSS Sanitization
   app.use(xssSanitizer);
+
+  // NoSQL Injection Prevention
+  app.use(mongoSanitize());
+
+  // HTTP Parameter Pollution Prevention
+  app.use(hpp());
 
   // CSRF Protection (skip for certain routes)
   const csrfSkipRoutes = [
