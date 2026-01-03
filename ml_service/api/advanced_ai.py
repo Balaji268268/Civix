@@ -22,8 +22,8 @@ MODELS = {
 
 def get_gemini_model():
     if not MODELS["gemini"] and GEMINI_API_KEY:
-        # Use 'gemini-1.5-flash' for speed and cost
-        MODELS["gemini"] = genai.GenerativeModel('gemini-1.5-flash')
+        # Use 'gemini-2.5-flash' as requested by user
+        MODELS["gemini"] = genai.GenerativeModel('gemini-2.5-flash')
     return MODELS["gemini"]
 
 def load_whisper_model():
