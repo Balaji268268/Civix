@@ -65,17 +65,21 @@ if (cluster.isPrimary) {
   const { swaggerUi, specs } = require("./config/swagger.js");
 
   // === Middlewares ===
+  // === Middlewares ===
+  const allowedOrigins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:3002",
+    "http://localhost:3003",
+    "http://localhost:5173",
+    "https://civix-phi.vercel.app", // Keeping old one just in case
+    "https://civix-plus.vercel.app", // Current Production
+    process.env.FRONTEND_URL, // Dynamic
+  ].filter(Boolean); // Remove empty if env var missing
+
   app.use(
     cors({
-      origin: [
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:3002",
-        "http://localhost:3003",
-        "http://localhost:5173",
-        "https://civix-phi.vercel.app/login",
-        "https://civix-phi.vercel.app/signup",
-      ],
+      origin: allowedOrigins,
       credentials: true,
     })
   );
@@ -83,6 +87,17 @@ if (cluster.isPrimary) {
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
+
+  // ... (lines 87-156 skipped in thought, but included in tool execution context implicitly via line ranges if careful, or just replace the blocks)
+  // To avoid messing up large chunks, I will do two replaces or one big one.
+  // The file is small enough to risk a larger replace if I am careful. 
+  // But wait, the socket.io part is further down.
+  // I'll effectively replace the first block now, and the socket.io block in a second tool call or rely on the user to re-read. 
+  // Actually, I can use the same allowedOrigins variable if I declare it wide scope, but I can't easily do that with tool constraints effectively.
+  // Using two replaces is safer.
+
+  // NOTE: I am ONLY replacing the first cors block here.
+
 
   // === Security Middlewares ===
   // Global XSS Sanitization
@@ -166,7 +181,9 @@ if (cluster.isPrimary) {
         "http://localhost:3003",
         "http://localhost:5173",
         "https://civix-phi.vercel.app",
-      ],
+        "https://civix-plus.vercel.app",
+        process.env.FRONTEND_URL
+      ].filter(Boolean),
       methods: ["GET", "POST"],
       credentials: true
     },
