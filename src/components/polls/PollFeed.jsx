@@ -21,7 +21,20 @@ const PollFeed = () => {
 
                 if (response.ok) {
                     const data = await response.json();
-                    setPolls(data);
+                    // Sanitize Legacy Data (Fix for: TypeError on string options)
+                    const sanitizedData = data.map(poll => ({
+                        ...poll,
+                        options: poll.options.map(opt =>
+                            typeof opt === 'string' ? { text: opt, votes: 0 } : opt
+                        ),
+                        // Recalculate totalVotes if it was NaN due to bad data
+                        totalVotes: typeof poll.totalVotes === 'number' && !isNaN(poll.totalVotes)
+                            ? poll.totalVotes
+                            : (Array.isArray(poll.options)
+                                ? poll.options.reduce((acc, curr) => acc + (typeof curr === 'object' ? curr.votes : 0), 0)
+                                : 0)
+                    }));
+                    setPolls(sanitizedData);
                 }
             } catch (error) {
                 console.error("Polls fetch error", error);
@@ -125,8 +138,8 @@ const PollFeed = () => {
                                         onClick={() => !poll.hasVoted && handleVote(poll._id, idx)}
                                         disabled={poll.hasVoted || votingId === poll._id}
                                         className={`relative w-full p-4 rounded-xl text-left flex justify-between items-center transition-all ${poll.hasVoted
-                                                ? 'cursor-default'
-                                                : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 border border-gray-200 dark:border-gray-700'
+                                            ? 'cursor-default'
+                                            : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 border border-gray-200 dark:border-gray-700'
                                             }`}
                                     >
                                         <span className={`font-medium ${poll.hasVoted ? 'text-gray-800 dark:text-gray-200' : 'text-gray-600 dark:text-gray-300'}`}>

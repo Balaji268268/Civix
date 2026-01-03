@@ -39,7 +39,7 @@ const assignIssueToOfficer = async (issue, category) => {
 };
 
 const createIssue = asyncHandler(async (req, res) => {
-  const { title, description, phone, email, notifyByEmail, issueType, isPrivate, location, category } = req.body;
+  const { title, description, phone, email, notifyByEmail, issueType, isPrivate, location, category, lat, lng } = req.body;
 
   console.log("Creating Issue - Request Body:", { title, description, email, phone }); // LOG 1
 
@@ -134,7 +134,10 @@ const createIssue = asyncHandler(async (req, res) => {
     notifyByEmail,
     issueType,
     isPrivate,
+    issueType,
+    isPrivate,
     location,
+    coordinates: { lat, lng },
     category: finalCategory,
     // ML Data
     priority: mlData.priority,
@@ -187,18 +190,17 @@ const createIssue = asyncHandler(async (req, res) => {
   }
 
   // --- NOTIFICATION LOGIC ---
-  if (['High', 'Medium'].includes(issue.priority)) {
-    try {
-      await Notification.create({
-        recipient: 'admin',
-        title: `${issue.priority} Priority Alert`,
-        message: `${issue.priority === 'High' ? '🚨' : '⚠️'} New Issue: "${issue.title}" (${issue.category})`,
-        type: issue.priority === 'High' ? 'warning' : 'info',
-        relatedId: issue._id
-      });
-    } catch (notifError) {
-      // ignore
-    }
+  // trigger for all priorities for now
+  try {
+    await Notification.create({
+      recipient: 'admin',
+      title: `${issue.priority || 'New'} Issue Alert`,
+      message: `${issue.priority === 'High' ? '🚨' : '📢'} New Issue: "${issue.title}" (${issue.category})`,
+      type: issue.priority === 'High' ? 'warning' : 'info',
+      relatedId: issue._id
+    });
+  } catch (notifError) {
+    console.warn("Failed to create admin notification for issue:", notifError.message);
   }
 
   return res.status(201).json({
@@ -442,7 +444,10 @@ const getAssignedIssues = asyncHandler(async (req, res) => {
     return res.status(404).json({ error: "Officer not found" });
   }
 
-  const issues = await Issue.find({ assignedOfficer: user._id }).sort({ createdAt: -1 });
+  const issues = await Issue.find({
+    assignedOfficer: user._id,
+    status: { $nin: ['Resolved', 'Rejected'] }
+  }).sort({ createdAt: -1 });
   res.json(issues);
 });
 
@@ -559,6 +564,184 @@ const getOfficersByDepartment = asyncHandler(async (req, res) => {
   res.json(officers);
 });
 
+// --- Computer Vision Pre-Check ---
+const analyzeIssueImage = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No image file provided" });
+  }
+
+  let fileUrl = null;
+  // 1. Try Cloudinary Upload
+  try {
+    const cloudinaryResponse = await uploadOnCloudinary(req.file.path);
+    if (cloudinaryResponse) fileUrl = cloudinaryResponse.secure_url;
+  } catch (err) {
+    console.warn("Cloudinary upload failed for analysis:", err.message);
+  }
+
+  // 2. Fallback to Local URL if Cloudinary fails or is not setup
+  if (!fileUrl) {
+    // Assuming server is running on localhost:5000
+    fileUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+  }
+
+  try {
+    // 3. Call ML Service
+    const mlResponse = await axios.post('http://localhost:8000/api/analyze-image/', { imageUrl: fileUrl });
+
+    // 4. Return Tags
+    return res.json({
+      tags: mlResponse.data.tags || [],
+      confidence: mlResponse.data.confidence || 0,
+      detected_category: mlResponse.data.tags?.[0] || 'General',
+      message: "Image analyzed successfully"
+    });
+
+  } catch (error) {
+    console.error("ML Analysis Failed:", error.message);
+    return res.json({ tags: [], message: "AI Analysis unavailable" });
+  }
+});
+
+// --- GenAI Captioning (BLIP) ---
+const generateCaption = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No image file provided" });
+  }
+
+  let fileUrl = null;
+  try {
+    const cloudinaryResponse = await uploadOnCloudinary(req.file.path);
+    if (cloudinaryResponse) fileUrl = cloudinaryResponse.secure_url;
+  } catch (err) {
+    console.warn("Cloudinary upload failed for analysis:", err.message);
+  }
+
+  if (!fileUrl) {
+    fileUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+  }
+
+  try {
+    const mlResponse = await axios.post('http://localhost:8000/api/generate-caption/', { imageUrl: fileUrl });
+    return res.json({
+      description: mlResponse.data.description || "",
+      message: "Caption generated successfully"
+    });
+  } catch (error) {
+    console.error("Caption Generation Failed:", error.message);
+    return res.json({ description: "", message: "AI Captioning unavailable" });
+  }
+});
+
+// --- Resolution Verification Flow ---
+
+// 1. Officer Submits Resolution Proof
+const submitResolution = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { officerNotes } = req.body;
+
+  // Image upload (optional but recommended)
+  let proofUrl = null;
+  if (req.file) {
+    // Use existing Cloudinary logic or local
+    const b64 = Buffer.from(req.file.buffer).toString("base64");
+    let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
+    const cldRes = await uploadOnCloudinary(req.file.path);
+    if (cldRes) proofUrl = cldRes.secure_url;
+  }
+
+  const issue = await Issue.findById(id);
+  if (!issue) return res.status(404).json({ message: "Issue not found" });
+
+  // Update issue
+  issue.resolution = issue.resolution || {};
+  issue.resolution.proofUrl = proofUrl || issue.resolution.proofUrl;
+  issue.resolution.officerNotes = officerNotes;
+  issue.resolution.submittedAt = new Date();
+  issue.status = "Pending Review"; // Moves to Moderator queue
+
+  issue.timeline.push({
+    status: "Pending Review",
+    message: "Officer submitted resolution proof. Waiting for Moderator approval.",
+    byUser: "Officer"
+  });
+
+  await issue.save();
+  res.status(200).json(issue);
+});
+
+// 2. Moderator Reviews Resolution
+const reviewResolution = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { isApproved, remarks, reviewedBy } = req.body;
+
+  const issue = await Issue.findById(id);
+  if (!issue) return res.status(404).json({ message: "Issue not found" });
+
+  issue.resolution = issue.resolution || {};
+  issue.resolution.moderatorApproval = {
+    isApproved,
+    reviewedBy,
+    reviewedAt: new Date(),
+    remarks
+  };
+
+  if (isApproved === true || isApproved === "true") {
+    issue.status = "Resolved";
+    issue.timeline.push({
+      status: "Resolved",
+      message: "Moderator approved resolution. Waiting for User acknowledgement.",
+      byUser: `Moderator (${reviewedBy})`
+    });
+    // TODO: Send Notification to User
+  } else {
+    issue.status = "In Progress"; // Send back to officer
+    issue.timeline.push({
+      status: "In Progress",
+      message: `Moderator rejected resolution: ${remarks}`,
+      byUser: `Moderator (${reviewedBy})`
+    });
+  }
+
+  await issue.save();
+  res.status(200).json(issue);
+});
+
+// 3. User Acknowledges Resolution
+const acknowledgeResolution = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { status, remarks } = req.body; // status: 'Confirmed' or 'Disputed'
+
+  const issue = await Issue.findById(id);
+  if (!issue) return res.status(404).json({ message: "Issue not found" });
+
+  issue.resolution = issue.resolution || {};
+  issue.resolution.userAcknowledgement = {
+    status,
+    acknowledgedAt: new Date(),
+    remarks
+  };
+
+  if (status === 'Confirmed') {
+    issue.status = 'Closed'; // Final state
+    issue.timeline.push({
+      status: "Closed",
+      message: "User confirmed resolution. Case Closed.",
+      byUser: "User"
+    });
+  } else if (status === 'Disputed') {
+    issue.status = 'Dispute'; // Flag for moderator
+    issue.timeline.push({
+      status: "Dispute",
+      message: `User disputed resolution: ${remarks}`,
+      byUser: "User"
+    });
+  }
+
+  await issue.save();
+  res.status(200).json(issue);
+});
+
 module.exports = {
   createIssue,
   getAllIssues,
@@ -570,4 +753,12 @@ module.exports = {
   findDuplicatesForIssue,
   getAssignedIssues,
   manualAssignIssue,
+  getOfficersByDepartment,
+  suggestOfficer,
+  suggestOfficer,
+  analyzeIssueImage,
+  generateCaption,
+  submitResolution,
+  reviewResolution,
+  acknowledgeResolution
 };

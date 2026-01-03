@@ -17,8 +17,6 @@ const CommunityVotingPage = () => {
     <PageTransition>
       <div className={isDark ? "dark" : ""}>
         <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-green-950 dark:via-gray-900 dark:to-emerald-900 transition-colors duration-300">
-          <Navbar />
-
           <div className="max-w-4xl mx-auto px-4 py-8 sm:px-6 lg:px-8 pt-24">
             {/* Header */}
             <div className="text-center relative mb-12">

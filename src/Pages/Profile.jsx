@@ -136,14 +136,14 @@ const Profile = () => {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-green-50/40 relative overflow-hidden">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-green-50/40 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden">
         {/* Background effects */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,rgba(16,185,129,0.08)_0%,transparent_50%)] pointer-events-none"></div>
 
         <div className="relative z-10 p-4 sm:p-6 lg:p-8">
           <div className="max-w-3xl mx-auto">
             {/* Card */}
-            <div className="bg-white/60 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/30 overflow-hidden relative">
+            <div className="bg-white/60 dark:bg-gray-800/60 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/30 dark:border-gray-700 overflow-hidden relative">
 
               {/* Header */}
               <div className="relative bg-gradient-to-br from-emerald-500 via-green-600 to-teal-600 px-8 py-10">
@@ -176,8 +176,8 @@ const Profile = () => {
                   <div className="grid gap-6">
                     {/* Name */}
                     <div className="space-y-3">
-                      <label className="flex items-center gap-3 text-sm font-bold text-slate-700 uppercase tracking-wide">
-                        <div className="p-2 rounded-xl bg-emerald-100/60"><User className="w-4 h-4 text-emerald-600" /></div>
+                      <label className="flex items-center gap-3 text-sm font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wide">
+                        <div className="p-2 rounded-xl bg-emerald-100/60 dark:bg-emerald-900/40"><User className="w-4 h-4 text-emerald-600 dark:text-emerald-400" /></div>
                         Full Name
                       </label>
                       <input
@@ -192,22 +192,22 @@ const Profile = () => {
 
                     {/* Email (Read Only) */}
                     <div className="space-y-3">
-                      <label className="flex items-center gap-3 text-sm font-bold text-slate-700 uppercase tracking-wide">
-                        <div className="p-2 rounded-xl bg-blue-100/60"><Mail className="w-4 h-4 text-blue-600" /></div>
+                      <label className="flex items-center gap-3 text-sm font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wide">
+                        <div className="p-2 rounded-xl bg-blue-100/60 dark:bg-blue-900/40"><Mail className="w-4 h-4 text-blue-600 dark:text-blue-400" /></div>
                         Email Address (Managed via Account)
                       </label>
                       <input
                         type="text"
                         value={formData.email}
                         disabled={true}
-                        className="w-full px-6 py-4 rounded-2xl border-2 border-slate-200/50 bg-slate-50/50 text-slate-500 cursor-not-allowed outline-none text-lg font-medium"
+                        className="w-full px-6 py-4 rounded-2xl border-2 border-slate-200/50 key={dark:border-gray-700} bg-slate-50/50 dark:bg-gray-800/50 text-slate-500 dark:text-gray-500 cursor-not-allowed outline-none text-lg font-medium"
                       />
                     </div>
 
                     {/* Location */}
                     <div className="space-y-3">
-                      <label className="flex items-center gap-3 text-sm font-bold text-slate-700 uppercase tracking-wide">
-                        <div className="p-2 rounded-xl bg-purple-100/60"><MapPin className="w-4 h-4 text-purple-600" /></div>
+                      <label className="flex items-center gap-3 text-sm font-bold text-slate-700 dark:text-gray-300 uppercase tracking-wide">
+                        <div className="p-2 rounded-xl bg-purple-100/60 dark:bg-purple-900/40"><MapPin className="w-4 h-4 text-purple-600 dark:text-purple-400" /></div>
                         Location
                       </label>
                       <input
@@ -215,46 +215,57 @@ const Profile = () => {
                         value={formData.location}
                         disabled={!isEditing}
                         onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                        className={`w-full px-6 py-4 rounded-2xl border-2 outline-none transition-all duration-300 text-lg font-medium ${isEditing ? 'border-emerald-200 bg-white focus:border-emerald-400' : 'border-slate-200/50 bg-slate-50/50 text-slate-600'
+                        className={`w-full px-6 py-4 rounded-2xl border-2 outline-none transition-all duration-300 text-lg font-medium dark:text-white ${isEditing ? 'border-emerald-200 bg-white dark:bg-gray-700 dark:border-gray-600 focus:border-emerald-400' : 'border-slate-200/50 dark:border-gray-700 bg-slate-50/50 dark:bg-gray-800/50 text-slate-600 dark:text-gray-400'
                           }`}
                       />
                     </div>
                   </div>
 
                   {/* Stats */}
-                  <div className="grid grid-cols-1 sm:grid-cols-4 gap-6 pt-4">
-                    <div className="relative bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-100 rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2.5 bg-red-100 rounded-xl"><AlertTriangle className="w-5 h-5 text-red-600" /></div>
-                        <span className="text-sm font-bold text-red-700 uppercase tracking-wide">Complaints</span>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 pt-4">
+                    {/* Complaints */}
+                    <div className="relative bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all">
+                      <div className="flex items-center gap-2 mb-2 text-red-600 dark:text-red-400">
+                        <AlertTriangle className="w-5 h-5" />
+                        <span className="text-xs font-bold uppercase tracking-wide">Complaints</span>
                       </div>
-                      <div className="text-3xl font-bold text-red-700">{stats.complaints}</div>
+                      <div className="text-2xl font-black text-gray-800 dark:text-white">{stats.complaints}</div>
                     </div>
 
-                    {/* Gamification Stats */}
-                    <div className="relative bg-gradient-to-br from-yellow-50 to-amber-50 border-2 border-yellow-100 rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2.5 bg-yellow-100 rounded-xl">⭐</div>
-                        <span className="text-sm font-bold text-yellow-700 uppercase tracking-wide">Points</span>
+                    {/* Trust Score (New) */}
+                    <div className="relative bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all">
+                      <div className="flex items-center gap-2 mb-2 text-indigo-600 dark:text-indigo-400">
+                        <Lock className="w-5 h-5" />
+                        <span className="text-xs font-bold uppercase tracking-wide">Trust Score</span>
                       </div>
-                      <div className="text-3xl font-bold text-yellow-700">{profileData?.gamification?.points || 0}</div>
+                      <div className="text-2xl font-black text-gray-800 dark:text-white">{profileData?.trustScore || 100}</div>
                     </div>
 
-                    <div className="relative bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-100 rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2.5 bg-blue-100 rounded-xl">👑</div>
-                        <span className="text-sm font-bold text-blue-700 uppercase tracking-wide">Level</span>
+                    {/* Points */}
+                    <div className="relative bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all">
+                      <div className="flex items-center gap-2 mb-2 text-yellow-600 dark:text-yellow-400">
+                        <span className="text-lg">⭐</span>
+                        <span className="text-xs font-bold uppercase tracking-wide">Points</span>
                       </div>
-                      <div className="text-3xl font-bold text-blue-700">{profileData?.gamification?.level || 1}</div>
+                      <div className="text-2xl font-black text-gray-800 dark:text-white">{profileData?.gamification?.points || 0}</div>
                     </div>
 
-                    {/* Badge Preview */}
-                    <div className="relative bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-100 rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
-                      <div className="flex items-center gap-3 mb-3">
-                        <div className="p-2.5 bg-purple-100 rounded-xl">🏅</div>
-                        <span className="text-sm font-bold text-purple-700 uppercase tracking-wide">Badges</span>
+                    {/* Level */}
+                    <div className="relative bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all">
+                      <div className="flex items-center gap-2 mb-2 text-blue-600 dark:text-blue-400">
+                        <span className="text-lg">👑</span>
+                        <span className="text-xs font-bold uppercase tracking-wide">Level</span>
                       </div>
-                      <div className="text-3xl font-bold text-purple-700">{profileData?.gamification?.badges?.length || 0}</div>
+                      <div className="text-2xl font-black text-gray-800 dark:text-white">{profileData?.gamification?.level || 1}</div>
+                    </div>
+
+                    {/* Badge Count */}
+                    <div className="relative bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all">
+                      <div className="flex items-center gap-2 mb-2 text-purple-600 dark:text-purple-400">
+                        <span className="text-lg">🏅</span>
+                        <span className="text-xs font-bold uppercase tracking-wide">Badges</span>
+                      </div>
+                      <div className="text-2xl font-black text-gray-800 dark:text-white">{profileData?.gamification?.badges?.length || 0}</div>
                     </div>
                   </div>
 

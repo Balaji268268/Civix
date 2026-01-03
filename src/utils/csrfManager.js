@@ -111,7 +111,8 @@ class CSRFManager {
           options.headers = headers;
         }
       } catch (error) {
-        console.warn("Failed to get CSRF token, proceeding without it:", error);
+        console.error("Failed to get CSRF token, aborting request:", error);
+        throw new Error("CSRF_FETCH_FAILED");
       }
     }
 

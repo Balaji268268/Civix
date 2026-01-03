@@ -3,7 +3,9 @@ import { useAuth, useUser } from "@clerk/clerk-react";
 import { Shield, LogOut, CheckCircle, BarChart2 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import NotificationCenter from "../common/NotificationCenter";
+
 import PageTransition from "../PageTransition";
+import logo from "../../assets/logo.png";
 
 const ModeratorLayout = ({ children }) => {
     const { signOut } = useAuth();
@@ -18,9 +20,7 @@ const ModeratorLayout = ({ children }) => {
             {/* Sidebar */}
             <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 hidden md:flex flex-col fixed h-full z-10">
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
-                    <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
-                        <Shield className="w-6 h-6" />
-                    </div>
+                    <img src={logo} alt="Civix" className="w-8 h-8 object-contain" />
                     <h1 className="font-bold text-xl text-gray-800 dark:text-gray-100">Moderator</h1>
                 </div>
                 <nav className="p-4 space-y-2 flex-1 flex flex-col">

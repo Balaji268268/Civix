@@ -1,125 +1,257 @@
+import React, { useState, useEffect } from 'react';
+import AdminLayout from '../components/layout/AdminLayout';
+import csrfManager from '../utils/csrfManager'; // Import csrfManager
+import {
+  Database, Shield, Moon, Sun, Download, Bell,
+  Lock, AlertTriangle, Save, RefreshCw, Mail, Smartphone
+} from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
-import React, { useState } from 'react';
-import { Home, BarChart3, Users, FileText, Bell, Settings, ChevronLeft, ChevronRight, Save, Shield, Database, Mail } from 'lucide-react';
-import { useNavigate } from "react-router-dom";
+const Settings = () => {
+  // --- State Management ---
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+  const [settings, setSettings] = useState({
+    maintenanceMode: false,
+    newRegistrations: true,
+    emailAlerts: true,
+    pushNotifications: false
+  });
+  const [loading, setLoading] = useState(true);
 
-const AdminSettings = () => {
-  const navigate = useNavigate();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeRoute, setActiveRoute] = useState('/admin/settings');
+  const [saving, setSaving] = useState(false);
 
-  const sidebarMenu = [
-    { key: 'dashboard', label: 'Dashboard', icon: Home, route: '/admin/dashboard' },
-    { key: 'analytics', label: 'Analytics', icon: BarChart3, route: '/admin/analytics' },
-    { key: 'users', label: 'Users', icon: Users, route: '/admin/users' },
-    { key: 'documents', label: 'Documents', icon: FileText, route: '/admin/documents' },
-    { key: 'notifications', label: 'Notifications', icon: Bell, route: '/admin/notifications' },
-    { key: 'settings', label: 'Settings', icon: Settings, route: '/admin/settings' },
-  ];
+  // --- Effects ---
+  useEffect(() => {
+    // Apply theme on mount/change
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  // Fetch Settings
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await csrfManager.secureFetch('http://localhost:5000/api/admin/settings');
+        if (res.ok) {
+          const data = await res.json();
+          setSettings(prev => ({ ...prev, ...data }));
+        }
+      } catch (err) {
+        console.error("Failed to load settings", err);
+        toast.error("Failed to load current settings");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  // --- Handlers ---
+  const handleToggle = (key) => {
+    setSettings(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await csrfManager.secureFetch('http://localhost:5000/api/admin/settings', {
+        method: 'PATCH',
+        body: JSON.stringify(settings),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      if (res.ok) {
+        toast.success("Settings saved successfully!");
+      } else {
+        toast.error("Failed to save settings");
+      }
+    } catch (err) {
+      console.error("Save error", err);
+      toast.error("Error saving settings");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    toast.loading("Preparing system export...", { id: 'export' });
+    try {
+      const token = localStorage.getItem('token'); // Raw fetch for file download usually easier than wrapper if blob needed
+      const response = await fetch('http://localhost:5000/api/admin/export', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) throw new Error("Export failed");
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `civix_system_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      toast.success("Export downloaded!", { id: 'export' });
+    } catch (err) {
+      console.error("Export error", err);
+      toast.error("Failed to export data", { id: 'export' });
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans ml-0 lg:ml-10">
-      {/* Mobile Sidebar Overlay */}
-      {isSidebarOpen && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
-      )}
+    <AdminLayout title="Platform Settings" subtitle="Configure system preferences and operations">
+      <div className="space-y-8 pb-10">
 
-      {/* Mobile Sidebar Toggle */}
-      <button
-        type="button"
-        onClick={() => setIsSidebarOpen(true)}
-        className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-white shadow-lg hover:bg-gray-50 text-emerald-600 lg:hidden"
-        style={{ display: isSidebarOpen ? 'none' : 'block' }}
-      >
-        <ChevronRight className="w-6 h-6" />
-      </button>
-
-      {/* Sidebar - Consistent */}
-      <aside className={`fixed top-0 left-0 h-full z-50 transition-all duration-300 ease-in-out backdrop-blur-xl border-r border-gray-200/50 flex flex-col shadow-xl bg-white/90 dark:bg-gray-800/90 ${isSidebarOpen ? 'w-64 translate-x-0' : 'w-16 -translate-x-full lg:translate-x-0'}`}>
-        <div className="relative flex items-center justify-between p-4 border-b border-gray-200/50">
-          <div className={`flex items-center transition-all duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
-            <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-sm">C</span>
+        {/* 1. Appearance Section */}
+        <section className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            {theme === 'light' ? <Sun className="w-5 h-5 text-orange-500" /> : <Moon className="w-5 h-5 text-purple-500" />}
+            Appearance
+          </h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="font-medium">Interface Theme</p>
+              <p className="text-sm text-gray-500">Toggle between light and dark modes.</p>
             </div>
-            {isSidebarOpen && <span className="ml-3 text-xl font-bold bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">Civix</span>}
+            <button
+              onClick={toggleTheme}
+              className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500/50 ${theme === 'dark' ? 'bg-emerald-600' : 'bg-gray-200'}`}
+            >
+              <span className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform shadow-sm ${theme === 'dark' ? 'translate-x-9' : 'translate-x-1'}`} />
+            </button>
           </div>
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className={`p-2 rounded-lg hover:bg-gray-100 ${!isSidebarOpen ? 'mx-auto' : ''}`}>
-            {isSidebarOpen ? <ChevronLeft className="w-5 h-5 text-gray-600" /> : <ChevronRight className="w-5 h-5 text-gray-600" />}
-          </button>
-        </div>
+        </section>
 
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {sidebarMenu.map((item) => {
-            const isActive = item.route === activeRoute;
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.key}
-                onClick={() => navigate(item.route)}
-                className={`w-full flex items-center py-3 px-3 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden ${isSidebarOpen ? '' : 'justify-center'} ${isActive ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg' : 'text-gray-600 hover:bg-gray-100'}`}
-              >
-                <Icon className={`w-5 h-5 transition-all duration-200 ${isSidebarOpen ? 'mr-3' : ''} ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-emerald-600'}`} />
-                {isSidebarOpen && <span>{item.label}</span>}
-              </button>
-            );
-          })}
-        </nav>
-      </aside>
-
-      <div className="p-8">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent mb-8">Platform Settings</h1>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* General Settings */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Database className="h-5 w-5 text-emerald-600" />
-              System Configuration
-            </h2>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">Maintenance Mode</span>
-                <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                  <input type="checkbox" name="toggle" id="toggle" className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer border-gray-300" />
-                  <label htmlFor="toggle" className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
+        {/* 2. System Configuration */}
+        <section className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <Database className="w-5 h-5 text-emerald-500" />
+            System Configuration
+          </h3>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-4">
+              <div className="flex gap-4">
+                <div className="p-2 bg-red-50 dark:bg-red-500/10 rounded-lg h-fit"><AlertTriangle className="w-5 h-5 text-red-500" /></div>
+                <div>
+                  <p className="font-medium">Maintenance Mode</p>
+                  <p className="text-sm text-gray-500">Disable user access for maintenance.</p>
                 </div>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600 dark:text-gray-300">Allow New Registrations</span>
-                {/* Simple toggle placeholder */}
-                <span className="text-sm font-bold text-emerald-600">Enabled</span>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={settings.maintenanceMode} onChange={() => handleToggle('maintenanceMode')} className="sr-only peer" />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 dark:peer-focus:ring-red-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-red-500"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex gap-4">
+                <div className="p-2 bg-blue-50 dark:bg-blue-500/10 rounded-lg h-fit"><Users className="w-5 h-5 text-blue-500" /></div>
+                <div>
+                  <p className="font-medium">New User Registrations</p>
+                  <p className="text-sm text-gray-500">Allow new users to sign up.</p>
+                </div>
               </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" checked={settings.newRegistrations} onChange={() => handleToggle('newRegistrations')} className="sr-only peer" />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
             </div>
           </div>
+        </section>
 
-          {/* Security */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 p-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <Shield className="h-5 w-5 text-emerald-600" />
-              Security & Access
-            </h2>
-            <div className="space-y-4">
-              <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition flex justify-between">
-                <span>Manage Admin Roles</span>
-                <ChevronRight className="h-5 w-5 text-gray-400" />
-              </button>
-              <button className="w-full text-left p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition flex justify-between">
-                <span>API Key Management</span>
-                <ChevronRight className="h-5 w-5 text-gray-400" />
-              </button>
-            </div>
+        {/* 3. Notifications */}
+        <section className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <Bell className="w-5 h-5 text-yellow-500" />
+            Notifications
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <button
+              onClick={() => handleToggle('emailAlerts')}
+              className={`p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${settings.emailAlerts ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' : 'border-gray-200 dark:border-gray-700'}`}
+            >
+              <Mail className={`w-5 h-5 ${settings.emailAlerts ? 'text-emerald-600' : 'text-gray-400'}`} />
+              <div className="text-left">
+                <p className="font-bold text-sm">Email Alerts</p>
+                <p className="text-xs text-gray-500">Receive critical updates via email</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => handleToggle('pushNotifications')}
+              className={`p-4 rounded-xl border-2 transition-all flex items-center gap-3 ${settings.pushNotifications ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10' : 'border-gray-200 dark:border-gray-700'}`}
+            >
+              <Smartphone className={`w-5 h-5 ${settings.pushNotifications ? 'text-emerald-600' : 'text-gray-400'}`} />
+              <div className="text-left">
+                <p className="font-bold text-sm">Push Notifications</p>
+                <p className="text-xs text-gray-500">Mobile app push alerts</p>
+              </div>
+            </button>
           </div>
-        </div>
+        </section>
 
-        <div className="mt-8 flex justify-end">
-          <button className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl shadow-lg transition">
-            <Save className="h-5 w-5" />
-            Save Changes
+        {/* 4. Data Management */}
+        <section className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-100 dark:border-gray-700">
+          <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+            <RefreshCw className="w-5 h-5 text-blue-500" />
+            Data Management
+          </h3>
+          <div className="flex items-center justify-between">
+            <div className="max-w-md">
+              <p className="font-medium">Export System Data</p>
+              <p className="text-sm text-gray-500 mt-1">Download a CSV report of all issues, users, and resolution stats.</p>
+            </div>
+            <button
+              onClick={handleExportData}
+              className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-4 py-2 rounded-lg font-medium transition"
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
+          </div>
+        </section>
+
+        {/* Save Action */}
+        <div className="sticky bottom-6 flex justify-end">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl shadow-lg shadow-emerald-500/30 font-bold transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:scale-100"
+          >
+            {saving ? (
+              <>
+                <RefreshCw className="w-5 h-5 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-5 h-5" />
+                Save Changes
+              </>
+            )}
           </button>
         </div>
+
       </div>
-    </div>
+    </AdminLayout>
   );
 };
 
-export default AdminSettings;
+export default Settings;
+// Helper component for icon
+const Users = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+);

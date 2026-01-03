@@ -1,9 +1,11 @@
 import React from 'react';
 import { useAuth, useUser } from "@clerk/clerk-react";
-import { Shield, LogOut, CheckCircle, List } from "lucide-react";
+import { Shield, LogOut, CheckCircle, List, MessageCircle } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import NotificationCenter from "../common/NotificationCenter";
+
 import PageTransition from "../PageTransition";
+import logo from "../../assets/logo.png";
 
 const OfficerLayout = ({ children }) => {
     const { signOut } = useAuth();
@@ -16,9 +18,7 @@ const OfficerLayout = ({ children }) => {
             {/* Sidebar */}
             <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 hidden md:flex flex-col fixed h-full z-10">
                 <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
-                        <Shield className="w-6 h-6" />
-                    </div>
+                    <img src={logo} alt="Civix" className="w-8 h-8 object-contain" />
                     <h1 className="font-bold text-xl text-gray-800 dark:text-gray-100">Officer Portal</h1>
                 </div>
                 <nav className="p-4 space-y-2 flex-1 flex flex-col">
@@ -27,6 +27,12 @@ const OfficerLayout = ({ children }) => {
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition ${location.pathname.includes("dashboard") ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-semibold" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"}`}
                     >
                         <List className="w-5 h-5" /> My Tasks
+                    </button>
+                    <button
+                        onClick={() => navigate("/chatroom")}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition ${location.pathname.includes("chatroom") ? "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 font-semibold" : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"}`}
+                    >
+                        <MessageCircle className="w-5 h-5" /> Community Chat
                     </button>
                     {/* Add more officer tabs here if needed */}
 

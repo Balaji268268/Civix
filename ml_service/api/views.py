@@ -4,7 +4,7 @@ from sentence_transformers import CrossEncoder, SentenceTransformer, util
 import numpy as np
 import re
 import logging
-from civix_ml.image_model import analyze_image_url
+from civix_ml.image_model import analyze_image_url, generate_caption
 
 # Configure Logging
 logger = logging.getLogger(__name__)
@@ -267,3 +267,14 @@ def analyze_image(request):
         return Response(analyze_image_url(image_url))
     except:
         return Response({'tags': []})
+
+@api_view(['POST'])
+def generate_caption_view(request):
+    try:
+        image_url = request.data.get('imageUrl')
+        if not image_url: return Response({'description': ''})
+        caption = generate_caption(image_url)
+        return Response({'description': caption})
+    except Exception as e:
+        logger.error(f"Generate Caption Error: {e}")
+        return Response({'description': ''})

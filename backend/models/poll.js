@@ -25,7 +25,6 @@ const pollSchema = new mongoose.Schema({
     }],
     category: {
         type: String,
-        enum: ['Infrastructure', 'Events', 'Policy', 'General'],
         default: 'General'
     },
     expiresAt: {

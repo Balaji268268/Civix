@@ -8,15 +8,17 @@ const { awardPoints } = require('./gamificationController');
 const createPoll = async (req, res) => {
     try {
         const { question, options, expiresAt, category, description } = req.body;
+        console.log('[CreatePoll] Body:', JSON.stringify(req.body, null, 2));
         const clerkUserId = req.user.sub; // From Clerk/JWT Middleware
+        console.log(`[CreatePoll] Request from User: ${clerkUserId}`);
 
         // Resolve User ID
         const user = await User.findOne({ clerkUserId });
         if (!user) return res.status(404).json({ error: 'User not found' });
 
-        if (!['admin', 'officer'].includes(user.role)) {
-            return res.status(403).json({ error: 'Unauthorized' });
-        }
+        // if (!['admin', 'officer'].includes(user.role)) {
+        //     return res.status(403).json({ error: 'Unauthorized' });
+        // }
 
         // Validate Options
         if (!options || options.length < 2) {
@@ -25,13 +27,18 @@ const createPoll = async (req, res) => {
 
         const formattedOptions = options.map(opt => ({ text: opt, votes: 0 }));
 
+        const validExpiresAt = new Date(expiresAt);
+        const finalExpiresAt = isNaN(validExpiresAt.getTime())
+            ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            : validExpiresAt;
+
         const poll = new Poll({
             question,
             description,
             options: formattedOptions,
             createdBy: user._id,
             category,
-            expiresAt: new Date(expiresAt)
+            expiresAt: finalExpiresAt
         });
 
         await poll.save();

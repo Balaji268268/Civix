@@ -7,6 +7,7 @@ import csrfManager from "../utils/csrfManager";
 import UserLayout from "../components/layout/UserLayout";
 
 import DuplicateIssueModal from "../components/DuplicateIssueModal";
+import VoiceInput from '../components/VoiceInput';
 
 const ReportIssue = () => {
   const navigate = useNavigate();
@@ -28,11 +29,13 @@ const ReportIssue = () => {
     category: 'Roads',
     contact: '',
     isAnonymous: false,
-    files: null
+    files: null,
+    coords: null
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [isAnalyzingFiles, setIsAnalyzingFiles] = useState(false);
+  const [aiCaption, setAiCaption] = useState(null);
 
   // Type Selection Handler
   const handleTypeSelect = (type) => {
@@ -42,6 +45,13 @@ const ReportIssue = () => {
       category: type === 'Personal' ? 'Profile' : 'Roads'
     }));
     setStep('form');
+  };
+
+  const handleVoiceTranscription = (text) => {
+    setFormData(prev => ({
+      ...prev,
+      description: prev.description ? `${prev.description}\n\n[Voice Transcript]: ${text}` : text
+    }));
   };
 
   const categories = issueType === 'Public'
@@ -55,33 +65,83 @@ const ReportIssue = () => {
     }
 
     setIsLocating(true);
+
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    };
+
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
+        let location = '';
+        let success = false;
+
         try {
-          const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-          );
-          const data = await response.json();
+          // 1. Try BigDataCloud (Free, Fast, Open Data) - Often better at locality names
+          try {
+            const bdcResponse = await fetch(
+              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+            );
+            const bdcData = await bdcResponse.json();
 
-          if (data.address) {
-            // Extract relevant parts: City, District, or Town
-            const city = data.address.city || data.address.town || data.address.village;
-            const district = data.address.state_district || data.address.county;
-            const state = data.address.state;
+            if (bdcData && (bdcData.city || bdcData.locality)) {
+              const locality = bdcData.locality || "";
+              const city = bdcData.city || "";
+              const principalSubdivision = bdcData.principalSubdivision || ""; // State
 
-            // Format: "City, District" or just "City"
-            const formattedLoc = [city, district].filter(Boolean).join(", ") || state || `${latitude}, ${longitude}`;
+              const parts = [locality, city, principalSubdivision].filter(Boolean);
+              // Remove duplicates (sometimes locality == city)
+              const uniqueParts = [...new Set(parts)];
 
-            setFormData(prev => ({ ...prev, location: formattedLoc }));
-            toast.success(`Location detected: ${formattedLoc}`);
+              if (uniqueParts.length > 0) {
+                location = uniqueParts.join(", ");
+                success = true;
+              }
+            }
+          } catch (bdcError) {
+            console.warn("BigDataCloud API failed, trying OSM...");
+          }
+
+          // 2. Fallback to OpenStreetMap (Nominatim)
+          if (!success) {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+            );
+            const data = await response.json();
+
+            if (data.address) {
+              const road = data.address.road || data.address.pedestrian || "";
+              const area = data.address.suburb || data.address.neighbourhood || data.address.residential || "";
+              const city = data.address.city || data.address.town || data.address.village || "";
+              const district = data.address.state_district || data.address.county || "";
+              const state = data.address.state || "";
+
+              const parts = [area, city, district].filter(Boolean);
+
+              if (parts.length > 0) {
+                location = parts.join(", ");
+              } else if (state) {
+                location = state;
+              }
+              success = true;
+            }
+          }
+
+          if (success && location) {
+            setFormData(prev => ({ ...prev, location: location, coords: { lat: latitude, lng: longitude } }));
+            toast.success(`Location detected: ${location}`);
           } else {
-            setFormData(prev => ({ ...prev, location: `${latitude}, ${longitude}` }));
+            console.log("No address found for coords:", latitude, longitude);
+            setFormData(prev => ({ ...prev, location: `${latitude}, ${longitude}`, coords: { lat: latitude, lng: longitude } }));
           }
         } catch (error) {
           console.error("Geocoding error:", error);
-          toast.error("Failed to fetch address. Using coordinates.");
-          setFormData(prev => ({ ...prev, location: `${latitude}, ${longitude}` }));
+          // If network fails (common on some networks blocking OSM), just ask user to fill it.
+          // Do NOT fill with raw coords if geocoding failed, it looks ugly.
+          toast.error("Could not fetch address details (Network Error). Please enter location manually.");
+          setFormData(prev => ({ ...prev, coords: { lat: latitude, lng: longitude } }));
         } finally {
           setIsLocating(false);
         }
@@ -90,7 +150,8 @@ const ReportIssue = () => {
         console.error("Geolocation error:", error);
         toast.error("Unable to retrieve your location.");
         setIsLocating(false);
-      }
+      },
+      options
     );
   };
 
@@ -105,7 +166,12 @@ const ReportIssue = () => {
     data.append("category", formData.category);
     data.append("email", user?.primaryEmailAddress?.emailAddress || "");
     data.append("issueType", issueType);
+    data.append("issueType", issueType);
     data.append("phone", formData.contact);
+    if (formData.coords) {
+      data.append("lat", formData.coords.lat);
+      data.append("lng", formData.coords.lng);
+    }
 
     if (formData.files && formData.files.length > 0) {
       // Backend expects 'file' for single upload based on router.post("/", upload.single("file")...)
@@ -138,7 +204,11 @@ const ReportIssue = () => {
 
     } catch (error) {
       console.error(error);
-      toast.error(error.message || "Something went wrong");
+      if (error.message === "Failed to fetch") {
+        toast.error("Upload failed. Please refresh the page and re-select your file.", { duration: 5000 });
+      } else {
+        toast.error(error.message || "Something went wrong");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -228,10 +298,14 @@ const ReportIssue = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Detailed Description</label>
+
+              {/* Voice Input Module */}
+              <VoiceInput onTranscribe={handleVoiceTranscription} />
+
               <textarea
                 required
                 rows="4"
-                placeholder="Please check if there are duplicate issues before submitting. Describe the issue in detail..."
+                placeholder="Describe the issue... (Type or use Voice Recording above)"
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
                 value={formData.description}
                 onChange={e => setFormData({ ...formData, description: e.target.value })}
@@ -254,6 +328,9 @@ const ReportIssue = () => {
                       value={formData.location}
                       onChange={e => setFormData({ ...formData, location: e.target.value })}
                     />
+                    <p className="text-xs text-gray-400 mt-1 pl-1">
+                      Auto-location is approximate. Please edit if incorrect.
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -283,23 +360,62 @@ const ReportIssue = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Evidence (Images)</label>
               <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition cursor-pointer relative group overflow-hidden">
                 <input
                   type="file"
-                  multiple
                   accept="image/*"
                   onChange={async (e) => {
-                    const files = e.target.files;
-                    if (!files || files.length === 0) return;
+                    const file = e.target.files[0];
+                    if (!file) return;
 
                     setIsAnalyzingFiles(true);
-                    // Simulate AI Check
-                    await new Promise(resolve => setTimeout(resolve, 1500));
 
-                    setFormData(prev => ({ ...prev, files: files }));
+                    // 1. Create FormData for Analysis
+                    const formDataObj = new FormData();
+                    formDataObj.append('file', file);
+
+                    try {
+                      const [analyzeRes, captionRes] = await Promise.allSettled([
+                        csrfManager.secureFetch('http://localhost:5000/api/issues/analyze-image', { method: 'POST', body: formDataObj }),
+                        csrfManager.secureFetch('http://localhost:5000/api/issues/generate-caption', { method: 'POST', body: formDataObj })
+                      ]);
+
+                      // Handle Classification
+                      if (analyzeRes.status === 'fulfilled') {
+                        const data = await analyzeRes.value.json();
+                        if (data.tags && data.tags.length > 0) {
+                          const mainTag = data.tags[0]; // e.g. "pothole"
+                          let suggestedCat = 'Other';
+                          if (['pothole', 'street', 'road', 'traffic_light'].some(t => mainTag.includes(t))) suggestedCat = 'Roads';
+                          if (['garbage', 'waste', 'trash', 'ashcan'].some(t => mainTag.includes(t))) suggestedCat = 'Garbage';
+                          if (['water', 'pipe', 'fountain'].some(t => mainTag.includes(t))) suggestedCat = 'Water';
+
+                          if (suggestedCat !== 'Other') {
+                            setFormData(prev => ({ ...prev, category: suggestedCat }));
+                            toast.success(`AI Detected: ${mainTag} -> set to ${suggestedCat}`, { icon: '🤖' });
+                          } else {
+                            toast.success(`AI Detected: ${mainTag}`, { icon: '👁️' });
+                          }
+                        }
+                      }
+
+                      // Handle Captioning
+                      if (captionRes.status === 'fulfilled') {
+                        try {
+                          const captionData = await captionRes.value.json();
+                          if (captionData.description) {
+                            setAiCaption(captionData.description);
+                          }
+                        } catch (e) { console.warn("Caption Parse Error", e); }
+                      }
+
+                    } catch (err) {
+                      console.error("AI Analysis Failed", err);
+                    }
+
+                    // Store file
+                    setFormData(prev => ({ ...prev, files: [file] }));
                     setIsAnalyzingFiles(false);
-                    toast.success("AI Check: Image Quality Good", { icon: '✨' });
                   }}
                   disabled={isAnalyzingFiles}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-wait"
@@ -308,7 +424,7 @@ const ReportIssue = () => {
                 {isAnalyzingFiles ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm z-20">
                     <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mb-2" />
-                    <span className="text-sm font-bold text-emerald-600 animate-pulse">Running Quality Check...</span>
+                    <span className="text-sm font-bold text-emerald-600 animate-pulse">AI Analyzing Image & Generating Caption...</span>
                   </div>
                 ) : (
                   <>
@@ -316,15 +432,39 @@ const ReportIssue = () => {
                     <p className="text-sm text-gray-500">
                       {formData.files ? (
                         <span className="text-emerald-600 font-medium flex items-center justify-center gap-2">
-                          <ShieldCheck className="w-4 h-4" /> {formData.files.length} file(s) verified
+                          <ShieldCheck className="w-4 h-4" /> Analyzed & Ready
                         </span>
-                      ) : "Click to upload images"}
+                      ) : "Click to upload & Analyze with AI"}
                     </p>
                   </>
                 )}
               </div>
+
+              {aiCaption && (
+                <div className="mt-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-xl p-3 flex gap-3 animate-in fade-in slide-in-from-top-2">
+                  <div className="bg-emerald-100 dark:bg-emerald-800 p-2 rounded-lg h-fit">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide mb-1">
+                      AI Visual Description
+                    </p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 italic">
+                      "{aiCaption}"
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setFormData(p => ({ ...p, description: p.description ? p.description + "\n\n" + aiCaption : aiCaption }))}
+                      className="text-xs text-emerald-600 font-semibold underline mt-1 hover:text-emerald-700"
+                    >
+                      Add to Description
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <p className="text-xs text-gray-400 mt-2 ml-1">
-                AI checks for clarity and relevance before upload.
+                Our Computer Vision model will attempt to auto-categorize and caption the issue.
               </p>
             </div>
 

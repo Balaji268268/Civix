@@ -23,6 +23,14 @@ const VotingSystem = () => {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [currentPollForFeedback, setCurrentPollForFeedback] = useState(null);
 
+  /* Helper to calculate total votes safely */
+  const getTotalVotes = (poll) => {
+    if (!poll.options) return 0;
+    return poll.options.reduce((acc, opt) => acc + (opt.votes || 0), 0);
+  };
+
+  const getVotePercentage = (votes, total) => total > 0 ? Math.round((votes / total) * 100) : 0;
+
   /* Fetch Polls on Load */
   useEffect(() => {
     const fetchPolls = async () => {
@@ -41,7 +49,7 @@ const VotingSystem = () => {
       }
     };
     fetchPolls();
-  }, [activeTab, getToken]); // Refresh when tab changes
+  }, [activeTab, getToken]);
 
   const handleVote = async (pollId, optionIndex) => {
     if (votedPolls.has(pollId)) return;
@@ -49,10 +57,14 @@ const VotingSystem = () => {
     // Optimistic UI Update
     setPolls((prevPolls) =>
       prevPolls.map((poll) => {
-        if (poll._id === pollId) { // CAUTION: Backend uses _id
-          const updatedVotes = [...poll.votes];
-          updatedVotes[optionIndex] = (updatedVotes[optionIndex] || 0) + 1;
-          return { ...poll, votes: updatedVotes };
+        if (poll._id === pollId) {
+          const updatedOptions = poll.options.map((opt, idx) => {
+            if (idx === optionIndex) {
+              return { ...opt, votes: (opt.votes || 0) + 1 };
+            }
+            return opt;
+          });
+          return { ...poll, options: updatedOptions };
         }
         return poll;
       })
@@ -70,10 +82,8 @@ const VotingSystem = () => {
         },
         body: JSON.stringify({ optionIndex })
       });
-      // Success
     } catch (error) {
       toast.error("Failed to submit vote");
-      // Revert optimistic update ideally, but skipping for MVP speed
     }
 
     const poll = polls.find(p => p._id === pollId);
@@ -97,10 +107,14 @@ const VotingSystem = () => {
     try {
       const token = await getToken();
       if (!token) return;
-      const res = await csrfManager.secureFetch('http://localhost:5000/api/polls', {
+      const res = await csrfManager.secureFetch('http://localhost:5000/api/polls/create', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ title: newTitle.trim(), options: optionsArray })
+        body: JSON.stringify({
+          question: newTitle.trim(),
+          options: optionsArray,
+          category: 'General'
+        })
       });
 
       if (res.ok) {
@@ -115,9 +129,6 @@ const VotingSystem = () => {
       toast.error("Failed to create poll");
     }
   };
-
-  const getTotalVotes = (poll) => poll.votes.reduce((a, v) => a + v, 0);
-  const getVotePercentage = (votes, total) => total > 0 ? Math.round((votes / total) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white/90 to-teal-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors">
@@ -146,7 +157,6 @@ const VotingSystem = () => {
           transition={{ delay: 0.15 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
         >
-          {/* Stat Card */}
           {[
             {
               icon: <Vote className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />,
@@ -157,7 +167,7 @@ const VotingSystem = () => {
             {
               icon: <Users className="w-7 h-7 text-teal-600 dark:text-teal-400" />,
               label: "Total Votes",
-              value: polls.reduce((acc, poll) => acc + poll.votes.reduce((a, v) => a + v, 0), 0),
+              value: polls.reduce((acc, poll) => acc + getTotalVotes(poll), 0),
               bg: "from-teal-100 to-lime-100 dark:from-teal-900 dark:to-lime-900"
             },
             {
@@ -235,9 +245,7 @@ const VotingSystem = () => {
                     <Vote className="w-12 h-12 text-emerald-500 dark:text-emerald-400" />
                   </div>
                   <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No polls yet</h3>
-                  <p className="text-gray-600 dark:text-gray-300 mb-6">
-                    Create your first poll to get started!
-                  </p>
+                  <p className="text-gray-600 dark:text-gray-300 mb-6">Create your first poll to get started!</p>
                   <button
                     onClick={() => setActiveTab('create')}
                     className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-8 py-3 rounded-xl font-semibold hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 shadow-lg"
@@ -248,10 +256,10 @@ const VotingSystem = () => {
               ) : (
                 polls.map((poll) => {
                   const totalVotes = getTotalVotes(poll);
-                  const hasVoted = votedPolls.has(poll.id);
+                  const hasVoted = votedPolls.has(poll.id || poll._id); // Handle both id formats if needed
                   return (
                     <div key={poll._id} className="border border-emerald-200/70 dark:border-emerald-900 rounded-xl p-6 bg-gradient-to-br from-white via-emerald-50/80 to-white/80 dark:from-gray-900 dark:to-emerald-950 hover:shadow-xl transition-all duration-300">
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{poll.title}</h3>
+                      <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-4">{poll.question || poll.title}</h3>
                       {!hasVoted ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {poll.options.map((option, idx) => (
@@ -260,19 +268,19 @@ const VotingSystem = () => {
                               onClick={() => handleVote(poll._id, idx)}
                               className="bg-white/90 dark:bg-emerald-950 border-2 border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900 text-gray-900 dark:text-gray-100 px-6 py-4 rounded-xl font-medium transition-all duration-300 hover:shadow-md text-left"
                             >
-                              {option}
+                              {option.text}
                             </button>
                           ))}
                         </div>
                       ) : (
                         <div className="space-y-3">
                           {poll.options.map((option, idx) => {
-                            const votes = poll.votes[idx] || 0;
+                            const votes = option.votes || 0;
                             const percentage = getVotePercentage(votes, totalVotes);
                             return (
                               <div key={idx} className="bg-white/95 dark:bg-emerald-950 rounded-lg p-4 border border-emerald-200/80 dark:border-emerald-800">
                                 <div className="flex justify-between items-center mb-2">
-                                  <span className="font-medium text-gray-900 dark:text-white">{option}</span>
+                                  <span className="font-medium text-gray-900 dark:text-white">{option.text}</span>
                                   <span className="text-sm text-gray-600 dark:text-gray-300">{votes} votes ({percentage}%)</span>
                                 </div>
                                 <div className="w-full bg-emerald-100 dark:bg-emerald-900 rounded-full h-2">
@@ -286,21 +294,6 @@ const VotingSystem = () => {
                               </div>
                             );
                           })}
-                          <div className="flex items-center justify-between text-emerald-600 dark:text-emerald-400 mt-4">
-                            <div className="flex items-center">
-                              <CheckCircle2 className="w-5 h-5 mr-2" />
-                              <span className="font-medium">You voted in this poll</span>
-                            </div>
-                            <button
-                              onClick={() => {
-                                setCurrentPollForFeedback(poll);
-                                setShowFeedbackModal(true);
-                              }}
-                              className="text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline"
-                            >
-                              Share feedback
-                            </button>
-                          </div>
                         </div>
                       )}
                     </div>
@@ -319,28 +312,24 @@ const VotingSystem = () => {
               </div>
               <form className="space-y-6" onSubmit={handleCreatePoll}>
                 <div>
-                  <label htmlFor="title" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Poll Question
-                  </label>
+                  <label htmlFor="title" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Poll Question</label>
                   <input
                     type="text"
                     id="title"
                     value={newTitle}
                     onChange={(e) => setNewTitle(e.target.value)}
-                    className="w-full rounded-xl border-2 border-emerald-200 dark:border-emerald-800 px-4 py-3 text-lg focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-emerald-100 dark:focus:ring-emerald-800 transition-all duration-300 bg-white dark:bg-emerald-950 text-gray-900 dark:text-white"
+                    className="w-full rounded-xl border-2 border-emerald-200 dark:border-emerald-800 px-4 py-3 text-lg focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-emerald-100 dark:focus:ring-emerald-800 bg-white dark:bg-emerald-950 text-gray-900 dark:text-white"
                     placeholder="What would you like to ask?"
                   />
                 </div>
                 <div>
-                  <label htmlFor="options" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Answer Options
-                  </label>
+                  <label htmlFor="options" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Answer Options</label>
                   <textarea
                     id="options"
                     value={newOptions}
                     onChange={(e) => setNewOptions(e.target.value)}
                     rows={5}
-                    className="w-full rounded-xl border-2 border-emerald-200 dark:border-emerald-800 px-4 py-3 text-lg focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-emerald-100 dark:focus:ring-emerald-800 transition-all duration-300 bg-white dark:bg-emerald-950 text-gray-900 dark:text-white resize-none"
+                    className="w-full rounded-xl border-2 border-emerald-200 dark:border-emerald-800 px-4 py-3 text-lg focus:outline-none focus:border-emerald-500 dark:focus:border-emerald-400 focus:ring-emerald-100 dark:focus:ring-emerald-800 bg-white dark:bg-emerald-950 text-gray-900 dark:text-white resize-none"
                     placeholder="Each option on a new line"
                   />
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Enter at least 2 options</p>
@@ -356,7 +345,7 @@ const VotingSystem = () => {
             </div>
           )}
 
-          {/* Analytics Tab */}
+          {/* Analytics */}
           {activeTab === 'results' && (
             <div>
               <div className="text-center mb-8">
@@ -366,47 +355,33 @@ const VotingSystem = () => {
               <div className="space-y-8">
                 {polls.length === 0 ? (
                   <div className="text-center py-16">
-                    <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900 rounded-full flex items-center justify-center mx-auto mb-5">
-                      <BarChart3 className="w-12 h-12 text-emerald-500 dark:text-emerald-400" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">No analytics available</h3>
-                    <p className="text-gray-600 dark:text-gray-300">Create and vote on polls to see analytics.</p>
+                    <p>No analytics available</p>
                   </div>
                 ) : (
                   polls.map((poll) => {
                     const totalVotes = getTotalVotes(poll);
-                    const topVotes = Math.max(...poll.votes);
+                    const topVotes = Math.max(...poll.options.map(o => o.votes || 0));
                     return (
                       <div key={poll._id} className="border border-emerald-200 dark:border-emerald-900 rounded-xl p-6 bg-gradient-to-br from-white via-emerald-50/70 to-white/80 dark:from-emerald-950 dark:to-emerald-900">
                         <div className="flex flex-wrap justify-between items-start mb-6 gap-2">
                           <div>
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{poll.title}</h3>
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{poll.question || poll.title}</h3>
                             <span className="text-gray-600 dark:text-gray-300">Total responses: {totalVotes}</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-xs text-gray-500 dark:text-gray-400">Engagement</span>
-                            <div className="text-xl font-bold text-emerald-700 dark:text-emerald-400">{totalVotes > 0 ? '100%' : '0%'}</div>
                           </div>
                         </div>
                         <div className="space-y-4">
                           {poll.options.map((option, idx) => {
-                            const votes = poll.votes[idx] || 0;
+                            const votes = option.votes || 0;
                             const percentage = getVotePercentage(votes, totalVotes);
                             const leading = votes === topVotes && totalVotes > 0;
                             return (
                               <div key={idx} className="bg-white/95 dark:bg-emerald-950 rounded-lg p-4 border border-emerald-200 dark:border-emerald-900">
                                 <div className="flex justify-between items-center mb-2">
-                                  <span className="font-semibold text-gray-900 dark:text-white">{option} {leading && totalVotes > 0 &&
-                                    <span className="ml-2 bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-200 text-xs font-medium px-2 py-0.5 rounded-full animate-pulse">Leading</span>
-                                  }</span>
+                                  <span className="font-semibold text-gray-900 dark:text-white">{option.text} {leading && <span className="ml-2 bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full">Leading</span>}</span>
                                   <span className="font-bold text-gray-900 dark:text-white">{votes}</span>
-                                  <span className="text-sm text-gray-500 dark:text-gray-400">{percentage}%</span>
                                 </div>
                                 <div className="w-full bg-emerald-100 dark:bg-emerald-900 rounded-full h-3">
-                                  <div
-                                    className={`h-3 rounded-full transition-all duration-700 ${leading ? 'bg-gradient-to-r from-emerald-500 to-teal-400 dark:from-emerald-600 dark:to-teal-600' : 'bg-gradient-to-r from-emerald-300 to-teal-300 dark:from-emerald-700 dark:to-teal-700'}`}
-                                    style={{ width: `${percentage}%` }}
-                                  />
+                                  <div className={`h-3 rounded-full ${leading ? 'bg-emerald-500' : 'bg-emerald-300'}`} style={{ width: `${percentage}%` }} />
                                 </div>
                               </div>
                             );
@@ -422,12 +397,11 @@ const VotingSystem = () => {
         </motion.div>
       </div>
 
-      {/* Feedback Modal */}
       <VotingFeedbackModal
         isOpen={showFeedbackModal}
         onClose={() => setShowFeedbackModal(false)}
         onSubmit={handleFeedbackSubmit}
-        pollTitle={currentPollForFeedback?.title}
+        pollTitle={currentPollForFeedback?.question || currentPollForFeedback?.title}
       />
     </div>
   );

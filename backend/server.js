@@ -83,7 +83,6 @@ if (cluster.isPrimary) {
 
   // CSRF Protection (skip for certain routes)
   const csrfSkipRoutes = [
-    "/api/contributors", // Public read-only API
     "/api-docs", // Swagger documentation
     "/api/auth/webhook", // Potential webhooks (if any)
   ];
@@ -94,17 +93,17 @@ if (cluster.isPrimary) {
   // === Rate Limiting ===
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,
+    max: 1000, // Increased for dev/testing
     message: "Too many requests from this IP, please try again later.",
   });
   app.use(limiter);
 
   // === Routes ===
   const authRoutes = require("./routes/auth.js");
+  const chatRoutes = require('./routes/chatRoutes');
   const issueRoutes = require("./routes/issues");
   const profileRoutes = require("./routes/profileRoutes");
   const adminRoutes = require("./routes/admin");
-  const contributionsRoutes = require("./routes/contributions.js");
   const notificationRoutes = require("./routes/notification");
   const pollRoutes = require("./routes/poll");
   const analyticsRoutes = require("./routes/analytics");
@@ -124,14 +123,16 @@ if (cluster.isPrimary) {
   app.use("/api/profile", profileRoutes);
   app.use("/api/admin", adminRoutes);
   app.use("/api/admin", analyticsRoutes);
-  app.use("/api/contributions", contributionsRoutes);
   app.use("/api/notifications", notificationRoutes);
   app.use("/api/polls", pollRoutes);
   app.use("/api/posts", postRoutes); // Mount Post Routes
+  app.use("/api/communities", require("./routes/community"));
   app.use("/api/contact", contactRoutes);
   app.use("/api/lost-items", require("./routes/lostItem"));
   app.use("/api/moderator", moderatorRoutes);
+  app.use("/api/ai", require("./routes/aiRoutes"));
   app.use("/api/gamification", gamificationRoutes);
+  app.use("/api/ml", require("./routes/mlProxy")); // ML Service Proxy
 
   // === Swagger API Docs ===
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));

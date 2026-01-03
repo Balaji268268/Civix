@@ -24,30 +24,30 @@ export default function SafeWordSetup() {
       <h1 className="text-2xl font-bold mb-4">Safe Word Setup</h1>
 
       {/* Safe Word Inputs */}
-      <div className="bg-white shadow-md rounded-2xl p-4 space-y-4">
+      <div className="bg-white dark:bg-gray-800 shadow-md rounded-2xl p-4 space-y-4">
         <div>
-          <label className="flex items-center gap-2 font-medium mb-1">
-            <Lock className="w-5 h-5 text-gray-600" /> Enter Safe Word
+          <label className="flex items-center gap-2 font-medium mb-1 text-gray-700 dark:text-gray-300">
+            <Lock className="w-5 h-5 text-gray-600 dark:text-gray-400" /> Enter Safe Word
           </label>
           <input
             type="text"
             value={safeWord}
             onChange={(e) => setSafeWord(e.target.value)}
             placeholder="Enter your safe word"
-            className="w-full border rounded-lg px-3 py-2 focus:outline-blue-500"
+            className="w-full border dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           />
         </div>
 
         <div>
-          <label className="flex items-center gap-2 font-medium mb-1">
-            <Lock className="w-5 h-5 text-gray-600" /> Confirm Safe Word
+          <label className="flex items-center gap-2 font-medium mb-1 text-gray-700 dark:text-gray-300">
+            <Lock className="w-5 h-5 text-gray-600 dark:text-gray-400" /> Confirm Safe Word
           </label>
           <input
             type="text"
             value={confirmSafeWord}
             onChange={(e) => setConfirmSafeWord(e.target.value)}
             placeholder="Re-enter your safe word"
-            className="w-full border rounded-lg px-3 py-2 focus:outline-blue-500"
+            className="w-full border dark:border-gray-600 rounded-lg px-3 py-2 focus:outline-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
           />
         </div>
 
@@ -72,13 +72,13 @@ export default function SafeWordSetup() {
       </div>
 
       {/* Emergency Contacts */}
-      <div className="bg-gray-50 border rounded-2xl mt-6 p-4">
-        <h2 className="text-lg font-semibold mb-2">Emergency Contacts</h2>
+      <div className="bg-gray-50 dark:bg-gray-900 border dark:border-gray-700 rounded-2xl mt-6 p-4">
+        <h2 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Emergency Contacts</h2>
         <ul className="space-y-2">
           {contacts.map((c, i) => (
             <li
               key={i}
-              className="flex items-center gap-2 bg-white shadow rounded-lg p-2"
+              className="flex items-center gap-2 bg-white dark:bg-gray-800 shadow rounded-lg p-2 text-gray-800 dark:text-gray-200"
             >
               {c.includes("@") ? (
                 <Mail className="text-blue-600 w-5 h-5" />
@@ -95,7 +95,7 @@ export default function SafeWordSetup() {
       </div>
 
       {/* Extra Options */}
-      <div className="bg-gray-50 border rounded-2xl mt-6 p-4">
+      <div className="bg-gray-50 dark:bg-gray-900 border dark:border-gray-700 rounded-2xl mt-6 p-4 text-gray-900 dark:text-white">
         <h2 className="text-lg font-semibold mb-2">Alert Options</h2>
         <div className="flex items-center gap-2">
           <input type="checkbox" className="w-4 h-4" defaultChecked />

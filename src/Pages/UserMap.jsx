@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, useMap, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { Globe, MapPin, ArrowLeft, Filter, Layers, Sparkles } from "lucide-react";
-// import { useNavigate } from "react-router-dom"; // Removed for artifact compatibility
+import csrfManager from "../utils/csrfManager";
+import { useAuth, useUser } from "@clerk/clerk-react";
 
 // Custom marker icon (green pin)
 const customIcon = new L.Icon({
@@ -20,35 +21,76 @@ function FlyToLocation({ position }) {
 }
 
 export default function UserMap() {
-  // const navigate = useNavigate(); // Commented out for artifact compatibility
+  const { userId } = useAuth();
+  const { user } = useUser();
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [statusFilter, setStatusFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [mapView, setMapView] = useState("street");
+  const [issues, setIssues] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const handleBackClick = () => {
     // In a real app, this would be: navigate("/user/dashboard");
-    console.log("Navigate back to dashboard");
+    window.location.href = "/user/dashboard";
   };
 
-  const userIssues = [
-    { title: "Pothole near Main Street", description: "Big pothole near bus stop. Needs urgent repair.", status: "Pending", category: "Roads", date: "2025-08-01", lat: 13.0827, lng: 80.2707 },
-    { title: "Streetlight not working", description: "Dark street needs repair of light. Safety issue.", status: "Resolved", category: "Lighting", date: "2025-07-20", lat: 19.076, lng: 72.8777 },
-    { title: "Overflowing garbage bin", description: "Garbage collection delayed for 3 days.", status: "Under Review", category: "Waste", date: "2025-08-15", lat: 28.7041, lng: 77.1025 },
-    { title: "Broken water pipe", description: "Water flooding street due to burst pipe.", status: "In Progress", category: "Water", date: "2025-08-10", lat: 12.9716, lng: 77.5946 },
-    { title: "Damaged pedestrian crossing", description: "Zebra crossing faded near school.", status: "Pending", category: "Roads", date: "2025-08-05", lat: 22.5726, lng: 88.3639 },
-    { title: "Illegal dumping of waste", description: "Garbage dumped in open land, foul smell.", status: "Pending", category: "Waste", date: "2025-08-17", lat: 17.385, lng: 78.4867 },
-    { title: "Traffic signal malfunction", description: "Signal stuck on red causing jams.", status: "In Progress", category: "Roads", date: "2025-08-12", lat: 23.0225, lng: 72.5714 },
-    { title: "Public park lights off", description: "No lighting in park, unsafe at evening.", status: "Resolved", category: "Lighting", date: "2025-07-30", lat: 26.9124, lng: 75.7873 },
-    { title: "Open manhole", description: "Uncovered manhole near marketplace.", status: "Pending", category: "Safety", date: "2025-08-18", lat: 11.0168, lng: 76.9558 },
-    { title: "Sewage overflow", description: "Sewage water overflowing after rain.", status: "Under Review", category: "Water", date: "2025-08-16", lat: 15.2993, lng: 74.124 },
-  ];
+  useEffect(() => {
+    fetchIssues();
+  }, []);
 
-  const filteredIssues = userIssues.filter(
+  const fetchIssues = async () => {
+    try {
+      // Fetch all issues (using admin endpoint for global map is simplest, or specifically a public map endpoint)
+      // Assuming /api/issues returns all public issues or issues permissible to view
+      const data = await csrfManager.secureFetch('/api/issues');
+      // Filter valid locations and format for map
+      // RULE: Show issue ONLY if it is 'Resolved' OR if it belongs to the current user
+      const userEmail = user?.primaryEmailAddress?.emailAddress;
+
+      const mapped = data.filter(issue => {
+        const isResolved = issue.status === 'Resolved';
+        const isMine = userEmail && issue.email && (issue.email.toLowerCase() === userEmail.toLowerCase());
+        return isResolved || isMine;
+      }).map(issue => {
+        // Try parse coordinates from location string "lat, lng" OR explicit coords field
+        let lat = null, lng = null;
+
+        if (issue.coordinates?.lat && issue.coordinates?.lng) {
+          lat = issue.coordinates.lat;
+          lng = issue.coordinates.lng;
+        } else if (issue.location && issue.location.includes(',')) {
+          const parts = issue.location.split(',').map(p => parseFloat(p.trim()));
+          if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+            lat = parts[0];
+            lng = parts[1];
+          }
+        }
+
+        // Fallback for demo: Randomize near city center if no coords? No, user wants real data.
+        // Only return if we have coords
+        if (lat && lng) {
+          return { ...issue, lat, lng, date: new Date(issue.createdAt).toLocaleDateString() };
+        }
+        return null;
+      }).filter(Boolean);
+
+      setIssues(mapped);
+    } catch (error) {
+      console.error("Failed to fetch map data", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredIssues = issues.filter(
     (issue) =>
       (statusFilter === "All" || issue.status === statusFilter) &&
       (categoryFilter === "All" || issue.category === categoryFilter)
   );
+
+  // Default Center (could be user loction if available)
+  const defaultCenter = [20.5937, 78.9629]; // India Center
 
   const statusClasses = {
     Pending: "text-amber-800 border-amber-300 bg-amber-50 dark:text-amber-200 dark:bg-amber-900/30 dark:border-amber-700",
@@ -75,7 +117,7 @@ export default function UserMap() {
             onClick={handleBackClick}
             className="absolute left-0 top-0 group flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-lg shadow-green-500/5 hover:shadow-xl hover:shadow-green-500/10 border border-green-200/50 dark:border-green-700/50 text-green-700 dark:text-green-300 font-medium transition-all duration-300 hover:scale-105"
           >
-            <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform duration-300" /> 
+            <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform duration-300" />
             Back to Dashboard
           </button>
 
@@ -91,7 +133,7 @@ export default function UserMap() {
               Civic Issues Map
             </h1>
             <p className="text-slate-600 dark:text-slate-400 text-lg max-w-2xl mx-auto leading-relaxed">
-              Explore civic issues across your region. Click markers for details, apply filters, and switch between map views.
+              Real-time visualization of civic issues. Explore reported problems and their resolution status.
             </p>
           </div>
         </div>
@@ -106,7 +148,7 @@ export default function UserMap() {
                 <Filter size={20} />
                 <span className="font-semibold">Filters</span>
               </div>
-              
+
               <select
                 className="bg-white/90 dark:bg-slate-700/90 backdrop-blur-sm border-2 border-green-200/50 dark:border-slate-600/50 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-green-400 focus:ring-4 focus:ring-green-400/10 transition-all duration-300 cursor-pointer hover:bg-white dark:hover:bg-slate-700"
                 value={statusFilter}
@@ -142,14 +184,13 @@ export default function UserMap() {
                 <Layers size={18} />
                 <span className="font-medium text-sm">View</span>
               </div>
-              
+
               <button
                 onClick={() => setMapView("street")}
-                className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 ${
-                  mapView === "street" 
-                    ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20" 
-                    : "bg-white/60 dark:bg-slate-700/60 text-green-600 dark:text-green-400 hover:bg-white/80 dark:hover:bg-slate-700/80 border border-green-200/50 dark:border-green-700/50"
-                }`}
+                className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 ${mapView === "street"
+                  ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20"
+                  : "bg-white/60 dark:bg-slate-700/60 text-green-600 dark:text-green-400 hover:bg-white/80 dark:hover:bg-slate-700/80 border border-green-200/50 dark:border-green-700/50"
+                  }`}
               >
                 <MapPin size={16} className={mapView === "street" ? "animate-pulse" : ""} />
                 Street
@@ -157,11 +198,10 @@ export default function UserMap() {
 
               <button
                 onClick={() => setMapView("satellite")}
-                className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 ${
-                  mapView === "satellite" 
-                    ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20" 
-                    : "bg-white/60 dark:bg-slate-700/60 text-green-600 dark:text-green-400 hover:bg-white/80 dark:hover:bg-slate-700/80 border border-green-200/50 dark:border-green-700/50"
-                }`}
+                className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 ${mapView === "satellite"
+                  ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20"
+                  : "bg-white/60 dark:bg-slate-700/60 text-green-600 dark:text-green-400 hover:bg-white/80 dark:hover:bg-slate-700/80 border border-green-200/50 dark:border-green-700/50"
+                  }`}
               >
                 <Globe size={16} className={mapView === "satellite" ? "animate-pulse" : ""} />
                 Satellite
@@ -174,8 +214,14 @@ export default function UserMap() {
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 to-emerald-500/20 rounded-3xl blur-xl"></div>
           <div className="relative bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-3xl shadow-2xl shadow-green-500/10 border border-green-200/30 dark:border-green-700/30 p-2 overflow-hidden">
-            <div className="w-full h-[600px] rounded-2xl overflow-hidden">
-              <MapContainer center={[20.5937, 78.9629]} zoom={5} style={{ height: "100%", width: "100%" }}>
+            <div className="w-full h-[600px] rounded-2xl overflow-hidden relative">
+              {loading && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+                </div>
+              )}
+
+              <MapContainer center={defaultCenter} zoom={5} style={{ height: "100%", width: "100%" }}>
                 <TileLayer
                   url={
                     mapView === "satellite"
@@ -211,18 +257,18 @@ export default function UserMap() {
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Popup Content */}
                         <div className="bg-white dark:bg-slate-800 p-4 rounded-b-2xl">
                           <p className="text-slate-700 dark:text-slate-300 mb-4 leading-relaxed">{issue.description}</p>
 
                           {/* Status and Category Badges */}
                           <div className="flex gap-2 flex-wrap">
-                            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border-2 ${statusClasses[issue.status]}`}>
+                            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border-2 ${statusClasses[issue.status] || 'border-gray-200'}`}>
                               <div className="w-2 h-2 rounded-full bg-current animate-pulse"></div>
                               {issue.status}
                             </div>
-                            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border-2 ${categoryClasses[issue.category]}`}>
+                            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border-2 ${categoryClasses[issue.category] || 'border-gray-200'}`}>
                               <Sparkles size={12} />
                               {issue.category}
                             </div>
@@ -243,7 +289,7 @@ export default function UserMap() {
         <div className="text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl border border-green-200/30 dark:border-green-700/30 text-sm text-slate-600 dark:text-slate-400">
             <MapPin size={16} className="text-green-500" />
-            Showing {filteredIssues.length} of {userIssues.length} issues
+            Showing {filteredIssues.length} issues (Real-time)
           </div>
         </div>
       </div>

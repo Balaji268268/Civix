@@ -1,4 +1,5 @@
 const User = require('../models/userModel.js');
+const Issue = require('../models/issues.js');
 const xss = require('xss');
 const { asyncHandler } = require('../utils/asyncHandler.js');
 const { uploadOnCloudinary } = require('../utils/cloudinary.js');
@@ -8,10 +9,22 @@ const getUserByClerkId = asyncHandler(async (req, res) => {
   const { clerkUserId } = req.params;
 
   const user = await User.findByClerkId(clerkUserId);
+  console.log(`[Profile] Fetching for ClerkID: ${clerkUserId}`);
+
+  if (user) {
+    console.log(`[Profile] Found User: ${user.email} | Trust: ${user.trustScore}`);
+  } else {
+    console.log(`[Profile] User NOT FOUND in MongoDB`);
+  }
 
   if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
+
+  // Fetch stats separately (Case Insensitive)
+  const complaintsCount = await Issue.countDocuments({
+    email: { $regex: new RegExp(`^${user.email}$`, 'i') }
+  });
 
   res.json({
     id: user._id,
@@ -20,7 +33,10 @@ const getUserByClerkId = asyncHandler(async (req, res) => {
     role: user.role,
     location: user.location,
     profilePictureUrl: user.profilePictureUrl || null,
-    isProfileComplete: user.isProfileComplete()
+    isProfileComplete: user.isProfileComplete(),
+    trustScore: user.trustScore,
+    gamification: user.gamification,
+    complaints: complaintsCount
   });
 });
 
@@ -113,6 +129,14 @@ const createOrUpdateUserProfile = asyncHandler(async (req, res) => {
       await user.save();
     } else {
       // Create brand new user
+      // Create brand new user
+      // Default approval logic
+      let isApproved = true;
+      const userRole = email.endsWith(process.env.DOMAIN_NAME || '@admin.com') ? 'admin' : 'user';
+      if (userRole === 'officer') {
+        isApproved = false;
+      }
+
       user = new User({
         clerkUserId,
         email,
@@ -120,7 +144,13 @@ const createOrUpdateUserProfile = asyncHandler(async (req, res) => {
         location: location || null,
         profilePictureUrl: profilePictureUrl || null,
         password: 'clerk-auth', // Placeholder since Clerk handles auth
-        role: email.endsWith(process.env.DOMAIN_NAME || '@admin.com') ? 'admin' : 'user'
+        role: userRole,
+        isApproved: isApproved, // Officers need approval
+        gamification: {
+          points: 100, // Welcome bonus
+          level: 1,
+          badges: []
+        }
       });
       await user.save();
     }

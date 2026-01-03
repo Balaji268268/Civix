@@ -13,6 +13,7 @@ import OfficerLayout from "../components/layout/OfficerLayout";
  * - Timeline tracking
  */
 import PollCreation from "../components/voting/PollCreation";
+import ResolutionAssistant from "../components/ai/ResolutionAssistant";
 import { PlusCircle } from "lucide-react";
 
 export default function OfficerDashboard() {
@@ -23,6 +24,10 @@ export default function OfficerDashboard() {
     const [selectedTask, setSelectedTask] = useState(null);
     const [statusUpdating, setStatusUpdating] = useState(false);
     const [showPollModal, setShowPollModal] = useState(false);
+    // Resolution Modal State
+    const [showResolutionModal, setShowResolutionModal] = useState(false);
+    const [resolutionNote, setResolutionNote] = useState("");
+    const [proofFile, setProofFile] = useState(null);
 
     useEffect(() => {
         const fetchTasks = async () => {
@@ -30,7 +35,8 @@ export default function OfficerDashboard() {
             try {
                 // Fetch tasks assigned to this officer
                 const token = await getToken();
-                const res = await csrfManager.secureFetch('http://localhost:5000/api/issues/assigned', {
+                const email = user.primaryEmailAddress.emailAddress;
+                const res = await csrfManager.secureFetch(`http://localhost:5000/api/issues/assigned?email=${email}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -47,6 +53,43 @@ export default function OfficerDashboard() {
 
         fetchTasks();
     }, [user]);
+
+    const handleSubmitResolution = async () => {
+        if (!proofFile || !resolutionNote) {
+            toast.error("Please provide both proof image and notes.");
+            return;
+        }
+
+        setStatusUpdating(true);
+        const formData = new FormData();
+        formData.append('proof', proofFile);
+        formData.append('officerNotes', resolutionNote);
+
+        try {
+            const token = await getToken();
+            const res = await fetch(`http://localhost:5000/api/issues/${selectedTask._id}/submit-resolution`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: formData
+            });
+
+            if (res.ok) {
+                toast.success("Resolution proof submitted for review!");
+                setTasks(prev => prev.filter(t => t._id !== selectedTask._id)); // Remove from active list
+                setSelectedTask(null);
+                setShowResolutionModal(false);
+            } else {
+                toast.error("Failed to submit resolution.");
+            }
+        } catch (e) {
+            console.error("Submission error", e);
+            toast.error("Error submitting proof.");
+        } finally {
+            setStatusUpdating(false);
+        }
+    };
 
     const handleUpdateStatus = async (issueId, newStatus) => {
         setStatusUpdating(true);
@@ -84,13 +127,22 @@ export default function OfficerDashboard() {
                     <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Field Operations</h1>
                     <p className="text-gray-500 dark:text-gray-400">Manage assigned tasks and civic engagement</p>
                 </div>
-                <button
-                    onClick={() => setShowPollModal(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg transition-transform hover:scale-105"
-                >
-                    <PlusCircle className="w-5 h-5" />
-                    Create Poll
-                </button>
+                <div className="flex gap-3">
+                    <button
+                        onClick={() => window.location.href = '/officer/settings'}
+                        className="p-2 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition"
+                        title="Settings"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
+                    </button>
+                    <button
+                        onClick={() => setShowPollModal(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg transition-transform hover:scale-105"
+                    >
+                        <PlusCircle className="w-5 h-5" />
+                        Create Poll
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -150,14 +202,17 @@ export default function OfficerDashboard() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+                                <div className="space-y-3 pt-6 border-t border-gray-100 dark:border-gray-700">
+                                    {/* AI Assistant */}
+                                    <ResolutionAssistant issue={selectedTask} />
+
                                     <button
-                                        onClick={() => handleUpdateStatus(selectedTask._id, 'Resolved')}
+                                        onClick={() => setShowResolutionModal(true)}
                                         disabled={statusUpdating}
                                         className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 transition flex items-center justify-center gap-2"
                                     >
                                         {statusUpdating ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
-                                        Mark as Resolved
+                                        Submit Resolution Proof
                                     </button>
 
                                     <button
@@ -180,6 +235,7 @@ export default function OfficerDashboard() {
                 </div>
             </div>
 
+            {/* Poll Modal */}
             {showPollModal && (
                 <PollCreation
                     onClose={() => setShowPollModal(false)}
@@ -187,6 +243,59 @@ export default function OfficerDashboard() {
                         toast.success("Poll published to citizens!");
                     }}
                 />
+            )}
+
+            {/* Resolution Proof Modal */}
+            {showResolutionModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-lg p-6 shadow-2xl border border-gray-100 dark:border-gray-700 animate-in fade-in zoom-in duration-200">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <CheckCircle className="w-6 h-6 text-emerald-500" />
+                                Submit Resolution
+                            </h3>
+                            <button onClick={() => setShowResolutionModal(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition">
+                                <XCircle className="w-5 h-5 text-gray-500" />
+                            </button>
+                        </div>
+
+                        <p className="text-gray-500 text-sm mb-6">
+                            Upload a photo proof and add notes to verify this issue has been resolved. This will be sent to a moderator for approval.
+                        </p>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Proof Image (Required)</label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => setProofFile(e.target.files[0])}
+                                    className="w-full block text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Officer Notes</label>
+                                <textarea
+                                    value={resolutionNote}
+                                    onChange={(e) => setResolutionNote(e.target.value)}
+                                    placeholder="Describe the action taken..."
+                                    className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none transition"
+                                    rows="3"
+                                />
+                            </div>
+
+                            <button
+                                onClick={handleSubmitResolution}
+                                disabled={statusUpdating || !proofFile}
+                                className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-bold shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 transition flex items-center justify-center gap-2 mt-2"
+                            >
+                                {statusUpdating ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle className="w-5 h-5" />}
+                                Submit for Review
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </OfficerLayout>
     );

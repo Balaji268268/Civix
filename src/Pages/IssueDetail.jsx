@@ -22,15 +22,23 @@ const IssueDetail = () => {
     const hasOfficer = !!issue.assignedOfficer;
     const status = issue.status;
 
-    // Step 2: Assigned (Only if officer assigned OR status implies it happened)
-    // If Rejected but NO officer, this step is skipped.
-    if (hasOfficer || status === 'In Progress' || status === 'Resolved' || status === 'Escalated') {
+    // Step 2: Assigned
+    if (hasOfficer || ['In Progress', 'Resolved', 'Escalated', 'Pending Review', 'Closed', 'Dispute'].includes(status)) {
       steps.push({ id: 'assigned', label: 'Assigned', icon: MapPin, color: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400' });
     }
 
-    // Step 3: Final Outcome (If reached)
+    // Step 3: Officer Resolved (Pending Review)
+    if (['Pending Review', 'Resolved', 'Closed', 'Dispute'].includes(status)) {
+      steps.push({ id: 'officer_res', label: 'Officer Resolved', icon: CheckCircle, color: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400' });
+    }
+
+    // Step 4: Final Outcome
     if (status === 'Resolved') {
-      steps.push({ id: 'resolved', label: 'Resolved', icon: CheckCircle, color: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400' });
+      steps.push({ id: 'resolved', label: 'Verified', icon: CheckCircle, color: 'bg-emerald-500 text-white', text: 'text-emerald-600 dark:text-emerald-400 font-bold' });
+    } else if (status === 'Closed') {
+      steps.push({ id: 'closed', label: 'Confirmed', icon: CheckCircle, color: 'bg-green-600 text-white', text: 'text-green-700 font-bold' });
+    } else if (status === 'Dispute') {
+      steps.push({ id: 'dispute', label: 'Disputed', icon: AlertTriangle, color: 'bg-red-500 text-white', text: 'text-red-500 font-bold' });
     } else if (status === 'Rejected') {
       steps.push({ id: 'rejected', label: 'Rejected', icon: XCircle, color: 'bg-red-500', text: 'text-red-500 font-bold' });
     } else if (status === 'Escalated') {
@@ -40,6 +48,42 @@ const IssueDetail = () => {
     return steps;
   };
 
+
+
+  const [estimatedDays, setEstimatedDays] = useState(null);
+  const [acknowledging, setAcknowledging] = useState(false);
+  const [disputeReason, setDisputeReason] = useState("");
+  const [showDisputeInput, setShowDisputeInput] = useState(false);
+
+  const handleAcknowledgement = async (status) => {
+    if (status === 'Disputed' && !disputeReason) {
+      setShowDisputeInput(true);
+      return;
+    }
+
+    setAcknowledging(true);
+    try {
+      const res = await csrfManager.secureFetch(`http://localhost:5000/api/issues/${id}/acknowledge-resolution`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status, // 'Confirmed' or 'Disputed'
+          remarks: disputeReason
+        })
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setIssue(updated);
+        // toast.success(status === 'Confirmed' ? "Thank you! Case closed." : "Dispute recorded. Moderator will review.");
+      }
+    } catch (e) {
+      console.error("Acknowledgement error", e);
+    } finally {
+      setAcknowledging(false);
+    }
+  };
+
   useEffect(() => {
     const fetchIssue = async () => {
       try {
@@ -47,6 +91,24 @@ const IssueDetail = () => {
         if (response.ok) {
           const data = await response.json();
           setIssue(data);
+
+          // Fetch AI Prediction
+          if (data.status !== 'Resolved' && data.status !== 'Rejected') {
+            try {
+              const predRes = await csrfManager.secureFetch('http://localhost:5000/api/ml/predict-resolution-time/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  category: data.category,
+                  severity: data.aiAnalysis?.priority === 'High' ? 8 : 4,
+                  active_tasks: 5 // Default assumption if no officer data
+                })
+              });
+              const predData = await predRes.json();
+              setEstimatedDays(predData.estimated_days);
+            } catch (e) { console.error("Prediction failed", e); }
+          }
+
         } else {
           console.error("Failed to fetch issue details");
         }
@@ -76,15 +138,23 @@ const IssueDetail = () => {
 
         {/* Tracking Stepper */}
         <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 mb-8 border border-gray-100 dark:border-gray-700">
-          <h2 className="text-2xl font-bold mb-8 text-center text-gray-800 dark:text-gray-100">Complaint Tracking</h2>
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Complaint Tracking</h2>
+            {estimatedDays && issue.status !== 'Resolved' && (
+              <div className="inline-flex items-center gap-2 mt-2 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-bold border border-indigo-200">
+                <Clock size={12} />
+                AI Estimate: Resolution in ~{estimatedDays} Days
+              </div>
+            )}
+          </div>
 
           <div className="relative flex items-center justify-evenly w-full max-w-2xl mx-auto">
             {/* Background Line (connects all visible nodes) */}
             {dynamicSteps.length > 1 && (
               <div
                 className={`absolute left-0 top-1/2 -translate-y-1/2 h-1 transition-all duration-500 z-0 w-full transform scale-x-[0.8] ${issue.status === 'Rejected' ? 'bg-gradient-to-r from-emerald-500 to-red-500' :
-                    issue.status === 'Escalated' ? 'bg-gradient-to-r from-emerald-500 to-orange-500' :
-                      'bg-emerald-500'
+                  issue.status === 'Escalated' ? 'bg-gradient-to-r from-emerald-500 to-orange-500' :
+                    'bg-emerald-500'
                   }`}
               ></div>
             )}
@@ -113,6 +183,89 @@ const IssueDetail = () => {
             </span>
           </div>
         </div>
+
+        {/* Resolution Confirmation Card (User Action Required) */}
+        {issue.status === 'Resolved' && !issue.resolution?.userAcknowledgement?.status && (
+          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-3xl p-8 mb-8 shadow-lg border border-emerald-100 dark:border-emerald-800 animate-in fade-in slide-in-from-bottom-4">
+            <div className="flex flex-col md:flex-row gap-8 items-center">
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                  <CheckCircle className="w-8 h-8 text-emerald-500" />
+                  Issue Resolved?
+                </h2>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                  The officer has marked this issue as resolved. Please review the proof below and confirm if you are satisfied.
+                </p>
+
+                {issue.resolution?.proofUrl && (
+                  <img
+                    src={issue.resolution.proofUrl}
+                    alt="Resolution Proof"
+                    className="w-full max-w-sm h-48 object-cover rounded-xl shadow-md mb-4 border-2 border-white dark:border-gray-800"
+                  />
+                )}
+                {issue.resolution?.officerNotes && (
+                  <p className="text-sm text-gray-500 italic mb-4">"Officer Note: {issue.resolution.officerNotes}"</p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-3 w-full md:w-auto">
+                {!showDisputeInput ? (
+                  <>
+                    <button
+                      onClick={() => handleAcknowledgement('Confirmed')}
+                      disabled={acknowledging}
+                      className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 transition transform hover:scale-105"
+                    >
+                      {acknowledging ? "Processing..." : "Yes, Verified!"}
+                    </button>
+                    <button
+                      onClick={() => setShowDisputeInput(true)}
+                      disabled={acknowledging}
+                      className="px-8 py-4 bg-white dark:bg-gray-800 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-bold border border-gray-200 dark:border-gray-700 transition"
+                    >
+                      No, Dispute
+                    </button>
+                  </>
+                ) : (
+                  <div className="w-full max-w-sm">
+                    <textarea
+                      value={disputeReason}
+                      onChange={(e) => setDisputeReason(e.target.value)}
+                      placeholder="Why is it not resolved?"
+                      className="w-full p-3 mb-2 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm"
+                      rows="2"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleAcknowledgement('Disputed')}
+                        disabled={acknowledging}
+                        className="flex-1 py-2 bg-red-500 text-white rounded-lg font-bold text-sm"
+                      >
+                        Submit Dispute
+                      </button>
+                      <button
+                        onClick={() => setShowDisputeInput(false)}
+                        className="px-3 py-2 text-gray-500 text-sm"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Closed/Confirmed Case Banner */}
+        {issue.status === 'Closed' && issue.resolution?.userAcknowledgement?.status === 'Confirmed' && (
+          <div className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-3xl p-6 mb-8 text-center font-bold border border-green-200 dark:border-green-800">
+            <CheckCircle className="w-12 h-12 mx-auto mb-2 text-green-500" />
+            <h2 className="text-xl">Case Successfully Closed</h2>
+            <p className="text-sm font-normal opacity-80 mt-1">You confirmed this resolution on {new Date(issue.resolution.userAcknowledgement.acknowledgedAt).toLocaleDateString()}.</p>
+          </div>
+        )}
 
         {/* Details Card */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

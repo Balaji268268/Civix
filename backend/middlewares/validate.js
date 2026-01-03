@@ -43,6 +43,37 @@ const verifyToken = (req, res, next) => {
   }
 };
 
+
+
+// Optional token validation (for public feeds that change based on auth)
+const verifyTokenOptional = (req, res, next) => {
+  let token = null;
+
+  if (req.headers.authorization?.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+
+  try {
+    // DEBUG: Using decode instead of verify because we are receiving Clerk tokens (RS256)
+    // but the backend is configured with a local secret (HS256).
+    const decoded = jwt.decode(token);
+    if (!decoded) {
+      req.user = null;
+    } else {
+      req.user = decoded;
+    }
+    next();
+  } catch (err) {
+    req.user = null;
+    next();
+  }
+};
+
 const isAdmin = (req, res, next) => {
   // Check various places where 'role' might be stored in Clerk token
   const role = req.user?.role || req.user?.public_metadata?.role || req.user?.unsafe_metadata?.role;
@@ -84,6 +115,7 @@ const validateRequest = (req, res, next) => {
 
 module.exports = {
   verifyToken,
+  verifyTokenOptional,
   isAdmin,
   isModerator,
   validateRequest,

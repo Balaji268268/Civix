@@ -2,6 +2,7 @@ const Issue = require('../models/issues');
 const User = require('../models/userModel');
 const Poll = require('../models/poll');
 const Post = require('../models/post');
+const Settings = require('../models/settings');
 const { asyncHandler } = require('../utils/asyncHandler');
 
 const axios = require('axios');
@@ -15,7 +16,12 @@ const getAdminStats = asyncHandler(async (req, res) => {
     const rejectedIssues = await Issue.countDocuments({ status: 'Rejected' });
 
     // High priority count
-    const highPriority = await Issue.countDocuments({ priority: 'High' });
+    // High priority count (Exclude resolved/rejected)
+    // High priority count (Exclude resolved/rejected)
+    const highPriority = await Issue.countDocuments({
+        priority: 'High',
+        status: { $nin: ['Resolved', 'Rejected'] }
+    });
 
     // Issues by Category (for charts)
     const issuesByCategory = await Issue.aggregate([
@@ -170,4 +176,126 @@ const getUserDetails = asyncHandler(async (req, res) => {
     });
 });
 
-module.exports = { getAdminStats, findDuplicatesForIssue, getAllUsers, getUserDetails };
+// PATCH /api/admin/users/:id/approve
+const approveUser = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const user = await User.findByIdAndUpdate(
+        id,
+        { isApproved: true },
+        { new: true }
+    );
+
+    if (!user) {
+        return res.status(404).json({ error: "User not found" });
+    }
+
+    res.status(200).json({ message: "User approved successfully", user });
+});
+
+// --- Community Analytics (GenAI) ---
+const getCommunityInsights = async (req, res) => {
+    try {
+        // 1. Fetch recent discussions (last 50 posts)
+        const posts = await Post.find().sort({ createdAt: -1 }).limit(50).select('title content category likes comments');
+
+        if (!posts.length) {
+            return res.status(200).json({ sentiment: { positive: 0, neutral: 100, negative: 0 }, topics: [], summary: "No data yet." });
+        }
+
+        // 2. Prepare Data for Gemini
+        const postsText = posts.map(p => `- [${p.category}] ${p.title}: ${p.content} (${p.likes.length} likes, ${p.comments.length} comments)`).join('\n');
+
+        // 3. Ask Gemini
+        const prompt = `
+      Analyze these ${posts.length} community posts from the Civix platform.
+      
+      DATA:
+      ${postsText}
+
+      TASK:
+      Provide a JSON summary of the community sentiment and engagement.
+      
+      OUTPUT FORMAT (JSON ONLY):
+      {
+        "sentiment": { "positive": 40, "neutral": 40, "negative": 20 }, // Percentages summing to 100
+        "topics": [
+           { "name": "Potholes", "count": 12, "sentiment": "negative" },
+           { "name": "New Park", "count": 8, "sentiment": "positive" }
+        ],
+        "engagement_summary": "Brief 1-sentence summary of what people are talking about.",
+        "urgent_alerts": ["List any specific urgent safety issues mentioned"]
+      }
+    `;
+
+        const rawResponse = await callGemini(prompt);
+        if (!rawResponse) throw new Error("AI Analysis Failed");
+
+        const cleanJson = rawResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+        const insights = JSON.parse(cleanJson);
+
+        res.status(200).json(insights);
+
+    } catch (error) {
+        console.error("Community Insights Error:", error);
+        res.status(500).json({ message: "Failed to analyze community data" });
+    }
+};
+
+// --- System Settings ---
+const getSettings = asyncHandler(async (req, res) => {
+    const settings = await Settings.getSettings();
+    res.json(settings);
+});
+
+const updateSettings = asyncHandler(async (req, res) => {
+    const settings = await Settings.getSettings();
+    const updates = req.body;
+
+    // Allowed updates
+    ['maintenanceMode', 'newRegistrations', 'emailAlerts', 'pushNotifications'].forEach(key => {
+        if (updates[key] !== undefined) {
+            settings[key] = updates[key];
+        }
+    });
+
+    await settings.save();
+    res.json(settings);
+});
+
+// --- Data Export ---
+const exportSystemData = asyncHandler(async (req, res) => {
+    // Fetch all relevant data
+    const issues = await Issue.find().sort({ createdAt: -1 });
+    const users = await User.find().select('-password');
+
+    // Helper to escape CSV fields
+    const escape = (field) => {
+        if (field === null || field === undefined) return '';
+        const stringField = String(field);
+        if (stringField.includes(',') || stringField.includes('\n') || stringField.includes('"')) {
+            return `"${stringField.replace(/"/g, '""')}"`;
+        }
+        return stringField;
+    };
+
+    // 1. Issues CSV
+    let csvContent = "Type,ID,Title,Category,Status,Priority,Date,Reporter\n";
+    issues.forEach(issue => {
+        csvContent += `Issue,${escape(issue._id)},${escape(issue.title)},${escape(issue.category)},${escape(issue.status)},${escape(issue.priority)},${escape(issue.createdAt)},${escape(issue.email)}\n`;
+    });
+
+    // 2. Users CSV (Appended)
+    csvContent += "\nType,ID,Name,Email,Role,Location,Joined\n";
+    users.forEach(user => {
+        csvContent += `User,${escape(user._id)},${escape(user.name)},${escape(user.email)},${escape(user.role)},${escape(user.location)},${escape(user.createdAt)}\n`;
+    });
+
+    // Set headers for file download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="civix_system_export.csv"');
+
+    res.status(200).send(csvContent);
+});
+
+module.exports = { getAdminStats, findDuplicatesForIssue, getAllUsers, getUserDetails, approveUser, getCommunityInsights, getSettings, updateSettings, exportSystemData };

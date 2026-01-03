@@ -15,6 +15,9 @@ const AdminIssueDetail = () => {
     const [status, setStatus] = useState('');
     const [priority, setPriority] = useState('');
     const [updating, setUpdating] = useState(false);
+    // Review State
+    const [reviewRemarks, setReviewRemarks] = useState("");
+    const [reviewing, setReviewing] = useState(false);
 
     useEffect(() => {
         const fetchIssue = async () => {
@@ -62,6 +65,44 @@ const AdminIssueDetail = () => {
             toast.error("Update failed");
         } finally {
             setUpdating(false);
+        }
+    };
+
+    const handleReviewResolution = async (isApproved) => {
+        if (!isApproved && !reviewRemarks) {
+            toast.error("Please provide remarks for rejection.");
+            return;
+        }
+        setReviewing(true);
+        try {
+            const token = await getToken();
+            const res = await csrfManager.secureFetch(`http://localhost:5000/api/issues/${id}/review-resolution`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    isApproved,
+                    remarks: reviewRemarks || (isApproved ? "Approved by Moderator" : "Rejected"),
+                    reviewedBy: "Admin" // Replace with actual user name if available in context
+                })
+            });
+
+            if (res.ok) {
+                toast.success(isApproved ? "Resolution Approved!" : "Resolution Rejected.");
+                // Refetch to update UI
+                const updated = await res.json();
+                setIssue(updated);
+                setStatus(updated.status);
+            } else {
+                toast.error("Review action failed.");
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error("Error submitting review.");
+        } finally {
+            setReviewing(false);
         }
     };
 
@@ -179,6 +220,75 @@ const AdminIssueDetail = () => {
                             )}
                         </div>
                     </div>
+
+                    {/* Resolution Proof Section (Visible if Pending Review or Resolved) */}
+                    {issue.resolution && issue.resolution.proofUrl && (
+                        <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-lg border border-gray-100 dark:border-gray-700">
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+                                <CheckCircle className="w-6 h-6 text-emerald-500" />
+                                Resolution Proof
+                            </h3>
+
+                            <div className="flex flex-col md:flex-row gap-6">
+                                <div className="w-full md:w-1/2">
+                                    <img
+                                        src={issue.resolution.proofUrl}
+                                        alt="Resolution Proof"
+                                        className="w-full h-64 object-cover rounded-2xl shadow-md border border-gray-100 dark:border-gray-700"
+                                    />
+                                    <p className="mt-2 text-xs text-gray-400 text-center">Submitted on {new Date(issue.resolution.submittedAt).toLocaleDateString()}</p>
+                                </div>
+                                <div className="w-full md:w-1/2 space-y-4">
+                                    <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-xl">
+                                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Officer Notes</span>
+                                        <p className="text-gray-700 dark:text-gray-300 italic">"{issue.resolution.officerNotes}"</p>
+                                    </div>
+
+                                    {/* Action Buttons for Pending Review */}
+                                    {issue.status === 'Pending Review' && (
+                                        <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
+                                            <p className="text-sm font-bold text-gray-900 dark:text-white mb-3">Moderator Action Required</p>
+
+                                            <textarea
+                                                value={reviewRemarks}
+                                                onChange={(e) => setReviewRemarks(e.target.value)}
+                                                placeholder="Add remarks (required for rejection)..."
+                                                className="w-full p-3 mb-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                                                rows="2"
+                                            />
+
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <button
+                                                    onClick={() => handleReviewResolution(true)}
+                                                    disabled={reviewing}
+                                                    className="py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-bold text-sm shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 transition"
+                                                >
+                                                    Approve & Resolve
+                                                </button>
+                                                <button
+                                                    onClick={() => handleReviewResolution(false)}
+                                                    disabled={reviewing}
+                                                    className="py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-bold text-sm shadow-lg shadow-red-200 dark:shadow-red-900/20 transition"
+                                                >
+                                                    Reject
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Show Verdict if already reviewed */}
+                                    {issue.resolution.moderatorApproval && issue.resolution.moderatorApproval.reviewedAt && (
+                                        <div className={`p-4 rounded-xl border ${issue.resolution.moderatorApproval.isApproved ? 'bg-green-50 border-green-100 text-green-800' : 'bg-red-50 border-red-100 text-red-800'}`}>
+                                            <p className="font-bold text-sm mb-1">
+                                                {issue.resolution.moderatorApproval.isApproved ? "Approved by Moderator" : "Rejected by Moderator"}
+                                            </p>
+                                            <p className="text-xs opacity-80">{issue.resolution.moderatorApproval.remarks}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Column: Actions & Intelligence */}

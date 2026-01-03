@@ -4,14 +4,8 @@ const User = require('../models/userModel');
 // Create a new post
 exports.createPost = async (req, res) => {
     try {
-        const { content, image } = req.body;
+        const { content, image, type, title, eventDate, location, eventCategory } = req.body;
         // Assuming req.user is populated by verifyToken middleware
-        // We need to look up the MongoDB _id using the Clerk ID or however auth is handled
-        // Based on previous code, req.user might be the Clerk ID or the User object depending on middleware
-        // Let's assume verifyToken attaches the DB user object or at least the clertUserId
-
-        // Safety check: Find the user in our DB first
-        // Note: ensure middleware populates req.user.id or we lookup by clerkUserId
         const user = await User.findOne({ clerkUserId: req.user.id });
         if (!user) {
             return res.status(404).json({ message: "User not found" });
@@ -20,14 +14,34 @@ exports.createPost = async (req, res) => {
         const newPost = new Post({
             content,
             image,
+            type: type || 'post',
+            title,
+            eventDate,
+            location,
+            eventCategory,
             author: user._id
         });
 
         const savedPost = await newPost.save();
-        // Populate author details for immediate frontend display
         await savedPost.populate('author', 'name profilePictureUrl role');
 
         res.status(201).json(savedPost);
+
+        // Notify Admin for Events
+        if (type === 'event') {
+            try {
+                await require('../models/notification').create({
+                    recipient: 'admin',
+                    title: 'New Event Proposed',
+                    message: `Event "${title}" scheduled for ${eventDate} by ${user.name}.`,
+                    type: 'info',
+                    relatedId: savedPost._id,
+                    onModel: 'Post'
+                });
+            } catch (e) {
+                console.warn("Notification error:", e.message);
+            }
+        }
     } catch (error) {
         console.error("Error creating post:", error);
         res.status(500).json({ message: "Failed to create post" });
@@ -37,14 +51,9 @@ exports.createPost = async (req, res) => {
 // Get posts by a specific user
 exports.getUserPosts = async (req, res) => {
     try {
-        // If accessing own posts or admin accessing user posts
-        // req.query.userId (MongoDB ID) can be used if we want specific user posts
-        // For "My Posts", we use the logged-in user
-
         let userId = req.query.userId;
 
         if (!userId) {
-            // Default to current logged in user if not specified
             const user = await User.findOne({ clerkUserId: req.user.id });
             if (!user) return res.status(404).json({ message: "User not found" });
             userId = user._id;
@@ -65,12 +74,36 @@ exports.getUserPosts = async (req, res) => {
 // Get all posts (Feed)
 exports.getAllPosts = async (req, res) => {
     try {
-        const posts = await Post.find()
+        const { filter } = req.query;
+        let query = {};
+
+        if (filter === 'discussions') {
+            query.type = 'discussion';
+        } else if (filter === 'events') {
+            query.type = 'event';
+        }
+
+        let mongoUserId = null;
+        if (req.user) {
+            const user = await User.findOne({ clerkUserId: req.user.id });
+            if (user) mongoUserId = user._id;
+        }
+
+        const posts = await Post.find(query)
             .sort({ createdAt: -1 })
             .populate('author', 'name profilePictureUrl role')
-            .populate('comments.user', 'name profilePictureUrl');
-        res.status(200).json(posts);
+            .populate('comments.user', 'name profilePictureUrl')
+            .lean(); // Use lean to modify the object
+
+        // Inject isLiked flag
+        const postsWithIsLiked = posts.map(post => {
+            const isLiked = mongoUserId ? post.likes.some(id => id.toString() === mongoUserId.toString()) : false;
+            return { ...post, isLiked };
+        });
+
+        res.status(200).json(postsWithIsLiked);
     } catch (error) {
+        console.error("Feed Error", error);
         res.status(500).json({ message: "Failed to fetch feed" });
     }
 };
@@ -122,5 +155,38 @@ exports.toggleLike = async (req, res) => {
         res.status(200).json(post);
     } catch (error) {
         res.status(500).json({ message: "Like failed" });
+    }
+};
+
+// Add Comment
+exports.addComment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { text } = req.body;
+
+        if (!text) return res.status(400).json({ message: "Comment text required" });
+
+        const user = await User.findOne({ clerkUserId: req.user.id });
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        const post = await Post.findById(id);
+        if (!post) return res.status(404).json({ message: "Post not found" });
+
+        const newComment = {
+            user: user._id,
+            text,
+            createdAt: new Date()
+        };
+
+        post.comments.push(newComment);
+        await post.save();
+
+        // Return fully populated post or just the comment? 
+        // Returning post is safer for state sync
+        await post.populate('comments.user', 'name profilePictureUrl');
+        res.status(201).json(post);
+    } catch (error) {
+        console.error("Comment error:", error);
+        res.status(500).json({ message: "Comment failed" });
     }
 };

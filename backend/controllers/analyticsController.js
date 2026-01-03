@@ -190,7 +190,7 @@ const getAdminAnalytics = asyncHandler(async (req, res) => {
 
     const pollStats = await Poll.find();
     let totalPollVotes = 0;
-    pollStats.forEach(p => totalPollVotes += p.votes.reduce((a, b) => a + b, 0));
+    pollStats.forEach(p => totalPollVotes += (p.votes || []).reduce((a, b) => a + b, 0));
 
 
     res.json({

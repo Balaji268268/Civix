@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { Calendar } from 'lucide-react';
 import csrfManager from "../utils/csrfManager";
 import { toast } from "react-hot-toast";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import AdminLayout from "../components/layout/AdminLayout";
 import { useAuth } from "@clerk/clerk-react";
 import TrendingFeed from "./TrendingFeed";
+import AdminAIInsights from "../components/ai/AdminAIInsights";
 
 const AdminDashboard = () => {
   const { getToken } = useAuth();
@@ -17,6 +19,7 @@ const AdminDashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedIssueId, setSelectedIssueId] = useState(null);
 
+  // Initial Fetch & Real-time Polling
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -41,7 +44,12 @@ const AdminDashboard = () => {
         console.error("Admin fetch error:", error);
       }
     };
-    fetchData();
+
+    fetchData(); // Initial load
+
+    // Poll every 5 seconds for real-time updates
+    const intervalId = setInterval(fetchData, 5000);
+    return () => clearInterval(intervalId);
   }, []);
 
   if (loading) return <div className="text-center py-20 text-emerald-600 font-medium text-lg">Loading Admin Dashboard...</div>;
@@ -52,6 +60,14 @@ const AdminDashboard = () => {
   })) || [];
 
   const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6'];
+
+  // Calculate Moderator Queue (Pending & Not Analyzed)
+  // Note: We might need the full list to calculate this perfectly if recentIssues is sliced.
+  // Ideally, backend stats should provide this, but we can approximate or rely on stats if updated.
+  // For now, let's use the stats pending count but label it clearly, 
+  // or if we want exact "Queue" (Pending + Unanalyzed), we'd need that from backend.
+  // Assuming 'Pending' effectively essentially equals the queue for now.
+  const modQueueCount = stats?.statusCounts?.Pending || 0;
 
   /* Duplicate Modal State */
 
@@ -126,8 +142,15 @@ const AdminDashboard = () => {
   return (
     <AdminLayout title="Admin Dashboard" subtitle="Overview & Statistics">
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-10">
         <StatCard title="Total Issues" value={stats?.totalIssues} color="bg-blue-100 text-blue-800" />
+        {/* New Moderator Queue Card */}
+        <StatCard
+          title="Moderator Queue"
+          value={modQueueCount}
+          color="bg-purple-100 text-purple-800"
+          icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mb-1 opacity-70" viewBox="0 0 20 20" fill="currentColor"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd" /></svg>}
+        />
         <StatCard title="Pending" value={stats?.statusCounts?.Pending} color="bg-yellow-100 text-yellow-800" />
         <StatCard title="Resolved" value={stats?.statusCounts?.Resolved} color="bg-green-100 text-green-800" />
         <StatCard title="High Priority" value={stats?.highPriority} color="bg-red-100 text-red-800" />
@@ -158,6 +181,7 @@ const AdminDashboard = () => {
 
         {/* Insights & Escalation */}
         <div className="space-y-6">
+          <AdminAIInsights />
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
             <h2 className="text-xl font-bold mb-4">Escalation Watch</h2>
             <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-800/50 mb-4">
@@ -191,6 +215,9 @@ const AdminDashboard = () => {
             <Link to="/admin/duplicates" className="text-gray-500 hover:text-gray-700 font-medium text-sm flex items-center gap-1">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="16" y1="13" x2="8" y2="13" /><line x1="16" y1="17" x2="8" y2="17" /><polyline points="10 9 9 9 8 9" /></svg>
               View Rejected Archives
+            </Link>
+            <Link to="/admin/events" className="text-gray-500 hover:text-gray-700 font-medium text-sm flex items-center gap-1">
+              <Calendar className="w-4 h-4" /> Manage Events
             </Link>
             <Link to="/admin/issues" className="text-emerald-600 font-medium hover:text-emerald-700 text-sm">View All Issues &rarr;</Link>
           </div>
@@ -343,9 +370,12 @@ const AdminDashboard = () => {
   );
 };
 
-const StatCard = ({ title, value, color }) => (
+const StatCard = ({ title, value, color, icon }) => (
   <div className={`p-6 rounded-2xl shadow-sm ${color.split(" ")[0]} dark:bg-opacity-20`}>
-    <p className={`text-sm font-medium opacity-80 ${color.split(" ")[1]} dark:text-gray-300`}>{title}</p>
+    <div className="flex justify-between items-start">
+      <p className={`text-sm font-medium opacity-80 ${color.split(" ")[1]} dark:text-gray-300`}>{title}</p>
+      {icon && <div className={`${color.split(" ")[1]}`}>{icon}</div>}
+    </div>
     <p className={`text-4xl font-extrabold mt-2 ${color.split(" ")[1]} dark:text-white`}>{value ?? 0}</p>
   </div>
 );

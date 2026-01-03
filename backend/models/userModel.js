@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema({
   department: { type: String, default: null }, // e.g. 'Sanitation', 'Roads'
   activeTasks: { type: Number, default: 0 }, // For load balancing
   isAvailable: { type: Boolean, default: true },
+  isApproved: { type: Boolean, default: true }, // Officers will be set to false on creation
   gamification: {
     points: { type: Number, default: 0 },
     level: { type: Number, default: 1 },

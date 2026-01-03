@@ -6,6 +6,11 @@ const issueSchema = new mongoose.Schema({
   phone: String,
   email: String,
   fileUrl: String,
+  location: String,
+  coordinates: {
+    lat: Number,
+    lng: Number
+  },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -87,7 +92,28 @@ const issueSchema = new mongoose.Schema({
     timestamp: { type: Date, default: Date.now },
     message: String,
     byUser: String // Name or Role
-  }]
+  }],
+  // New Resolution Tracking Fields
+  resolution: {
+    proofUrl: String,
+    officerNotes: String,
+    submittedAt: Date,
+    moderatorApproval: {
+      isApproved: { type: Boolean, default: false },
+      reviewedBy: String,
+      reviewedAt: Date,
+      remarks: String
+    },
+    userAcknowledgement: {
+      status: {
+        type: String,
+        enum: ['Pending', 'Confirmed', 'Disputed'],
+        default: 'Pending'
+      },
+      acknowledgedAt: Date,
+      remarks: String
+    }
+  }
 });
 
 module.exports = mongoose.model('Issue', issueSchema);

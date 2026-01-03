@@ -277,13 +277,22 @@ export default function ModeratorDashboard() {
                         </button>
                     </div>
 
-                    <button
-                        onClick={fetchIssues}
-                        className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition"
-                        title="Refresh List"
-                    >
-                        <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => window.location.href = '/moderator/settings'}
+                            className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition"
+                            title="Moderator Settings"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
+                        </button>
+                        <button
+                            onClick={fetchIssues}
+                            className="p-2 text-gray-500 hover:bg-gray-100 rounded-full transition"
+                            title="Refresh List"
+                        >
+                            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Main 2-Panel Grid */}
@@ -505,9 +514,34 @@ export default function ModeratorDashboard() {
                 {statusAction && (
                     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
                         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
-                            <div className="p-6 border-b border-gray-100">
-                                <h3 className="text-xl font-bold text-gray-900">Confirm {statusAction.status}</h3>
-                                <p className="text-sm text-gray-500 mt-1">Please provide a reason for this action.</p>
+                            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                                <div>
+                                    <h3 className="text-xl font-bold text-gray-900">Confirm {statusAction.status}</h3>
+                                    <p className="text-sm text-gray-500 mt-1">Please provide a reason/response.</p>
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        setAnalyzing(true); // Reuse analyzing state or local
+                                        try {
+                                            const res = await csrfManager.secureFetch('http://localhost:5000/api/ml/generate-reply/', {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({
+                                                    description: selectedIssue.description,
+                                                    status: statusAction.status,
+                                                    severity: selectedIssue.priority || 'Medium'
+                                                })
+                                            });
+                                            const data = await res.json();
+                                            setActionRemarks(data.reply);
+                                        } catch (e) { toast.error("AI Draft Failed"); }
+                                        finally { setAnalyzing(false); }
+                                    }}
+                                    className="text-xs bg-indigo-50 text-indigo-600 px-3 py-1.5 rounded-lg border border-indigo-200 font-bold flex items-center gap-1 hover:bg-indigo-100 transition"
+                                >
+                                    {analyzing ? <Loader2 size={12} className="animate-spin" /> : <Cpu size={12} />}
+                                    AI Auto-Draft
+                                </button>
                             </div>
                             <div className="p-6">
                                 <textarea

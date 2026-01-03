@@ -17,79 +17,86 @@ import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 import PageLoader from './components/PageLoader';
 import ScrollToTopOnRouteChange from './components/ScrollToTopOnRouteChange';
+import { HelmetProvider } from 'react-helmet-async';
+// import CustomCursor from './components/CustomCursor';
+import CivixSupportBot from './components/Chatbot/CivixSupportBot';
 
 const OfficerDashboard = lazy(() => import('./Pages/OfficerDashboard'));
 const ModeratorDashboard = lazy(() => import('./Pages/ModeratorDashboard'));
+const CommunityHub = lazy(() => import('./Pages/CommunityHub'));
 
 // ...
 
 
 
 // Standard Imports for lighter pages (to avoid layout shift on simple clicks)
-import RequireAdmin from './components/auth/RequireAdmin';
-import DuplicateIssues from './Pages/DuplicateIssues';
-import AdminAllIssues from './Pages/AdminAllIssues';
-import AdminMessages from './Pages/AdminMessages';
-import Feedback from "./Pages/Feedback";
-import About from './Pages/About';
-import Privacy from './Pages/Privacy';
-import Terms from './Pages/Terms';
-import Contact from './Pages/Contact';
-import ReportIssue from './Pages/ReportIssue';
-import ServerError from './components/ServerError';
-import DownloadAndroid from './Pages/DownloadAndroid';
-import DownloadIOS from './Pages/DownloadIOS';
-import NewIssue from './Pages/NewIssue';
-import CommunityVotingPage from './Pages/CommunityVotingPage';
-import Profile from './Pages/Profile';
-import ProfileSetup from './Pages/ProfileSetup';
-import Resources from './Pages/Resources';
-import MyComplaints from './Pages/MyComplaints';
-import CivicEducation from './Pages/CivicEducation';
-import CivicSimulator from './Pages/CivicSimulator';
-import Contributors from './Pages/Contributors';
-import SOS from './Pages/SOS';
-import TaxImpact from './Pages/TaxImpact';
-import RepersentativeFinder from './Pages/RepersentativeFinder';
-import Users from './Pages/Users';
-import AdminUserDetails from './Pages/AdminUserDetails';
-import UserPosts from './Pages/UserPosts';
-import Settings from './Pages/Settings';
-import Notification from './Pages/Notification';
-import NearbyServices from './Pages/NearbyServices';
-import LostAndFoundPage from './Pages/Lost&Found';
-import CommunityHolidays from './Pages/CommunityHolidays';
-import Transport from './Pages/Transport';
-import CivicStatistics from './Pages/CivicStatistics'
-import Election from './Pages/Election';
-import Schemes from './Pages/Schemes';
-import Vehical from './Pages/Vehical';
-import MedicalInfo from './Pages/MedicalInfo';
-import Electricity from './Pages/Electricity';
-import SafeWord from './Pages/SafeWord';
-import RecordAudio from './Pages/RecordAudio';
-import SDRF from './Pages/SDRF';
-import Budget from './Pages/Budget';
-import AirSeva from './Pages/AirSeva';
-import Train from './Pages/Train';
-import School from './Pages/School';
-import Sitemap from './Pages/Sitemap';
-import IssueDetail from './Pages/IssueDetail';
-import AdminIssueDetail from './Pages/AdminIssueDetail';
-import VotingSystem from './Pages/VotingSystem';
-import UserMap from './Pages/UserMap';
-import Chatroom from './Pages/Chatroom';
-import Analytics from './Pages/Analytics';
-import Documents from './Pages/Documents';
-import AdminDashboard from './Pages/AdminDashboard';
-import Error404 from './components/Error404';
+const RequireAdmin = lazy(() => import('./components/auth/RequireAdmin'));
+const DuplicateIssues = lazy(() => import('./Pages/DuplicateIssues'));
+const AdminAllIssues = lazy(() => import('./Pages/AdminAllIssues'));
+const AdminMessages = lazy(() => import('./Pages/AdminMessages'));
+const Feedback = lazy(() => import("./Pages/Feedback"));
+const About = lazy(() => import('./Pages/About'));
+const Privacy = lazy(() => import('./Pages/Privacy'));
+const Terms = lazy(() => import('./Pages/Terms'));
+const Contact = lazy(() => import('./Pages/Contact'));
+const ReportIssue = lazy(() => import('./Pages/ReportIssue'));
+const ServerError = lazy(() => import('./components/ServerError'));
+const DownloadAndroid = lazy(() => import('./Pages/DownloadAndroid'));
+const DownloadIOS = lazy(() => import('./Pages/DownloadIOS'));
+const NewIssue = lazy(() => import('./Pages/NewIssue'));
+const CommunityVotingPage = lazy(() => import('./Pages/CommunityVotingPage'));
+const Profile = lazy(() => import('./Pages/Profile'));
+const ProfileSetup = lazy(() => import('./Pages/ProfileSetup'));
+const Resources = lazy(() => import('./Pages/Resources'));
+const MyComplaints = lazy(() => import('./Pages/MyComplaints'));
+const CivicEducation = lazy(() => import('./Pages/CivicEducation'));
+const CivicSimulator = lazy(() => import('./Pages/CivicSimulator'));
+const SOS = lazy(() => import('./Pages/SOS'));
+const TaxImpact = lazy(() => import('./Pages/TaxImpact'));
+const RepersentativeFinder = lazy(() => import('./Pages/RepersentativeFinder'));
+const Users = lazy(() => import('./Pages/Users'));
+const AdminUserDetails = lazy(() => import('./Pages/AdminUserDetails'));
+const UserPosts = lazy(() => import('./Pages/UserPosts'));
+const Settings = lazy(() => import('./Pages/Settings'));
+const Notification = lazy(() => import('./Pages/Notification'));
+const NearbyServices = lazy(() => import('./Pages/NearbyServices'));
+const LostAndFoundPage = lazy(() => import('./Pages/Lost&Found'));
+const CommunityHolidays = lazy(() => import('./Pages/CommunityHolidays'));
+const Transport = lazy(() => import('./Pages/Transport'));
+const CivicStatistics = lazy(() => import('./Pages/CivicStatistics'));
+const Election = lazy(() => import('./Pages/Election'));
+const Schemes = lazy(() => import('./Pages/Schemes'));
+const Vehical = lazy(() => import('./Pages/Vehical'));
+const MedicalInfo = lazy(() => import('./Pages/MedicalInfo'));
+const Electricity = lazy(() => import('./Pages/Electricity'));
+const SafeWord = lazy(() => import('./Pages/SafeWord'));
+const RecordAudio = lazy(() => import('./Pages/RecordAudio'));
+const SDRF = lazy(() => import('./Pages/SDRF'));
+const Budget = lazy(() => import('./Pages/Budget'));
+const AirSeva = lazy(() => import('./Pages/AirSeva'));
+const Train = lazy(() => import('./Pages/Train'));
+const School = lazy(() => import('./Pages/School'));
+const Sitemap = lazy(() => import('./Pages/Sitemap'));
+const IssueDetail = lazy(() => import('./Pages/IssueDetail'));
+const AdminIssueDetail = lazy(() => import('./Pages/AdminIssueDetail'));
+const VotingSystem = lazy(() => import('./Pages/VotingSystem'));
+const UserMap = lazy(() => import('./Pages/UserMap'));
+const Chatroom = lazy(() => import('./Pages/Chatroom'));
+const Analytics = lazy(() => import('./Pages/Analytics'));
+const Documents = lazy(() => import('./Pages/Documents'));
+const AdminDashboard = lazy(() => import('./Pages/AdminDashboard'));
+const AdminEvents = lazy(() => import('./Pages/AdminEvents'));
+
+const OfficerSettings = lazy(() => import('./Pages/OfficerSettings'));
+const ModeratorSettings = lazy(() => import('./Pages/ModeratorSettings'));
+const Error404 = lazy(() => import('./components/Error404'));
 
 
 
 const App = () => {
   const { isSignedIn, userId, getToken } = useAuth();
   const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith("/admin");
+  const isAdminRoute = location.pathname.startsWith("/admin") || location.pathname.startsWith("/officer") || location.pathname.startsWith("/moderator");
   const [isProfileComplete, setIsProfileComplete] = useState(() => {
     return localStorage.getItem("profileComplete") === "true";
   });
@@ -104,6 +111,16 @@ const App = () => {
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Initialize Theme from Local Storage
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   }, []);
 
   // Check backend for profile status if localStorage says false but user is signed in
@@ -187,195 +204,231 @@ const App = () => {
   };
 
   return (
-    <>
+    <HelmetProvider>
+      {/* <CustomCursor /> */}
+      <CivixSupportBot />
       <ScrollToTop />
       <ScrollToTopOnRouteChange />
       {!isAdminRoute && <Navbar />}
 
       <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
+        <Suspense fallback={<PageLoader />}>
+          <Routes location={location} key={location.pathname}>
 
 
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/feedback" element={<Feedback />} />
-          <Route path="/privacy" element={<Privacy />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/login/*" element={<Login />} />
-          <Route path="/signup/*" element={<Signup />} />
-          <Route path="/report-issue" element={<ReportIssue />} />
-          <Route path="/download-android" element={<DownloadAndroid />} />
-          <Route path="/download-ios" element={<DownloadIOS />} />
-          <Route path="/issues/new" element={<NewIssue />} />
-          <Route path="/issues/:id" element={<IssueDetail />} />
-          <Route path="/civic-education" element={<CivicEducation />} />
-          <Route path="/civic-simulator" element={<CivicSimulator />} />
-          <Route path="/community-voting" element={<CommunityVotingPage />} />
-          <Route path="/voting-system" element={<VotingSystem />} />
-          <Route path="/user/dashboard" element={renderDashboard()} />
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/feedback" element={<Feedback />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/login/*" element={<Login />} />
+            <Route path="/signup/*" element={<Signup />} />
+            <Route path="/report-issue" element={<ReportIssue />} />
+            <Route path="/download-android" element={<DownloadAndroid />} />
+            <Route path="/download-ios" element={<DownloadIOS />} />
+            <Route path="/issues/new" element={<NewIssue />} />
 
-          {/* Officer Portal */}
-          <Route
-            path="/officer/*"
-            element={
-              <PortalGuard allowedRoles={['officer']}>
-                <OfficerDashboard />
-              </PortalGuard>
-            }
-          />
+            <Route path="/civic-education" element={<CivicEducation />} />
+            <Route path="/civic-simulator" element={<CivicSimulator />} />
+            <Route path="/community-voting" element={<CommunityVotingPage />} />
+            <Route path="/voting-system" element={<VotingSystem />} />
+            <Route path="/user/dashboard" element={renderDashboard()} />
 
-          {/* Moderator Portal */}
-          <Route
-            path="/moderator/*"
-            element={
-              <PortalGuard allowedRoles={['moderator']}>
-                <ModeratorDashboard />
-              </PortalGuard>
-            }
-          />
+            <Route
+              path="/community"
+              element={
+                <PortalGuard allowedRoles={['user', 'admin', 'moderator', 'officer']}>
+                  <CommunityHub />
+                </PortalGuard>
+              }
+            />
 
-          <Route
-            path="/profile"
-            element={
-              <PortalGuard allowedRoles={['user', 'admin']}>
-                <Profile />
-              </PortalGuard>
-            }
-          />
-          <Route path='/electricity' element={<Electricity />} />
-          <Route path='/budget' element={<Budget />} />
-          <Route path='/train' element={<Train />} />
-          <Route path='/school' element={<School />} />
+            {/* Officer Portal */}
+            <Route
+              path="/officer/*"
+              element={
+                <PortalGuard allowedRoles={['officer']}>
+                  <OfficerDashboard />
+                </PortalGuard>
+              }
+            />
+            <Route
+              path="/officer/settings"
+              element={
+                <PortalGuard allowedRoles={['officer']}>
+                  <OfficerSettings />
+                </PortalGuard>
+              }
+            />
 
-          <Route path='/user-map' element={<UserMap />} />
-          <Route
-            path="/profile-setup"
-            element={
-              <PortalGuard allowedRoles={['user', 'admin']}>
-                <ProfileSetup onComplete={() => setIsProfileComplete(true)} />
-              </PortalGuard>
-            }
-          />
+            {/* Moderator Portal */}
+            <Route
+              path="/moderator/*"
+              element={
+                <PortalGuard allowedRoles={['moderator']}>
+                  <ModeratorDashboard />
+                </PortalGuard>
+              }
+            />
+            <Route
+              path="/moderator/settings"
+              element={
+                <PortalGuard allowedRoles={['moderator']}>
+                  <ModeratorSettings />
+                </PortalGuard>
+              }
+            />
 
-          <Route path="/resources" element={<Resources />} />
-          <Route path="/complaints" element={<MyComplaints />} />
-          <Route path="/contributors" element={<Contributors />} />
-          <Route path="/sos" element={<SOS />} />
-          <Route path='/chatroom' element={<Chatroom />} />
-          <Route path='/tax-impact' element={<TaxImpact />} />
-          <Route path="/medical-info" element={<MedicalInfo />} />
-          <Route path="/safe-word" element={<SafeWord />} />
-          <Route path="/record-audio" element={<RecordAudio />} />
-          <Route path='/repersentative-finder' element={<RepersentativeFinder />} />
-          <Route path='/admin/analytics' element={<Analytics />} />
-          <Route path='/admin/users' element={<Users />} />
-          <Route path='/admin/documents' element={<Documents />} />
-          <Route path='/admin/settings' element={<Settings />} />
-          <Route path='/admin/notifications' element={<Notification />} />
-          <Route path='/nearby-services' element={<NearbyServices />} />
-          <Route path='/lost-found' element={<LostAndFoundPage />} />
-          <Route path='/community-holidays' element={<CommunityHolidays />} />
-          <Route path='/transport' element={<Transport />} />
-          <Route path='/civic-stats' element={<CivicStatistics />} />
-          <Route path='/elections-info' element={<Election />} />
-          <Route path='/govt-schemes' element={<Schemes />} />
-          <Route path='/vehical' element={<Vehical />} />
-          <Route path='/sdrf' element={<SDRF />} />
-          <Route path='/airseva' element={<AirSeva />} />
-          <Route path='/sitemap' element={<Sitemap />} />
+            <Route
+              path="/profile"
+              element={
+                <PortalGuard allowedRoles={['user', 'admin']}>
+                  <Profile />
+                </PortalGuard>
+              }
+            />
+            <Route path='/electricity' element={<Electricity />} />
+            <Route path='/budget' element={<Budget />} />
+            <Route path='/train' element={<Train />} />
+            <Route path='/school' element={<School />} />
 
-          {/* New Routes */}
-          <Route
-            path='/admin/users/:id'
-            element={
-              <PortalGuard allowedRoles={['admin']}>
-                <AdminUserDetails />
-              </PortalGuard>
-            }
-          />
-          <Route
-            path='/user/posts'
-            element={
-              <PortalGuard allowedRoles={['user', 'admin']}>
-                <UserPosts />
-              </PortalGuard>
-            }
-          />
+            <Route path='/user-map' element={<UserMap />} />
+            <Route
+              path="/profile-setup"
+              element={
+                <PortalGuard allowedRoles={['user', 'admin']}>
+                  <ProfileSetup onComplete={() => setIsProfileComplete(true)} />
+                </PortalGuard>
+              }
+            />
 
-          <Route
-            path="/issues/:id"
-            element={
-              <PortalGuard allowedRoles={['user', 'admin']}>
-                <IssueDetail />
-              </PortalGuard>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <PortalGuard allowedRoles={['admin']}>
-                <AdminDashboard />
-              </PortalGuard>
-            }
-          />
-          <Route
-            path="/admin/dashboard"
-            element={
-              <PortalGuard allowedRoles={['admin']}>
-                <AdminDashboard />
-              </PortalGuard>
-            }
-          />
-          <Route
-            path="/admin/issues/:id"
-            element={
-              <PortalGuard allowedRoles={['admin']}>
-                <AdminIssueDetail />
-              </PortalGuard>
-            }
-          />
-          <Route
-            path="/admin/duplicates"
-            element={
-              <PortalGuard allowedRoles={['admin']}>
-                <DuplicateIssues />
-              </PortalGuard>
-            }
-          />
-          <Route
-            path="/admin/issues"
-            element={
-              <PortalGuard allowedRoles={['admin']}>
-                <AdminAllIssues />
-              </PortalGuard>
-            }
-          />
-          <Route
-            path="/admin/messages"
-            element={
-              <PortalGuard allowedRoles={['admin']}>
-                <AdminMessages />
-              </PortalGuard>
-            }
-          />
-          <Route
-            path="/my-complaints"
-            element={
-              <PortalGuard allowedRoles={['user', 'admin']}>
-                <MyComplaints />
-              </PortalGuard>
-            }
-          />
+            <Route path="/resources" element={<Resources />} />
+            <Route path="/complaints" element={<MyComplaints />} />
+            <Route path="/sos" element={<SOS />} />
+            <Route path='/chatroom' element={<Chatroom />} />
+            <Route path='/tax-impact' element={<TaxImpact />} />
+            <Route path="/medical-info" element={<MedicalInfo />} />
+            <Route path="/safe-word" element={<SafeWord />} />
+            <Route path="/record-audio" element={<RecordAudio />} />
+            <Route path='/repersentative-finder' element={<RepersentativeFinder />} />
+            <Route path='/admin/analytics' element={<Analytics />} />
+            <Route path='/admin/users' element={<Users />} />
+            <Route path='/admin/documents' element={<Documents />} />
+            <Route path='/admin/settings' element={<Settings />} />
+            <Route path='/admin/notifications' element={<Notification />} />
+            <Route path='/nearby-services' element={<NearbyServices />} />
+            <Route path='/lost-found' element={<LostAndFoundPage />} />
+            <Route path='/community-holidays' element={<CommunityHolidays />} />
+            <Route path='/transport' element={<Transport />} />
+            <Route path='/civic-stats' element={<CivicStatistics />} />
+            <Route path='/elections-info' element={<Election />} />
+            <Route path='/govt-schemes' element={<Schemes />} />
+            <Route path='/vehical' element={<Vehical />} />
+            <Route path='/sdrf' element={<SDRF />} />
+            <Route path='/airseva' element={<AirSeva />} />
+            <Route path='/sitemap' element={<Sitemap />} />
 
-          {/* Errors */}
-          <Route path="/500" element={<ServerError />} />
-          <Route path="*" element={<Error404 />} />
-        </Routes>
+            {/* New Routes */}
+            <Route
+              path='/admin/users/:id'
+              element={
+                <PortalGuard allowedRoles={['admin']}>
+                  <AdminUserDetails />
+                </PortalGuard>
+              }
+            />
+            <Route
+              path='/user/posts'
+              element={
+                <PortalGuard allowedRoles={['user', 'admin']}>
+                  <UserPosts />
+                </PortalGuard>
+              }
+            />
+
+            <Route
+              path="/issues/:id"
+              element={
+                <PortalGuard allowedRoles={['user', 'admin']}>
+                  <IssueDetail />
+                </PortalGuard>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <PortalGuard allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </PortalGuard>
+              }
+            />
+            <Route
+              path="/admin/dashboard"
+              element={
+                <PortalGuard allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </PortalGuard>
+              }
+            />
+            <Route
+              path="/admin/issues/:id"
+              element={
+                <PortalGuard allowedRoles={['admin']}>
+                  <AdminIssueDetail />
+                </PortalGuard>
+              }
+            />
+            <Route
+              path="/admin/duplicates"
+              element={
+                <PortalGuard allowedRoles={['admin']}>
+                  <DuplicateIssues />
+                </PortalGuard>
+              }
+            />
+            <Route
+              path="/admin/issues"
+              element={
+                <PortalGuard allowedRoles={['admin']}>
+                  <AdminAllIssues />
+                </PortalGuard>
+              }
+            />
+            <Route
+              path="/admin/messages"
+              element={
+                <PortalGuard allowedRoles={['admin']}>
+                  <AdminMessages />
+                </PortalGuard>
+              }
+            />
+            <Route
+              path="/admin/events"
+              element={
+                <PortalGuard allowedRoles={['admin']}>
+                  <AdminEvents />
+                </PortalGuard>
+              }
+            />
+            <Route
+              path="/my-complaints"
+              element={
+                <PortalGuard allowedRoles={['user', 'admin']}>
+                  <MyComplaints />
+                </PortalGuard>
+              }
+            />
+
+            {/* Errors */}
+            <Route path="/500" element={<ServerError />} />
+            <Route path="*" element={<Error404 />} />
+          </Routes>
+        </Suspense>
       </AnimatePresence>
       {!isAdminRoute && <Footer />}
       <Toaster />
-    </>
+    </HelmetProvider>
   );
 };
 

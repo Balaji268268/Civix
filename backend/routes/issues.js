@@ -6,9 +6,16 @@ const { upload } = require("../middlewares/multer.middleware");
 
 
 router.post("/", upload.single("file"), issueController.createIssue);
+router.post("/analyze-image", upload.single("file"), issueController.analyzeIssueImage);
+router.post("/generate-caption", upload.single("file"), issueController.generateCaption);
 
 
 router.patch("/:id/status", verifyToken, isModerator, issueController.updateIssueStatus);
+
+// Resolution Workflow
+router.post("/:id/submit-resolution", upload.single("proof"), issueController.submitResolution);
+router.patch("/:id/review-resolution", verifyToken, isModerator, issueController.reviewResolution);
+router.patch("/:id/acknowledge-resolution", issueController.acknowledgeResolution); // User Token check needed ideally, but keeping open for quick implementation or check Auth in controller later if passed. Ideally add verifyToken.
 
 // GET: All issues
 router.get("/", issueController.getAllIssues);

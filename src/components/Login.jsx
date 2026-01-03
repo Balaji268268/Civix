@@ -1,111 +1,188 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SignIn, useUser } from '@clerk/clerk-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
-
-import { motion } from "framer-motion";
+import { ToastContainer, toast } from 'react-toastify';
+import { motion, AnimatePresence } from "framer-motion";
+import { User, Shield, Gavel, FileText, ArrowLeft, CheckCircle, Lock } from 'lucide-react';
 import 'react-toastify/dist/ReactToastify.css';
-import loginImage from "../assets/signup.png";
+
+// Role Configuration
+const ROLES = [
+  {
+    id: 'user',
+    title: 'Citizen',
+    description: 'Report issues, vote, and track city progress.',
+    icon: User,
+    color: 'from-emerald-400 to-green-600',
+    shadow: 'shadow-emerald-500/30'
+  },
+  {
+    id: 'officer',
+    title: 'Field Officer',
+    description: 'Resolve assigned tasks and update status.',
+    icon: FileText,
+    color: 'from-blue-400 to-indigo-600',
+    shadow: 'shadow-blue-500/30'
+  },
+  {
+    id: 'moderator',
+    title: 'Moderator',
+    description: 'Validate reports and manage community safety.',
+    icon: Gavel,
+    color: 'from-orange-400 to-red-500',
+    shadow: 'shadow-orange-500/30'
+  },
+  {
+    id: 'admin',
+    title: 'Administrator',
+    description: 'System oversight and user management.',
+    icon: Shield,
+    color: 'from-slate-700 to-black',
+    shadow: 'shadow-gray-500/30'
+  }
+];
 
 const Login = () => {
   const { isSignedIn, user } = useUser();
   const navigate = useNavigate();
+  const [selectedRole, setSelectedRole] = useState(null);
 
+  // Redirect Logic
   useEffect(() => {
     const performRedirect = async () => {
       if (isSignedIn && user) {
-        let role = 'user'; // Default
+        let role = selectedRole || 'user'; // Default to user if direct login
 
-        // 1. Fetch Latest Role from Backend (Priority Source of Truth)
+        // Fetch verification from backend
         try {
           const token = await window.Clerk?.session?.getToken();
           const res = await fetch(`http://localhost:5000/api/profile/${user.id}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
+
           if (res.ok) {
             const data = await res.json();
-            if (data.role) role = data.role;
-          } else {
-            // Fallback: Use Clerk Metadata if backend fetch fails
-            role = user.publicMetadata?.role || 'user';
+            role = data.role || role;
+
+            // CHECK APPROVAL STATUS
+            if (role === 'officer' && data.isApproved === false) {
+              toast.error("Account Pending Approval");
+              // You might want a dedicated "Pending" page, but for now toast + stay or redirect home
+              // navigate('/approval-pending'); 
+              return;
+            }
           }
         } catch (e) {
-          console.warn("Login fetch failed, falling back to metadata:", e);
-          role = user.publicMetadata?.role || 'user';
+          console.warn("Login fetch failed", e);
         }
 
-        // 2. Redirect based on resolved role
-        console.log("Redirecting for role:", role);
         switch (role) {
-          case 'admin':
-            navigate('/admin/dashboard');
-            break;
-          case 'moderator':
-            navigate('/moderator');
-            break;
-          case 'officer':
-            navigate('/officer/dashboard');
-            break;
-          default:
-            navigate('/user/dashboard');
+          case 'admin': navigate('/admin/dashboard'); break;
+          case 'moderator': navigate('/moderator'); break;
+          case 'officer': navigate('/officer/dashboard'); break;
+          default: navigate('/user/dashboard');
         }
       }
     };
 
-    performRedirect();
-  }, [isSignedIn, user, navigate]);
+    if (isSignedIn) performRedirect();
+  }, [isSignedIn, user, navigate, selectedRole]);
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen items-center justify-center font-inter relative bg-gradient-to-br from-green-50 to-emerald-100 dark:from-gray-900 dark:to-emerald-950/30">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background Ambient Effects */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-green-400/20 rounded-full blur-[100px] animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-400/20 rounded-full blur-[100px] animate-pulse" />
+      </div>
 
-      {/* Left Side - Image (Hidden on mobile) */}
-      <motion.div
-        initial={{ opacity: 0, x: -40 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.6 }}
-        className="hidden md:flex md:w-1/2 justify-center items-center p-8"
-      >
-        <img
-          src={loginImage}
-          alt="Login Illustration"
-          className="max-w-full h-auto object-contain drop-shadow-2xl rounded-2xl"
-        />
-      </motion.div>
+      <div className="w-full max-w-6xl z-10">
+        <AnimatePresence mode="wait">
+          {!selectedRole ? (
+            // ROLE SELECTION SCREEN
+            <motion.div
+              key="selection"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, x: -50 }}
+              transition={{ duration: 0.5 }}
+              className="flex flex-col items-center"
+            >
+              <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white mb-4 tracking-tight text-center">
+                Welcome to <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-500 to-emerald-600">Civix</span>
+              </h1>
+              <p className="text-gray-500 dark:text-gray-400 text-lg mb-12 text-center max-w-2xl">
+                Select your role to access the dedicated portal.
+              </p>
 
-      {/* Right Side - Clerk Login Component */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="md:w-1/2 w-full flex justify-center p-4"
-      >
-        <div className="w-full max-w-md">
-          <SignIn
-            path="/login"
-            signUpUrl="/signup"
-            // forceRedirectUrl="/user/dashboard" // Custom logic in useEffect handles this
-            appearance={{
-              elements: {
-                rootBox: "w-full",
-                card: "w-full shadow-2xl border border-white/20 rounded-2xl backdrop-blur-md bg-white/80 dark:bg-gray-900/80",
-                headerTitle: "text-2xl font-bold text-green-700",
-                headerSubtitle: "text-gray-600",
-                formButtonPrimary: "bg-green-600 hover:bg-green-700 text-white",
-                formFieldInput: "rounded-xl border-gray-300 focus:border-green-500 focus:ring-green-500",
-                footerActionLink: "text-green-600 hover:text-green-700 font-bold"
-              }
-            }}
-          />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 w-full">
+                {ROLES.map((role) => (
+                  <motion.div
+                    key={role.id}
+                    whileHover={{ scale: 1.05, y: -5 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setSelectedRole(role.id)}
+                    className={`bg-white dark:bg-gray-800 rounded-3xl p-6 cursor-pointer border border-gray-100 dark:border-gray-700 hover:border-transparent hover:ring-2 hover:ring-offset-2 hover:ring-green-500 dark:hover:ring-offset-gray-900 transition-all shadow-xl ${role.shadow} group`}
+                  >
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${role.color} flex items-center justify-center mb-6 shadow-lg group-hover:shadow-xl transition-all`}>
+                      <role.icon className="w-7 h-7 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{role.title}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                      {role.description}
+                    </p>
+                  </motion.div>
+                ))}
+              </div>
 
-          <div className="text-center mt-6">
-            <Link to="/" className="text-sm text-green-700 hover:underline font-medium">
-              ← Back to Home
-            </Link>
-          </div>
-        </div>
-      </motion.div>
+              <div className="mt-12 text-center">
+                <p className="text-gray-400 text-sm">Need help? <Link to="/contact" className="text-green-600 hover:underline">Contact Support</Link></p>
+              </div>
+            </motion.div>
+          ) : (
+            // AUTH SCREEN
+            <motion.div
+              key="auth"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.5 }}
+              className="flex flex-col items-center justify-center"
+            >
+              <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-3xl shadow-2xl overflow-hidden border border-gray-100 dark:border-gray-700">
+                <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center gap-4 bg-gray-50/50 dark:bg-gray-800/50">
+                  <button onClick={() => setSelectedRole(null)} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition">
+                    <ArrowLeft className="w-5 h-5 text-gray-400" />
+                  </button>
+                  <div>
+                    <h2 className="font-bold text-lg text-gray-900 dark:text-white">Login as {ROLES.find(r => r.id === selectedRole)?.title}</h2>
+                    <span className="text-xs text-green-500 font-medium flex items-center gap-1">
+                      <Lock className="w-3 h-3" /> Secure Portal
+                    </span>
+                  </div>
+                </div>
 
-      <ToastContainer position="top-right" autoClose={3000} />
+                <div className="p-6">
+                  <SignIn
+                    appearance={{
+                      elements: {
+                        rootBox: "w-full",
+                        card: "shadow-none border-none w-full bg-transparent",
+                        headerTitle: "hidden",
+                        headerSubtitle: "hidden",
+                        formButtonPrimary: "bg-green-600 hover:bg-green-700 !shadow-none !border-none",
+                      }
+                    }}
+                    signUpUrl='/signup'
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      <ToastContainer position="top-right" theme="colored" />
     </div>
   );
 };
