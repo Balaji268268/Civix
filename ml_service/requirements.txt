@@ -1,3 +1,4 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
 django
 djangorestframework
 django-cors-headers
@@ -6,9 +7,14 @@ pandas
 scikit-learn
 pillow
 requests
+<<<<<<< HEAD
 torch
 transformers
 sentence-transformers
 openai-whisper
 librosa
 groq
+=======
+gunicorn
+sentence-transformers
+>>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a

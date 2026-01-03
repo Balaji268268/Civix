@@ -26,7 +26,7 @@ const AdminUserDetails = () => {
             try {
                 const token = await getToken();
                 if (!token) return;
-                const res = await csrfManager.secureFetch(`http://localhost:5000/api/admin/users/${id}`, {
+                const res = await csrfManager.secureFetch(`/api/admin/users/${id}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 

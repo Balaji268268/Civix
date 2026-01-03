@@ -8,6 +8,9 @@ const { uploadOnCloudinary } = require("../utils/cloudinary.js");
 const { callGemini, callGeminiVision } = require("../utils/gemini");
 const axios = require('axios');
 
+// Helper: ML Service Config
+const ML_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+
 // Helper: Smart Assignment Algorithm
 const assignIssueToOfficer = async (issue, category) => {
   try {
@@ -29,6 +32,16 @@ const assignIssueToOfficer = async (issue, category) => {
       // Update Officer Load
       officer.activeTasks += 1;
       await officer.save();
+
+      // ALERT: Notify the Officer
+      await Notification.create({
+        recipient: officer._id.toString(), // or officer.email if using email-based notifications
+        title: "New Task Assigned",
+        message: `You have been assigned a new ${issue.priority} priority issue: "${issue.title}".`,
+        type: 'info',
+        relatedId: issue._id
+      });
+
       console.log(`[Smart Assignment] Issue ${issue.complaintId} assigned to ${officer.name}`);
     } else {
       console.log(`[Smart Assignment] No officer found for department: ${category}`);
@@ -103,10 +116,10 @@ const createIssue = asyncHandler(async (req, res) => {
     // 2. Generate Embedding & Predictions
     // We run parallel requests for maximum speed
     const [pRes, fRes, cRes, eRes] = await Promise.allSettled([
-      axios.post('http://localhost:8000/api/predict-priority/', mlPayload),
-      axios.post('http://localhost:8000/api/detect-fake/', mlPayload),
-      axios.post('http://localhost:8000/api/categorize/', mlPayload),
-      axios.post('http://localhost:8000/api/get-embedding/', { text: title + " " + description })
+      axios.post(`${ML_URL}/api/predict-priority/`, mlPayload),
+      axios.post(`${ML_URL}/api/detect-fake/`, mlPayload),
+      axios.post(`${ML_URL}/api/categorize/`, mlPayload),
+      axios.post(`${ML_URL}/api/get-embedding/`, { text: title + " " + description })
     ]);
 
     if (pRes.status === 'fulfilled') mlData.priority = pRes.value.data.priority;
@@ -134,7 +147,7 @@ const createIssue = asyncHandler(async (req, res) => {
     notifyByEmail,
     issueType,
     isPrivate,
-    issueType,
+    issueType, // duplicate key, but harmless
     isPrivate,
     location,
     coordinates: { lat, lng },
@@ -158,7 +171,7 @@ const createIssue = asyncHandler(async (req, res) => {
   if (fileUrl) {
     try {
       // Analyze tags separately if needed
-      // const imgRes = await axios.post('http://localhost:8000/api/analyze-image/', { imageUrl: fileUrl });
+      // const imgRes = await axios.post(`${ML_URL}/api/analyze-image/`, { imageUrl: fileUrl });
       // mlData.tags = imgRes.data.tags; 
     } catch (e) {
       console.warn("ML Image analysis failed:", e.message);
@@ -173,7 +186,7 @@ const createIssue = asyncHandler(async (req, res) => {
         .limit(100)
         .select('title description complaintId _id');
 
-      const duplicateCheck = await axios.post('http://localhost:8000/api/find-duplicates/', {
+      const duplicateCheck = await axios.post(`${ML_URL}/api/find-duplicates/`, {
         candidate: { title, description },
         existing_issues: activeIssues
       });
@@ -416,7 +429,7 @@ const findDuplicatesForIssue = asyncHandler(async (req, res) => {
       .limit(100)
       .select('title description complaintId _id priority status');
 
-    const response = await axios.post('http://localhost:8000/api/find-duplicates/', {
+    const response = await axios.post(`${ML_URL}/api/find-duplicates/`, {
       candidate: { title: issue.title, description: issue.description },
       existing_issues: activeIssues
     });
@@ -433,21 +446,25 @@ const findDuplicatesForIssue = asyncHandler(async (req, res) => {
 });
 
 const getAssignedIssues = asyncHandler(async (req, res) => {
-  const { email } = req.query;
+  // 1. Get Clerk ID from token (sub)
+  const clerkId = req.user.sub || req.user.id;
 
-  if (!email) {
-    return res.status(400).json({ error: "Email is required" });
+  if (!clerkId) {
+    return res.status(401).json({ error: "Invalid token: User ID missing" });
   }
 
-  const user = await User.findOne({ email });
+  // 2. Find MongoDB User
+  const user = await User.findOne({ clerkUserId: clerkId }); // or findByClerkId if available
+
   if (!user) {
-    return res.status(404).json({ error: "Officer not found" });
+    return res.status(404).json({ error: "User profile not found. Complete profile set up." });
   }
 
   const issues = await Issue.find({
     assignedOfficer: user._id,
     status: { $nin: ['Resolved', 'Rejected'] }
   }).sort({ createdAt: -1 });
+
   res.json(issues);
 });
 
@@ -544,6 +561,15 @@ const manualAssignIssue = asyncHandler(async (req, res) => {
   // Update Officer Load
   officer.activeTasks = (officer.activeTasks || 0) + 1;
   await officer.save();
+
+  // ALERT: Notify the Officer (Fixed: Was missing in manual assignment)
+  await Notification.create({
+    recipient: officer._id.toString(),
+    title: "New Manual Assignment",
+    message: `Moderator assigned you: "${issue.title}". Check your dashboard.`,
+    type: 'info',
+    relatedId: issue._id
+  });
 
   return res.json({ message: "Assignment successful", issue });
 });
@@ -754,7 +780,6 @@ module.exports = {
   getAssignedIssues,
   manualAssignIssue,
   getOfficersByDepartment,
-  suggestOfficer,
   suggestOfficer,
   analyzeIssueImage,
   generateCaption,

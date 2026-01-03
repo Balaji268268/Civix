@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  BarChart3, 
-  PieChart, 
-  Download, 
-  Share2, 
+import {
+  BarChart3,
+  PieChart,
+  Download,
+  Share2,
   Eye,
   EyeOff,
   Users,
@@ -14,6 +14,7 @@ import {
   FileSpreadsheet,
   RefreshCw
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const PollResults = () => {
@@ -101,7 +102,7 @@ const PollResults = () => {
       // Here you would make API call to get results
       // const response = await fetch(`/api/polls/${pollId}/results`);
       // const data = await response.json();
-      
+
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       setResults(mockResults);
@@ -151,13 +152,13 @@ const PollResults = () => {
 
   const generateCSV = () => {
     let csv = 'Question,Option,Votes,Percentage\n';
-    
+
     results.questions.forEach(question => {
       question.options.forEach(option => {
         csv += `"${question.questionText}","${option.optionText}",${option.votes},${option.percentage}%\n`;
       });
     });
-    
+
     return csv;
   };
 
@@ -176,7 +177,7 @@ const PollResults = () => {
 
   const renderChart = (question) => {
     const maxVotes = Math.max(...question.options.map(opt => opt.votes));
-    
+
     return (
       <div className="space-y-4">
         {question.options.map((option, index) => (
@@ -248,7 +249,7 @@ const PollResults = () => {
             Poll Results
           </h3>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {mockPolls.map((poll) => (
             <div
@@ -264,7 +265,7 @@ const PollResults = () => {
                   {poll.category}
                 </span>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="flex items-center text-sm text-gray-600 dark:text-gray-400">
                   <Users className="w-4 h-4 mr-2" />
@@ -275,7 +276,7 @@ const PollResults = () => {
                   Ended {new Date(poll.endDate).toLocaleDateString()}
                 </div>
               </div>
-              
+
               <div className="mt-4">
                 <button className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium">
                   View Results →
@@ -306,35 +307,32 @@ const PollResults = () => {
             {selectedPoll.category} • {selectedPoll.totalVotes} votes
           </p>
         </div>
-        
+
         <div className="flex space-x-2">
           <button
             onClick={() => setViewMode('chart')}
-            className={`p-2 rounded-md ${
-              viewMode === 'chart' 
-                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' 
+            className={`p-2 rounded-md ${viewMode === 'chart'
+                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
                 : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-            }`}
+              }`}
           >
             <BarChart3 className="w-5 h-5" />
           </button>
           <button
             onClick={() => setViewMode('table')}
-            className={`p-2 rounded-md ${
-              viewMode === 'table' 
-                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' 
+            className={`p-2 rounded-md ${viewMode === 'table'
+                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
                 : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-            }`}
+              }`}
           >
             <FileText className="w-5 h-5" />
           </button>
           <button
             onClick={() => setViewMode('export')}
-            className={`p-2 rounded-md ${
-              viewMode === 'export' 
-                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400' 
+            className={`p-2 rounded-md ${viewMode === 'export'
+                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
                 : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-            }`}
+              }`}
           >
             <Download className="w-5 h-5" />
           </button>
@@ -354,7 +352,7 @@ const PollResults = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
           <div className="flex items-center">
             <TrendingUp className="w-8 h-8 text-green-500" />
@@ -366,7 +364,7 @@ const PollResults = () => {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm">
           <div className="flex items-center">
             <Clock className="w-8 h-8 text-orange-500" />

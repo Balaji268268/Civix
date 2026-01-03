@@ -30,10 +30,19 @@ const Analytics = () => {
           return;
         }
 
+<<<<<<< HEAD
         const [statsRes, aiRes] = await Promise.all([
           csrfManager.secureFetch('http://localhost:5000/api/admin/analytics', { headers: { 'Authorization': `Bearer ${token}` } }),
           csrfManager.secureFetch('http://localhost:5000/api/admin/community-insights', { headers: { 'Authorization': `Bearer ${token}` } })
         ]);
+=======
+        // Pass token in headers explicitly for middleware
+        const res = await csrfManager.secureFetch('/api/admin/analytics', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+>>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
 
         if (statsRes.ok) {
           const data = await statsRes.json();

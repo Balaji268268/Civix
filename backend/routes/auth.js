@@ -134,21 +134,6 @@ router.post('/login',
 );
 
 // TEMP ROUTE TO SET MODERATOR
-const User = require('../models/userModel');
-router.get('/promote-moderator', async (req, res) => {
-  try {
-    const { email } = req.query;
-    if (!email) return res.status(400).send("Email required");
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).send("User not found via Mongo");
-
-    user.role = 'moderator';
-    await user.save();
-    res.send(`SUCCESS: ${user.email} is now a moderator. Please refresh dashboard.`);
-  } catch (e) {
-    res.status(500).send(e.message);
-  }
-});
 
 module.exports = router;

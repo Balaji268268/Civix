@@ -9,6 +9,8 @@ import UserLayout from "../components/layout/UserLayout";
 import DuplicateIssueModal from "../components/DuplicateIssueModal";
 import VoiceInput from '../components/VoiceInput';
 
+import useFormPersistence from "../hooks/useFormPersistence"; // Import Hook
+
 const ReportIssue = () => {
   const navigate = useNavigate();
   const { user } = useUser();
@@ -22,16 +24,21 @@ const ReportIssue = () => {
   const [duplicateData, setDuplicateData] = useState(null);
 
   // Form State
-  const [formData, setFormData] = useState({
+  const [formData, setFormData, clearFormData] = useFormPersistence('report_issue_form', { // PERSISTENCE
     title: '',
     description: '',
     location: '',
     category: 'Roads',
     contact: '',
     isAnonymous: false,
+<<<<<<< HEAD
     files: null,
     coords: null
   });
+=======
+    files: null
+  }, false); // Use localStorage (false) instead of sessionStorage
+>>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [isAnalyzingFiles, setIsAnalyzingFiles] = useState(false);
@@ -182,7 +189,7 @@ const ReportIssue = () => {
 
     try {
       // Use csrfManager.secureFetch to handle tokens and credentials automatically
-      const response = await csrfManager.secureFetch("http://localhost:5000/api/issues", {
+      const response = await csrfManager.secureFetch("/api/issues", {
         method: "POST",
         body: data
       });
@@ -200,6 +207,7 @@ const ReportIssue = () => {
       if (!response.ok) throw new Error(result.error || "Failed to submit issue");
 
       toast.success("Issue Submitted Successfully!");
+      clearFormData(); // Clear persistence
       navigate('/user/dashboard');
 
     } catch (error) {
@@ -277,6 +285,9 @@ const ReportIssue = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Issue Title</label>
               <input
                 required
+                id="title"
+                name="title"
+                autoComplete="off"
                 type="text"
                 placeholder={issueType === 'Public' ? "e.g., Deep Pothole on Main St" : "e.g., Incorrect Bill Amount"}
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
@@ -322,6 +333,9 @@ const ReportIssue = () => {
                   <div className="relative flex-1">
                     <MapPin className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
                     <input
+                      id="issue-location"
+                      name="location"
+                      autoComplete="street-address"
                       type="text"
                       placeholder="e.g., Near City Center Bus Stop"
                       className="w-full pl-10 px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500"
@@ -349,7 +363,11 @@ const ReportIssue = () => {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone Contact</label>
               <input
                 required
+                id="contact"
+                name="contact"
+                autoComplete="tel"
                 type="tel"
+                inputMode="numeric"
                 placeholder="e.g., 9876543210"
                 pattern="[0-9]{10}"
                 className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500"

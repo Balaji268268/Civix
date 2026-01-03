@@ -1,7 +1,9 @@
+
 import React from "react";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { UserButton, useUser } from "@clerk/clerk-react";
+import { useUser, useAuth, UserButton } from "@clerk/clerk-react";
+import csrfManager from '../utils/csrfManager';
 import {
   FileText,
   List,
@@ -36,6 +38,7 @@ import Leaderboard from "../components/gamification/Leaderboard";
 import PageTransition from "../components/PageTransition";
 
 const UserDashboard = () => {
+<<<<<<< HEAD
   const navigate = useNavigate();
   const { user, isLoaded } = useUser();
   const [searchTerm, setSearchTerm] = useState("");
@@ -136,6 +139,234 @@ const UserDashboard = () => {
         </main >
       </div >
     </PageTransition >
+=======
+  const [searchTerm, setSearchTerm] = useState("");
+  const { user, isLoaded } = useUser();
+  const navigate = useNavigate();
+  // const dropdownRef = useRef(null); // No longer needed
+
+  /* Notifications logic moved to Navbar */
+
+  useEffect(() => {
+    // Keep any other user-specific initialization if needed using user or isLoaded
+  }, [user, isLoaded]);
+
+
+  const dashboardItems = [
+    {
+      title: "File a Complaint",
+      description: "Submit a new issue with full details.",
+      onClick: () => navigate("/report-issue"),
+      icon: FileText,
+      gradient: "from-green-500 to-green-600",
+      shadowColor: "shadow-green-500/20"
+    },
+    {
+      title: "My Complaints",
+      description: "Track all complaints you've raised.",
+      onClick: () => navigate("/complaints"),
+      icon: List,
+      gradient: "from-emerald-500 to-emerald-600",
+      shadowColor: "shadow-emerald-500/20"
+    },
+    {
+      title: "Profile",
+      description: "View or edit your profile details.",
+      onClick: () => navigate("/profile"),
+      icon: User,
+      gradient: "from-teal-500 to-teal-600",
+      shadowColor: "shadow-teal-500/20"
+    },
+    {
+      title: "Support",
+      description: "Need help? Contact our support.",
+      onClick: () => navigate("/contact"),
+      icon: Headphones,
+      gradient: "from-green-600 to-emerald-700",
+      shadowColor: "shadow-green-600/20"
+    },
+    {
+      title: "Community Voting",
+      description: "Interact with the community by casting your vote on trending topics, events, and decisions that matter.",
+      onClick: () => navigate("/community-voting"),
+      icon: BarChart3,
+      gradient: "from-emerald-600 to-teal-700",
+      shadowColor: "shadow-emerald-600/20"
+    },
+    {
+      title: "Resources",
+      description: "Read FAQs, citizen rights, and more.",
+      onClick: () => navigate("/resources"),
+      icon: BookOpen,
+      gradient: "from-teal-600 to-green-700",
+      shadowColor: "shadow-teal-600/20"
+    },
+    {
+      title: "Chat Room",
+      description: "Join the community chat and engage in real-time discussions.",
+      onClick: () => navigate("/chatroom"),
+      icon: MessageCircle,
+      gradient: "from-green-700 to-teal-700",
+      shadowColor: "shadow-green-700/20"
+    },
+    {
+      title: "Nearby Services",
+      description: "Find hospitals, police stations, and fire stations close to you.",
+      onClick: () => navigate("/nearby-services"),
+      icon: MapPin,
+      gradient: "from-green-500 to-green-800",
+      shadowColor: "shadow-green-500/20"
+    },
+    {
+      title: "Lost & Found",
+      description: "Bringing lost items back to their owners.",
+      onClick: () => navigate("/lost-found"),
+      icon: Search,
+      gradient: "from-green-500 to-green-600",
+      shadowColor: "shadow-green-500/20"
+    },
+    {
+      title: "Community Holidays",
+      description: "Look for the Community Holidays approaching soon to you",
+      onClick: () => navigate("/community-holidays"),
+      icon: Calendar,
+      gradient: "from-emerald-600 to-teal-700",
+      shadowColor: "shadow-emerald-600/20"
+    },
+    {
+      title: "Public Transport",
+      description: "Powered by Delhi Transport Corporation the real-time transit information",
+      onClick: () => navigate("/transport"),
+      icon: Bus,
+      gradient: "from-teal-500 to-teal-600",
+      shadowColor: "shadow-teal-500/20"
+    },
+    {
+      title: "Civic Statistics",
+      description: "Comprehensive Population & Water Resources Analytics.",
+      onClick: () => navigate("/civic-stats"),
+      icon: ChartColumn,
+      gradient: "from-teal-600 to-green-700",
+      shadowColor: "shadow-teal-600/20"
+    },
+    {
+      title: "Election & Governance Info",
+      description: "Comprehensive Electoral Information & Voter Analytics.",
+      onClick: () => navigate("/elections-info"),
+      icon: Vote,
+      gradient: "from-teal-500 to-teal-600",
+      shadowColor: "shadow-teal-500/20"
+    },
+    {
+      title: "Government Schemes",
+      description: "Comprehensive Government Schemes & Financial Analytics",
+      onClick: () => navigate("/govt-schemes"),
+      icon: Building2,
+      gradient: "from-green-600 to-emerald-700",
+      shadowColor: "shadow-green-600/20"
+    },
+    {
+      title: "Traffic Fines & Vehicle Info",
+      description: "Quick access to essential vehicle and transport services",
+      onClick: () => navigate("/vehical"),
+      icon: Car,
+      gradient: "from-emerald-600 to-teal-700",
+      shadowColor: "shadow-emerald-600/20"
+    },
+    {
+      title: "Water & Electricity Schedule",
+      description: "Real-time updates regarding water supply schedules, power outage notifications, and restoration timelines",
+      onClick: () => navigate("/electricity"),
+      icon: Zap,
+      gradient: "from-teal-500 to-teal-600",
+      shadowColor: "shadow-teal-500/20"
+    },
+    {
+      title: "SDRF Allocation and NFSA Beneficiary",
+      description: "State Disaster Response Fund (SDRF) Allocation & Release Module and National Food Security Act (NFSA) Beneficiary Coverage.",
+      onClick: () => navigate("/sdrf"),
+      icon: HandCoins,
+      gradient: "from-green-500 to-green-800",
+      shadowColor: "shadow-green-500/20"
+    },
+    {
+      title: "Budget Estimates",
+      description: "Analytics framework for rendering and evaluating Budget Estimates",
+      onClick: () => navigate("/budget"),
+      icon: ReceiptIndianRupee,
+      gradient: "from-green-500 to-green-600",
+      shadowColor: "shadow-green-500/20"
+    },
+    {
+      title: "Real-Time Train Schedule",
+      description: "Real-Time Train Schedule Rendering Subsystem (TSRS)",
+      onClick: () => navigate("/train"),
+      icon: TrainFront,
+      gradient: "from-green-500 to-green-600",
+      shadowColor: "shadow-green-500/20"
+    },
+    {
+      title: "Pan-India School Statistics",
+      description: "Architecture that seamlessly processes nationwide school data",
+      onClick: () => navigate("/school"),
+      icon: School,
+      gradient: "from-emerald-600 to-teal-700",
+      shadowColor: "shadow-emerald-600/20"
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50 dark:from-gray-900 dark:via-gray-900 dark:to-black">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent mb-4 dark:from-green-400 dark:to-emerald-400">
+            Welcome, {user?.firstName || "Citizen"} 👋
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 text-lg">
+            Your digital gateway to civic engagement and community services
+          </p>
+        </div>
+
+
+        <div className="mb-6 flex justify-center">
+          <input
+            type="text"
+            placeholder="Search dashboard features..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full max-w-md px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 shadow-sm focus:ring-2 focus:ring-green-500 focus:outline-none"
+          />
+        </div>
+
+
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {dashboardItems
+              .filter(item =>
+                item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.description.toLowerCase().includes(searchTerm.toLowerCase())
+              )
+              .map((item, index) => (
+                <DashboardCard key={index} {...item} />
+              ))}
+          </div>
+
+          {/* Right Sidebar */}
+          <div className="lg:w-96 shrink-0 space-y-8">
+            {/* Leaderboard Section - Added from merge conflict */}
+            <div className="h-[500px]">
+              <Leaderboard />
+            </div>
+
+            {/* Trending Feed */}
+            <div className="h-full">
+              <TrendingFeed />
+            </div>
+          </div>
+        </div>
+      </main >
+    </div>
+>>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
   );
 };
 

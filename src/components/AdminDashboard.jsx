@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Users,
@@ -33,13 +33,13 @@ const AdminDashboard = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const sidebarMenu = [
-  { key: 'dashboard', label: 'Dashboard', icon: Home, route: '/admin/dashboard' },
-  { key: 'analytics', label: 'Analytics', icon: BarChart3, route: '/admin/analytics' },
-  { key: 'users', label: 'Users', icon: Users, route: '/admin/users' },
-  { key: 'documents', label: 'Documents', icon: FileText, route: '/admin/documents' },
-  { key: 'notifications', label: 'Notifications', icon: Bell, route: '/admin/notifications' },
-  { key: 'settings', label: 'Settings', icon: Settings, route: '/admin/settings' },
-];
+    { key: 'dashboard', label: 'Dashboard', icon: Home, route: '/admin/dashboard' },
+    { key: 'analytics', label: 'Analytics', icon: BarChart3, route: '/admin/analytics' },
+    { key: 'users', label: 'Users', icon: Users, route: '/admin/users' },
+    { key: 'documents', label: 'Documents', icon: FileText, route: '/admin/documents' },
+    { key: 'notifications', label: 'Notifications', icon: Bell, route: '/admin/notifications' },
+    { key: 'settings', label: 'Settings', icon: Settings, route: '/admin/settings' },
+  ];
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeRoute, setActiveRoute] = useState('/admin/dashboard');
@@ -115,23 +115,23 @@ const AdminDashboard = () => {
   };
 
   const statusConfig = {
-    "Pending": { 
-      color: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700", 
+    "Pending": {
+      color: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700",
       icon: Clock,
       dotColor: "bg-amber-400 dark:bg-amber-500"
     },
-    "In Progress": { 
-      color: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700", 
+    "In Progress": {
+      color: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700",
       icon: RefreshCw,
       dotColor: "bg-blue-400 dark:bg-blue-500"
     },
-    "Resolved": { 
-      color: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700", 
+    "Resolved": {
+      color: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700",
       icon: CheckCircle2,
       dotColor: "bg-emerald-400 dark:bg-emerald-500"
     },
-    "Rejected": { 
-      color: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700", 
+    "Rejected": {
+      color: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700",
       icon: XCircle,
       dotColor: "bg-red-400 dark:bg-red-500"
     }
@@ -157,7 +157,7 @@ const AdminDashboard = () => {
 
   const filteredIssues = issues.filter(issue => {
     const matchesSearch = issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         issue.description.toLowerCase().includes(searchTerm.toLowerCase());
+      issue.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || issue.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -171,8 +171,8 @@ const AdminDashboard = () => {
   };
 
   const handleStatusChange = (issueId, newStatus) => {
-    setIssues(prev => 
-      prev.map(issue => 
+    setIssues(prev =>
+      prev.map(issue =>
         issue._id === issueId ? { ...issue, status: newStatus } : issue
       )
     );
@@ -188,12 +188,11 @@ const AdminDashboard = () => {
         />
       )}
       <aside
-        className={`fixed top-0 left-0 h-full z-50 transition-all duration-300 ease-in-out bg-white/80 backdrop-blur-xl border-r border-gray-200/50 dark:bg-gray-900/80 dark:border-gray-700/50 flex flex-col shadow-xl ${
-          isSidebarOpen ? 'w-[64]' : 'w-16'
-        }`}
+        className={`fixed top - 0 left - 0 h - full z - 50 transition - all duration - 300 ease -in -out bg - white / 80 backdrop - blur - xl border - r border - gray - 200 / 50 dark: bg - gray - 900 / 80 dark: border - gray - 700 / 50 flex flex - col shadow - xl ${isSidebarOpen ? 'w-[64]' : 'w-16'
+          } `}
       >
         <div className="relative flex items-center justify-between p-4 border-b border-gray-200/50 dark:border-gray-700/50">
-          <div className={`flex items-center transition-all duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'}`}>
+          <div className={`flex items - center transition - all duration - 300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 w-0'} `}>
             <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
               <span className="text-white font-bold text-sm">C</span>
             </div>
@@ -207,9 +206,8 @@ const AdminDashboard = () => {
             type="button"
             aria-label={isSidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className={`p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 ${
-              !isSidebarOpen ? 'mx-auto' : ''
-            }`}
+            className={`p - 2 rounded - lg hover: bg - gray - 100 dark: hover: bg - gray - 800 transition - all duration - 200 focus: outline - none focus: ring - 2 focus: ring - emerald - 500 / 20 ${!isSidebarOpen ? 'mx-auto' : ''
+              } `}
           >
             {isSidebarOpen ? (
               <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-300" />
@@ -239,13 +237,13 @@ const AdminDashboard = () => {
                 <button
                   type="button"
                   className={`
-                    w-full flex items-center py-3 px-3 rounded-xl text-sm font-medium transition-all duration-200 group relative overflow-hidden
+w - full flex items - center py - 3 px - 3 rounded - xl text - sm font - medium transition - all duration - 200 group relative overflow - hidden
                     ${isSidebarOpen ? '' : 'justify-center'}
                     ${isActive
                       ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/25 transform scale-[1.02]'
                       : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white hover:shadow-md'
                     }
-                  `}
+`}
                   onClick={() => navigate(item.route)}
                   aria-current={isActive ? "page" : undefined}
                 >
@@ -254,13 +252,11 @@ const AdminDashboard = () => {
                   )}
                   <div className="relative z-10 flex items-center">
                     <Icon
-                      className={`w-5 h-5 transition-all duration-200 ${
-                        isSidebarOpen ? 'mr-3' : ''
-                      } ${
-                        isActive
+                      className={`w - 5 h - 5 transition - all duration - 200 ${isSidebarOpen ? 'mr-3' : ''
+                        } ${isActive
                           ? 'text-white'
                           : 'text-gray-500 dark:text-gray-400 group-hover:text-emerald-600'
-                      }`}
+                        } `}
                     />
                     {isSidebarOpen && (
                       <span className="relative z-10 transition-all duration-300">
@@ -281,7 +277,7 @@ const AdminDashboard = () => {
           })}
         </nav>
       </aside>
-      <motion.header 
+      <motion.header
         className="bg-white/80 backdrop-blur-md border-b border-green-100 dark:bg-gray-900/80 dark:border-gray-700 sticky top-0 z-40"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -302,7 +298,7 @@ const AdminDashboard = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="flex items-center space-x-4">
               <button className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors">
                 <Bell className="w-5 h-5" />
@@ -310,7 +306,7 @@ const AdminDashboard = () => {
               <button className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors">
                 <Settings className="w-5 h-5" />
               </button>
-              <button 
+              <button
                 onClick={() => navigate("/login")}
                 className="flex items-center space-x-2 px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
               >
@@ -322,7 +318,7 @@ const AdminDashboard = () => {
         </div>
       </motion.header>
 
-      <motion.div 
+      <motion.div
         className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
         variants={containerVariants}
         initial="initial"
@@ -337,11 +333,11 @@ const AdminDashboard = () => {
           </p>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8"
         >
-          <motion.div 
+          <motion.div
             variants={cardVariants}
             whileHover="hover"
             className="bg-white/70 backdrop-blur-sm rounded-xl p-6 border border-green-100 dark:bg-gray-800/70 dark:border-gray-700 shadow-sm"
@@ -372,7 +368,7 @@ const AdminDashboard = () => {
             const count = stats[keyMap[status]];
             const Icon = config.icon;
             return (
-              <motion.div 
+              <motion.div
                 key={status}
                 variants={cardVariants}
                 whileHover="hover"
@@ -383,16 +379,16 @@ const AdminDashboard = () => {
                     <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{status}</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{count || 0}</p>
                   </div>
-                  <div className={`p-3 rounded-lg ${config.color.split(' ')[0]} ${config.color.split(' ')[0]}/20`}>
+                  <div className={`p - 3 rounded - lg ${config.color.split(' ')[0]} ${config.color.split(' ')[0]}/20`}>
                     <Icon className={`w-5 h-5 ${config.color.split(' ')[1]}`} />
-                  </div>
-                </div>
-              </motion.div>
+                  </div >
+                </div >
+              </motion.div >
             );
           })}
-        </motion.div>
+        </motion.div >
 
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="bg-white/70 backdrop-blur-sm rounded-xl p-6 border border-green-100 dark:bg-gray-800/70 dark:border-gray-700 shadow-sm mb-6"
         >
@@ -408,7 +404,7 @@ const AdminDashboard = () => {
                   className="pl-10 pr-4 py-2 w-full sm:w-64 border border-green-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400"
                 />
               </div>
-              
+
               <div className="relative">
                 <Filter className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                 <select
@@ -427,13 +423,13 @@ const AdminDashboard = () => {
 
             <div className="flex space-x-3">
               <button
-                onClick={() => {/* Handle export */}}
+                onClick={() => {/* Handle export */ }}
                 className="flex items-center space-x-2 px-4 py-2 text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-lg transition-colors font-medium"
               >
                 <Download className="w-4 h-4" />
                 <span>Export</span>
               </button>
-              
+
               <button
                 onClick={fetchIssues}
                 disabled={isRefreshing}
@@ -446,7 +442,7 @@ const AdminDashboard = () => {
           </div>
         </motion.div>
 
-        <motion.div 
+        <motion.div
           variants={itemVariants}
           className="bg-white/70 backdrop-blur-sm rounded-xl border border-green-100 dark:bg-gray-800/70 dark:border-gray-700 shadow-sm overflow-hidden"
         >
@@ -539,11 +535,11 @@ const AdminDashboard = () => {
             </div>
           )}
         </motion.div>
-      </motion.div>
+      </motion.div >
 
       <div className="fixed top-4 right-4 z-50">
       </div>
-    </div>
+    </div >
   );
 };
 

@@ -10,25 +10,32 @@ from civix_ml.image_model import analyze_image_url, generate_caption
 logger = logging.getLogger(__name__)
 
 # --- HYBRID MODEL ENGINE ---
+# Lazy load global variables
+_BI_ENCODER = None
+_CROSS_ENCODER = None
 
-BI_ENCODER = None
-CROSS_ENCODER = None
+def get_bi_encoder():
+    global _BI_ENCODER
+    if _BI_ENCODER is None:
+        try:
+            print("1. Lazy Loading Bi-Encoder (all-MiniLM-L6-v2)...")
+            _BI_ENCODER = SentenceTransformer('all-MiniLM-L6-v2')
+            print("   [✓] Bi-Encoder Ready.")
+        except Exception as e:
+             logger.error(f"Bi-Encoder Load Failed: {e}")
+    return _BI_ENCODER
 
-print("--- INITIALIZING PRO ML ENGINE ---")
-try:
-    print("1. Loading Bi-Encoder (all-MiniLM-L6-v2)...")
-    BI_ENCODER = SentenceTransformer('all-MiniLM-L6-v2')
-    print("   [✓] Bi-Encoder Ready.")
-except Exception as e:
-    logger.error(f"Bi-Encoder Load Failed: {e}")
-
-try:
-    print("2. Loading Cross-Encoder (nli-distilroberta-base)...")
-    # This model outputs 3 scores: Contradiction, Entailment, Neutral
-    CROSS_ENCODER = CrossEncoder('cross-encoder/nli-distilroberta-base')
-    print("   [✓] Cross-Encoder Ready.")
-except Exception as e:
-    logger.error(f"Cross-Encoder Load Failed: {e}")
+def get_cross_encoder():
+    global _CROSS_ENCODER
+    if _CROSS_ENCODER is None:
+        try:
+            print("2. Lazy Loading Cross-Encoder (nli-distilroberta-base)...")
+            # This model outputs 3 scores: Contradiction, Entailment, Neutral
+            _CROSS_ENCODER = CrossEncoder('cross-encoder/nli-distilroberta-base')
+            print("   [✓] Cross-Encoder Ready.")
+        except Exception as e:
+            logger.error(f"Cross-Encoder Load Failed: {e}")
+    return _CROSS_ENCODER
 
 # --- DEFINITIONS ---
 
@@ -62,6 +69,22 @@ def is_likely_gibberish(text):
     smash_patterns = [r'asdf', r'qwer', r'zxcv', r'hjkl']
     for pat in smash_patterns:
         if re.search(pat, text.lower()): return True
+    
+    # --- PRO: SPAM & PRANK FILTERS ---
+    spam_triggers = [
+        r'free money', r'click here', r'subscribe', r'buy now', r'discount', 
+        r'lottery', r'winner', r'crypto', r'dating', r'casino'
+    ]
+    for trig in spam_triggers:
+        if re.search(trig, text.lower()): return True
+
+    prank_triggers = [
+        r'alien', r'zombie', r'ghost', r'monster', r'invasion', 
+        r'ufo', r'superman', r'batman', r'joke', r'prank', r'stuck in tree'
+    ]
+    for trig in prank_triggers:
+        if re.search(trig, text.lower()): return True
+
     return False
 
 # --- API ENDPOINTS ---
@@ -80,14 +103,21 @@ def predict_priority(request):
     try:
         txt = (request.data.get('title', '') + " " + request.data.get('description', '')).strip()
         if not txt: return Response({'priority': 'Low', 'confidence': 1.0})
+        
+        # Rule -1: Too Short = Low Priority (Prevent hallucinations)
+        if len(txt.split()) < 3:
+             return Response({'priority': 'Low', 'confidence': 0.8, 'reason': 'Description too vague'})
 
         # Rule 0: Keyword Boosting (Override Model)
         if check_keyword_boost(txt):
              return Response({'priority': 'High', 'confidence': 1.0, 'reason': 'Critical keyword detected'})
 
-        if CROSS_ENCODER:
+        cross_model = get_cross_encoder()
+        bi_model = get_bi_encoder()
+
+        if cross_model:
             pairs = [(txt, label) for label in PRIORITY_LABELS]
-            scores = CROSS_ENCODER.predict(pairs) 
+            scores = cross_model.predict(pairs) 
             # scores is (N, 3). We want Entailment (Index 1) for roberta-nli
             entailment_scores = scores[:, 1] 
             best_idx = np.argmax(entailment_scores)
@@ -97,9 +127,9 @@ def predict_priority(request):
             
             return Response({'priority': PRIORITY_KEYS[best_idx], 'confidence': confidence})
             
-        elif BI_ENCODER: 
-            emb = BI_ENCODER.encode(txt)
-            proto_embs = BI_ENCODER.encode(PRIORITY_LABELS)
+        elif bi_model: 
+            emb = bi_model.encode(txt)
+            proto_embs = bi_model.encode(PRIORITY_LABELS)
             scores = util.cos_sim(emb, proto_embs)[0]
             best_idx = np.argmax(scores)
             return Response({'priority': PRIORITY_KEYS[best_idx], 'confidence': float(scores[best_idx])})
@@ -124,15 +154,18 @@ def detect_fake(request):
                 'reason': 'Detected keyboard smashing or gibberish.'
             })
 
-        if CROSS_ENCODER:
+        cross_model = get_cross_encoder()
+        bi_model = get_bi_encoder()
+
+        if cross_model:
             # Enhanced Spam Pairs
             spam_pairs = [
                 (full_text, "This is a detailed, valid, and serious civic issue report."),
                 (full_text, "This is a fake, spam, test, glitch, or nonsense report."),
                 (full_text, "This contains promotional content, ads, or irrelevant solicitation."),
-                (full_text, "This contains hate speech, harassment, or offensive language.")
+                (full_text, "This described an impossible, absurd, or prank event (e.g. aliens).")
             ]
-            scores = CROSS_ENCODER.predict(spam_pairs)
+            scores = cross_model.predict(spam_pairs)
             
             valid_score = scores[0][1]
             fake_score = max(scores[1][1], scores[2][1], scores[3][1]) # Take max of "bad" categories
@@ -149,9 +182,9 @@ def detect_fake(request):
                 'reason': 'Semantic analysis suggests spam or invalid content.' if final_verdict else 'Valid report.'
             })
             
-        elif BI_ENCODER:
-            emb = BI_ENCODER.encode(full_text)
-            spam_emb = BI_ENCODER.encode(["fake nonsense glitch test spam garbage ads promotion"])
+        elif bi_model:
+            emb = bi_model.encode(full_text)
+            spam_emb = bi_model.encode(["fake nonsense glitch test spam garbage ads promotion"])
             score = float(util.cos_sim(emb, spam_emb)[0][0])
             return Response({'is_fake': score > 0.5, 'fake_confidence': score})
             
@@ -166,9 +199,12 @@ def categorize(request):
     try:
         txt = request.data.get('title', '') + " " + request.data.get('description', '')
         
-        if CROSS_ENCODER:
+        cross_model = get_cross_encoder()
+        bi_model = get_bi_encoder()
+        
+        if cross_model:
             pairs = [(txt, l) for l in CATEGORIES_LABELS]
-            scores = CROSS_ENCODER.predict(pairs)
+            scores = cross_model.predict(pairs)
             entailment_scores = scores[:, 1]
             best_idx = np.argmax(entailment_scores)
             confidence = float(1 / (1 + np.exp(-entailment_scores[best_idx])))
@@ -179,9 +215,9 @@ def categorize(request):
 
             return Response({'category': CATEGORIES_KEYS[best_idx], 'confidence': confidence})
             
-        elif BI_ENCODER:
-            emb = BI_ENCODER.encode(txt)
-            cat_embs = BI_ENCODER.encode(CATEGORIES_LABELS) 
+        elif bi_model:
+            emb = bi_model.encode(txt)
+            cat_embs = bi_model.encode(CATEGORIES_LABELS) 
             scores = util.cos_sim(emb, cat_embs)[0]
             best_idx = np.argmax(scores)
             return Response({'category': CATEGORIES_KEYS[best_idx], 'confidence': float(scores[best_idx])})
@@ -195,7 +231,10 @@ def categorize(request):
 @api_view(['POST'])
 def find_duplicates(request):
     try:
-        if not BI_ENCODER: return Response({'duplicates': []})
+        bi_model = get_bi_encoder()
+        cross_model = get_cross_encoder()
+
+        if not bi_model: return Response({'duplicates': []})
         
         candidate_title = request.data.get('candidate', {}).get('title', '')
         candidate_desc = request.data.get('candidate', {}).get('description', '')
@@ -204,25 +243,25 @@ def find_duplicates(request):
         if not existing: return Response({'duplicates': []})
 
         # Step 1: Retrieval (Bi-Encoder)
-        cand_emb = BI_ENCODER.encode(candidate_title)
+        cand_emb = bi_model.encode(candidate_title)
         existing_titles = [i.get('title', '') for i in existing]
-        title_embs = BI_ENCODER.encode(existing_titles)
+        title_embs = bi_model.encode(existing_titles)
         
         cos_scores = util.cos_sim(cand_emb, title_embs)[0]
         top_k_indices = [i for i, s in enumerate(cos_scores) if s > 0.4]
         
         potential_dups = []
-        if CROSS_ENCODER and top_k_indices:
+        if cross_model and top_k_indices:
             # Step 2: Reranking (Cross-Encoder)
             rerank_pairs = []
             for idx in top_k_indices:
                 rerank_pairs.append((candidate_desc, existing[idx].get('description', '')))
                 
             if rerank_pairs:
-                rerank_scores = CROSS_ENCODER.predict(rerank_pairs)
-                # rerank_scores is (N, 3)
+                scores = cross_model.predict(rerank_pairs)
+                # scores is (N, 3)
                 
-                for local_idx, scores_arr in enumerate(rerank_scores):
+                for local_idx, scores_arr in enumerate(scores):
                     entailment_score = scores_arr[1]
                     original_idx = top_k_indices[local_idx]
                     
@@ -233,7 +272,7 @@ def find_duplicates(request):
                             'score': float(1 / (1 + np.exp(-entailment_score)))
                         })
         
-        elif not CROSS_ENCODER and top_k_indices:
+        elif not cross_model and top_k_indices:
              for idx in top_k_indices:
                  if cos_scores[idx] > 0.75:
                      potential_dups.append({
@@ -252,8 +291,9 @@ def find_duplicates(request):
 def get_embedding(request):
     try:
         text = request.data.get('text', '')
-        if BI_ENCODER and text:
-            vec = BI_ENCODER.encode(text).tolist() 
+        bi_model = get_bi_encoder()
+        if bi_model and text:
+            vec = bi_model.encode(text).tolist() 
             return Response({'embedding': vec})
         return Response({'embedding': []})
     except Exception as e:

@@ -24,8 +24,8 @@ const AdminDashboard = () => {
     const fetchData = async () => {
       try {
         const [statsRes, issuesRes] = await Promise.all([
-          csrfManager.secureFetch(`http://localhost:5000/api/admin/stats?t=${Date.now()}`),
-          csrfManager.secureFetch(`http://localhost:5000/api/issues?t=${Date.now()}`)
+          csrfManager.secureFetch(`/api/admin/stats?t=${Date.now()}`),
+          csrfManager.secureFetch(`/api/issues?t=${Date.now()}`)
         ]);
 
         if (statsRes.ok) {
@@ -74,7 +74,7 @@ const AdminDashboard = () => {
   const handleCheckSimilar = async (issueId) => {
     const toastId = toast.loading("Checking for duplicates...");
     try {
-      const response = await csrfManager.secureFetch(`http://localhost:5000/api/admin/check-duplicates/${issueId}`);
+      const response = await csrfManager.secureFetch(`/api/admin/check-duplicates/${issueId}`);
       const data = await response.json();
 
       if (response.ok) {
@@ -108,7 +108,7 @@ const AdminDashboard = () => {
         return;
       }
 
-      const response = await csrfManager.secureFetch(`http://localhost:5000/api/issues/${selectedIssueId}/status`, {
+      const response = await csrfManager.secureFetch(`/api/issues/${selectedIssueId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

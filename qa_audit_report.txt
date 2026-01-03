@@ -1,0 +1,24 @@
+1. [FRONTEND] src\Pages\ModeratorDashboard.jsx: Missing import for: Loader2
+2. [FRONTEND] src\Pages\Profile.jsx: Missing import for: UserButton
+3. [BACKEND-SEC] backend\routes\analytics.js: Potential Unprotected Route: GET /analytics
+4. [BACKEND-SEC] backend\routes\contact.js: Potential Unprotected Route: POST /
+5. [BACKEND-SEC] backend\routes\contributions.js: Potential Unprotected Route: GET /
+6. [BACKEND-SEC] backend\routes\gamificationRoutes.js: Potential Unprotected Route: POST /progress
+7. [BACKEND-SEC] backend\routes\gamificationRoutes.js: Potential Unprotected Route: GET /stats
+8. [BACKEND-SEC] backend\routes\issues.js: Potential Unprotected Route: GET /
+9. [BACKEND-SEC] backend\routes\issues.js: Potential Unprotected Route: GET /:id
+10. [BACKEND-SEC] backend\routes\moderator.js: Potential Unprotected Route: POST /analyze
+11. [BACKEND-SEC] backend\routes\moderator.js: Potential Unprotected Route: POST /duplicates
+12. [BACKEND-SEC] backend\routes\moderator.js: Potential Unprotected Route: GET /insights
+13. [BACKEND-SEC] backend\routes\notification.js: Potential Unprotected Route: GET /
+14. [BACKEND-SEC] backend\routes\notification.js: Potential Unprotected Route: PUT /:id/read
+15. [BACKEND-SEC] backend\routes\notification.js: Potential Unprotected Route: DELETE /clear-all
+16. [BACKEND-SEC] backend\routes\poll.js: Potential Unprotected Route: GET /
+17. [BACKEND-SEC] backend\routes\poll.js: Potential Unprotected Route: POST /
+18. [BACKEND-SEC] backend\routes\poll.js: Potential Unprotected Route: POST /:id/vote
+19. [BACKEND-SEC] backend\routes\posts.js: Potential Unprotected Route: POST /
+20. [BACKEND-SEC] backend\routes\posts.js: Potential Unprotected Route: GET /
+21. [BACKEND-SEC] backend\routes\posts.js: Potential Unprotected Route: GET /user
+22. [BACKEND-SEC] backend\routes\posts.js: Potential Unprotected Route: DELETE /:id
+23. [BACKEND-SEC] backend\routes\posts.js: Potential Unprotected Route: PUT /:id/like
+24. [BACKEND-SEC] backend\routes\profileRoutes.js: Potential Unprotected Route: GET /:clerkUserId

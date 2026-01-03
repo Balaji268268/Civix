@@ -11,14 +11,16 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import VotingFeedbackModal from '../components/voting/VotingFeedbackModal';
+import useFormPersistence from '../hooks/useFormPersistence';
 import toast from 'react-hot-toast';
 
 const VotingSystem = () => {
   const { getToken } = useAuth();
   const [activeTab, setActiveTab] = useState('browse');
   const [polls, setPolls] = useState([]);
-  const [newTitle, setNewTitle] = useState('');
-  const [newOptions, setNewOptions] = useState('');
+  /* Persistence: Save poll draft to localStorage */
+  const [newTitle, setNewTitle, clearTitle] = useFormPersistence('poll_title', '', false);
+  const [newOptions, setNewOptions, clearOptions] = useFormPersistence('poll_options', '', false);
   const [votedPolls, setVotedPolls] = useState(new Set());
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [currentPollForFeedback, setCurrentPollForFeedback] = useState(null);
@@ -37,7 +39,7 @@ const VotingSystem = () => {
       try {
         const token = await getToken();
         if (!token) return;
-        const res = await csrfManager.secureFetch('http://localhost:5000/api/polls', {
+        const res = await csrfManager.secureFetch('/api/polls', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
@@ -74,7 +76,7 @@ const VotingSystem = () => {
     try {
       const token = await getToken();
       if (!token) { toast.error("Please login to vote"); return; }
-      await csrfManager.secureFetch(`http://localhost:5000/api/polls/${pollId}/vote`, {
+      await csrfManager.secureFetch(`/api/polls/${pollId}/vote`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -120,8 +122,8 @@ const VotingSystem = () => {
       if (res.ok) {
         const createdPoll = await res.json();
         setPolls((prevPolls) => [createdPoll, ...prevPolls]);
-        setNewTitle('');
-        setNewOptions('');
+        clearTitle();
+        clearOptions();
         setActiveTab('browse');
         toast.success("Poll Created!");
       }

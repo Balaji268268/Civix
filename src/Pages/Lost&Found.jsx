@@ -32,7 +32,7 @@ export default function LostAndFoundPage() {
   const fetchItems = async () => {
     setLoading(true);
     try {
-      const res = await csrfManager.secureFetch("http://localhost:5000/api/lost-items"); // Fetch all
+      const res = await csrfManager.secureFetch("/api/lost-items"); // Fetch all
       if (res.ok) {
         const data = await res.json();
         // Map Backend Data to UI Structure
@@ -80,7 +80,7 @@ export default function LostAndFoundPage() {
     };
 
     try {
-      const res = await csrfManager.secureFetch("http://localhost:5000/api/lost-items", {
+      const res = await csrfManager.secureFetch("/api/lost-items", {
         method: "POST",
         body: JSON.stringify(apiPayload),
       });

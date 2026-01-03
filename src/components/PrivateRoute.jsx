@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import csrfManager from '../utils/csrfManager';
 
@@ -7,6 +7,7 @@ const PrivateRoute = ({ children, allowedRoles }) => {
   const { isSignedIn, user, isLoaded } = useUser();
   const [role, setRole] = useState(null);
   const [isRoleLoaded, setIsRoleLoaded] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -17,7 +18,7 @@ const PrivateRoute = ({ children, allowedRoles }) => {
 
           // Then try to fetch from backend for the source of truth
           if (!currentRole || currentRole === 'user') {
-            const response = await csrfManager.secureFetch(`http://localhost:5000/api/profile/${user.id}`);
+            const response = await csrfManager.secureFetch(`/api/profile/${user.id}`);
             if (response.ok) {
               const data = await response.json();
               if (data.role) {
@@ -46,12 +47,11 @@ const PrivateRoute = ({ children, allowedRoles }) => {
 
   // 🔐 If user not signed in, redirect to login
   if (!isSignedIn) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // ✅ Default to 'user' if role is undefined
   const finalRole = role || "user";
-  console.log("🔍 Authenticated User Role:", finalRole);
 
   // ✅ Check role against allowedRoles
   if (!allowedRoles || allowedRoles.includes(finalRole)) {

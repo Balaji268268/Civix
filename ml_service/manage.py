@@ -3,6 +3,9 @@
 import os
 import sys
 
+# Force Keras 2 compatibility for Transformers
+os.environ["TF_USE_LEGACY_KERAS"] = "1"
+
 
 def main():
     """Run administrative tasks."""

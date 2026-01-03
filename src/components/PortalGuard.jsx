@@ -25,7 +25,7 @@ const PortalGuard = ({ children, allowedRoles }) => {
 
                     // 2. Fallback to Backend (Source of Truth)
                     if (!currentRole || currentRole === 'user') {
-                        const response = await csrfManager.secureFetch(`http://localhost:5000/api/profile/${user.id}`);
+                        const response = await csrfManager.secureFetch(`/api/profile/${user.id}`);
                         if (response.ok) {
                             const data = await response.json();
                             if (data.role) currentRole = data.role;

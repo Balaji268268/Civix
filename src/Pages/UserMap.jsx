@@ -3,8 +3,12 @@ import { MapContainer, TileLayer, Marker, useMap, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { Globe, MapPin, ArrowLeft, Filter, Layers, Sparkles } from "lucide-react";
+<<<<<<< HEAD
 import csrfManager from "../utils/csrfManager";
 import { useAuth, useUser } from "@clerk/clerk-react";
+=======
+import { useNavigate } from "react-router-dom";
+>>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
 
 // Custom marker icon (green pin)
 const customIcon = new L.Icon({
@@ -21,8 +25,12 @@ function FlyToLocation({ position }) {
 }
 
 export default function UserMap() {
+<<<<<<< HEAD
   const { userId } = useAuth();
   const { user } = useUser();
+=======
+  const navigate = useNavigate();
+>>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [statusFilter, setStatusFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
@@ -31,8 +39,12 @@ export default function UserMap() {
   const [loading, setLoading] = useState(true);
 
   const handleBackClick = () => {
+<<<<<<< HEAD
     // In a real app, this would be: navigate("/user/dashboard");
     window.location.href = "/user/dashboard";
+=======
+    navigate("/user/dashboard");
+>>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
   };
 
   useEffect(() => {
@@ -188,8 +200,13 @@ export default function UserMap() {
               <button
                 onClick={() => setMapView("street")}
                 className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 ${mapView === "street"
+<<<<<<< HEAD
                   ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20"
                   : "bg-white/60 dark:bg-slate-700/60 text-green-600 dark:text-green-400 hover:bg-white/80 dark:hover:bg-slate-700/80 border border-green-200/50 dark:border-green-700/50"
+=======
+                    ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20"
+                    : "bg-white/60 dark:bg-slate-700/60 text-green-600 dark:text-green-400 hover:bg-white/80 dark:hover:bg-slate-700/80 border border-green-200/50 dark:border-green-700/50"
+>>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
                   }`}
               >
                 <MapPin size={16} className={mapView === "street" ? "animate-pulse" : ""} />
@@ -199,8 +216,13 @@ export default function UserMap() {
               <button
                 onClick={() => setMapView("satellite")}
                 className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 ${mapView === "satellite"
+<<<<<<< HEAD
                   ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20"
                   : "bg-white/60 dark:bg-slate-700/60 text-green-600 dark:text-green-400 hover:bg-white/80 dark:hover:bg-slate-700/80 border border-green-200/50 dark:border-green-700/50"
+=======
+                    ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20"
+                    : "bg-white/60 dark:bg-slate-700/60 text-green-600 dark:text-green-400 hover:bg-white/80 dark:hover:bg-slate-700/80 border border-green-200/50 dark:border-green-700/50"
+>>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
                   }`}
               >
                 <Globe size={16} className={mapView === "satellite" ? "animate-pulse" : ""} />

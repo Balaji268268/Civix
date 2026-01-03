@@ -5,9 +5,14 @@ const { verifyToken, isAdmin, isModerator } = require("../middlewares/validate")
 const { upload } = require("../middlewares/multer.middleware");
 
 
+<<<<<<< HEAD
 router.post("/", upload.single("file"), issueController.createIssue);
 router.post("/analyze-image", upload.single("file"), issueController.analyzeIssueImage);
 router.post("/generate-caption", upload.single("file"), issueController.generateCaption);
+=======
+
+router.post("/", verifyToken, upload.single("file"), issueController.createIssue);
+>>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
 
 
 router.patch("/:id/status", verifyToken, isModerator, issueController.updateIssueStatus);
@@ -18,8 +23,8 @@ router.patch("/:id/review-resolution", verifyToken, isModerator, issueController
 router.patch("/:id/acknowledge-resolution", issueController.acknowledgeResolution); // User Token check needed ideally, but keeping open for quick implementation or check Auth in controller later if passed. Ideally add verifyToken.
 
 // GET: All issues
-router.get("/", issueController.getAllIssues);
-router.get("/my-issues", issueController.getMyIssues);
+router.get("/", issueController.getAllIssues); // Public feed
+router.get("/my-issues", verifyToken, issueController.getMyIssues);
 router.get("/assigned", verifyToken, issueController.getAssignedIssues);
 router.get("/:id/duplicates", verifyToken, isAdmin, issueController.findDuplicatesForIssue);
 // Moderator routes must be before /:id to avoid ID collision

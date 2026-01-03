@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Users, MessageCircle, Sparkles } from 'lucide-react';
-
+import { BACKEND_URL } from '../utils/csrfManager';
 import { io } from 'socket.io-client';
 
 export default function CivixChatRoom() {
@@ -13,7 +13,7 @@ export default function CivixChatRoom() {
 
   useEffect(() => {
     // Initialize Socket Connection
-    socketRef.current = io('http://localhost:5000');
+    socketRef.current = io(BACKEND_URL);
 
     // Listeners
     socketRef.current.on('receiveMessage', (message) => {
@@ -48,7 +48,7 @@ export default function CivixChatRoom() {
         // For now, we rely on the server/client to identify 'You' by checking socket ID or similar, 
         // OR we just send 'You' and let the local client render it.
         // Better: Send a random user ID or name.
-        user: `Citizen-${Math.floor(Math.random() * 1000)}`,
+        user: `Citizen - ${Math.floor(Math.random() * 1000)} `,
         avatar: 'CZ',
         message: newMessage,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -107,43 +107,43 @@ export default function CivixChatRoom() {
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`flex items-start space-x-3 group ${msg.isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''
-              }`}
+            className={`flex items - start space - x - 3 group ${msg.isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''
+              } `}
           >
-            <div className={`relative w-11 h-11 rounded-2xl flex items-center justify-center text-white text-sm font-bold shadow-lg ${msg.isCurrentUser
-              ? 'bg-gradient-to-br from-green-500 to-green-600'
-              : 'bg-gradient-to-br from-emerald-400 to-green-500'
-              } group-hover:scale-110 transition-transform duration-200`}>
+            <div className={`relative w - 11 h - 11 rounded - 2xl flex items - center justify - center text - white text - sm font - bold shadow - lg ${msg.isCurrentUser
+                ? 'bg-gradient-to-br from-green-500 to-green-600'
+                : 'bg-gradient-to-br from-emerald-400 to-green-500'
+              } group - hover: scale - 110 transition - transform duration - 200`}>
               {msg.avatar}
               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white"></div>
             </div>
 
-            <div className={`flex-1 max-w-xs sm:max-w-md lg:max-w-lg ${msg.isCurrentUser ? 'text-right' : ''
-              }`}>
-              <div className={`relative rounded-2xl p-4 shadow-sm backdrop-blur-sm transition-all duration-200 group-hover:shadow-md ${msg.isCurrentUser
-                ? 'bg-gradient-to-br from-green-500 to-green-600 text-white ml-auto'
-                : 'bg-white/90 border border-green-100/50 text-gray-800'
-                }`}>
+            <div className={`flex - 1 max - w - xs sm: max - w - md lg: max - w - lg ${msg.isCurrentUser ? 'text-right' : ''
+              } `}>
+              <div className={`relative rounded - 2xl p - 4 shadow - sm backdrop - blur - sm transition - all duration - 200 group - hover: shadow - md ${msg.isCurrentUser
+                  ? 'bg-gradient-to-br from-green-500 to-green-600 text-white ml-auto'
+                  : 'bg-white/90 border border-green-100/50 text-gray-800'
+                } `}>
                 {!msg.isCurrentUser && (
                   <p className="text-sm font-semibold text-green-700 mb-2 flex items-center gap-2">
                     {msg.user}
                     <Sparkles className="w-3 h-3 text-green-500" />
                   </p>
                 )}
-                <p className={`text-sm leading-relaxed ${msg.isCurrentUser ? 'text-white' : 'text-gray-700'
-                  }`}>
+                <p className={`text - sm leading - relaxed ${msg.isCurrentUser ? 'text-white' : 'text-gray-700'
+                  } `}>
                   {msg.message}
                 </p>
 
                 {/* Message tail */}
-                <div className={`absolute top-4 w-3 h-3 transform rotate-45 ${msg.isCurrentUser
-                  ? 'right-[-6px] bg-green-500'
-                  : 'left-[-6px] bg-white border-l border-t border-green-100/50'
-                  }`}></div>
+                <div className={`absolute top - 4 w - 3 h - 3 transform rotate - 45 ${msg.isCurrentUser
+                    ? 'right-[-6px] bg-green-500'
+                    : 'left-[-6px] bg-white border-l border-t border-green-100/50'
+                  } `}></div>
               </div>
 
-              <p className={`text-xs text-gray-400 mt-2 px-1 ${msg.isCurrentUser ? 'text-right' : 'text-left'
-                }`}>
+              <p className={`text - xs text - gray - 400 mt - 2 px - 1 ${msg.isCurrentUser ? 'text-right' : 'text-left'
+                } `}>
                 {msg.timestamp}
               </p>
             </div>

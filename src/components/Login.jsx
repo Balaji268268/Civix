@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { SignIn, useUser } from '@clerk/clerk-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import { motion, AnimatePresence } from "framer-motion";
 import { User, Shield, Gavel, FileText, ArrowLeft, CheckCircle, Lock } from 'lucide-react';
+import csrfManager from '../utils/csrfManager';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Role Configuration
@@ -45,18 +46,29 @@ const ROLES = [
 const Login = () => {
   const { isSignedIn, user } = useUser();
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedRole, setSelectedRole] = useState(null);
 
   // Redirect Logic
   useEffect(() => {
     const performRedirect = async () => {
       if (isSignedIn && user) {
+
+        // 0. Smart Redirect: Check if we were sent here from a specific page relative to portal
+        // But first check if they selected a role manually which overrides "default" assumptions?
+        // Actually, smart redirect is usually better.
+        const intendedDestination = location.state?.from?.pathname;
+        if (intendedDestination && intendedDestination !== '/' && intendedDestination !== '/login') {
+          navigate(intendedDestination, { replace: true });
+          return;
+        }
+
         let role = selectedRole || 'user'; // Default to user if direct login
 
         // Fetch verification from backend
         try {
           const token = await window.Clerk?.session?.getToken();
-          const res = await fetch(`http://localhost:5000/api/profile/${user.id}`, {
+          const res = await csrfManager.secureFetch(`/api/profile/${user.id}`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
 
@@ -67,8 +79,6 @@ const Login = () => {
             // CHECK APPROVAL STATUS
             if (role === 'officer' && data.isApproved === false) {
               toast.error("Account Pending Approval");
-              // You might want a dedicated "Pending" page, but for now toast + stay or redirect home
-              // navigate('/approval-pending'); 
               return;
             }
           }
@@ -76,6 +86,7 @@ const Login = () => {
           console.warn("Login fetch failed", e);
         }
 
+        // 2. Redirect based on resolved role
         switch (role) {
           case 'admin': navigate('/admin/dashboard'); break;
           case 'moderator': navigate('/moderator'); break;
@@ -86,7 +97,7 @@ const Login = () => {
     };
 
     if (isSignedIn) performRedirect();
-  }, [isSignedIn, user, navigate, selectedRole]);
+  }, [isSignedIn, user, navigate, selectedRole, location]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4 relative overflow-hidden">

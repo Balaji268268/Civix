@@ -45,6 +45,7 @@ const getNotifications = asyncHandler(async (req, res) => {
 
     // Check role in multiple places (Clerk metadata structure)
     const role = req.user?.role || req.user?.public_metadata?.role || req.user?.unsafe_metadata?.role;
+<<<<<<< HEAD
     const isAdminEmail = req.user?.email?.includes("admin") || req.user?.email === 'venkatabalaji529@gmail.com' || req.user?.email === 'rupesh23489@gmail.com';
 
     console.log(`[GetNotifications] User: ${req.user?.email}, Role: ${role}`); // Debug log
@@ -52,7 +53,20 @@ const getNotifications = asyncHandler(async (req, res) => {
     // TEMPORARY: Allow all users to see admin notifications for testing if role check fails
     if (role === 'admin' || isAdminEmail || true) {
         // Admins see their personal + admin alerts
+=======
+    const email = req.user?.email || "";
+
+    // Role-based filtering
+    if (role === 'admin' || email.includes("admin")) {
+        // Admins see their requests + global admin alerts
+>>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
         query = { $or: [{ recipient: userId }, { recipient: 'admin' }] };
+    } else if (role === 'moderator') {
+        // Moderators see their requests + moderator alerts
+        query = { $or: [{ recipient: userId }, { recipient: 'moderator' }] };
+    } else if (role === 'officer') {
+        // Officers see their requests + officer alerts + alerts for their specific department (future proofing)
+        query = { $or: [{ recipient: userId }, { recipient: 'officer' }] };
     }
 
     const notifications = await Notification.find(query).sort({ createdAt: -1 });

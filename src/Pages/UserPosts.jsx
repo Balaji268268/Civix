@@ -3,6 +3,7 @@ import { useAuth } from '@clerk/clerk-react';
 import csrfManager from '../utils/csrfManager';
 import { Image, Send, Trash2, Heart, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
+import ConfirmationModal from '../components/modals/ConfirmationModal';
 
 const UserPosts = () => {
     const { getToken, user } = useAuth();
@@ -19,7 +20,7 @@ const UserPosts = () => {
         try {
             const token = await getToken();
             if (!token) return;
-            const res = await csrfManager.secureFetch('http://localhost:5000/api/posts/user', {
+            const res = await csrfManager.secureFetch('/api/posts/user', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (res.ok) {
@@ -44,7 +45,7 @@ const UserPosts = () => {
             if (!token) { toast.error("Please login to post"); setSubmitting(false); return; }
 
             // Basic text-only post for now, image upload can be added later if needed
-            const res = await csrfManager.secureFetch('http://localhost:5000/api/posts', {
+            const res = await csrfManager.secureFetch('/api/posts', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -68,8 +69,16 @@ const UserPosts = () => {
         }
     };
 
-    const handleDeletePost = async (postId) => {
-        if (!window.confirm("Are you sure you want to delete this post?")) return;
+    const [deleteModalKey, setDeleteModalKey] = useState(null);
+
+    const handleDeleteClick = (postId) => {
+        setDeleteModalKey(postId);
+    };
+
+    const confirmDelete = async () => {
+        if (!deleteModalKey) return;
+        const postId = deleteModalKey;
+
         try {
             const token = await getToken();
             if (!token) return;
@@ -84,6 +93,8 @@ const UserPosts = () => {
             }
         } catch (error) {
             toast.error("Failed to delete post");
+        } finally {
+            setDeleteModalKey(null);
         }
     };
 
@@ -146,7 +157,7 @@ const UserPosts = () => {
                                         </div>
                                     </div>
                                     <button
-                                        onClick={() => handleDeletePost(post._id)}
+                                        onClick={() => handleDeleteClick(post._id)}
                                         className="text-gray-400 hover:text-red-500 transition-colors p-2"
                                         title="Delete Post"
                                     >
@@ -177,6 +188,16 @@ const UserPosts = () => {
                     )}
                 </div>
             </div>
+            {/* Modal */}
+            <ConfirmationModal
+                isOpen={!!deleteModalKey}
+                onClose={() => setDeleteModalKey(null)}
+                onConfirm={confirmDelete}
+                title="Delete Post"
+                message="Are you sure you want to delete this post? This action cannot be undone."
+                confirmText="Delete Post"
+                isDanger={true}
+            />
         </div>
     );
 };

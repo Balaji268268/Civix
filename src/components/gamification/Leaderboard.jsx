@@ -4,28 +4,48 @@ import { Trophy, Medal, Crown, Star } from 'lucide-react';
 import csrfManager from '../../utils/csrfManager';
 
 const Leaderboard = () => {
-    const { getToken } = useAuth();
+    // Correct variable naming: 'leaderboard' matches the usage in the render method
+    const { getToken, isSignedIn } = useAuth();
     const [leaderboard, setLeaderboard] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchLeaderboard = async () => {
+            if (!isSignedIn) {
+                setLoading(false);
+                return;
+            }
+
             try {
-                // Public endpoint, but secureFetch works generally
-                const response = await csrfManager.secureFetch('http://localhost:5000/api/gamification/leaderboard');
+                // Get Token securely
+                const token = await getToken();
+                if (!token) {
+                    // console.log("No token for leaderboard fetch");
+                    setLoading(false);
+                    return;
+                }
+
+                const response = await csrfManager.secureFetch('/api/gamification/leaderboard', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
                 if (response.ok) {
                     const data = await response.json();
                     setLeaderboard(data);
+                } else {
+                    console.warn(`Leaderboard fetch failed: ${response.status}`);
                 }
             } catch (error) {
-                console.error("Leaderboard fetch error", error);
+                console.error("Error fetching leaderboard:", error);
             } finally {
                 setLoading(false);
             }
         };
 
         fetchLeaderboard();
-    }, []);
+    }, [isSignedIn, getToken]);
 
     const getRankIcon = (index) => {
         switch (index) {
@@ -62,7 +82,7 @@ const Leaderboard = () => {
                         <div
                             key={index}
                             className={`flex items-center gap-4 p-4 rounded-2xl transition-all hover:scale-[1.02] ${index === 0 ? 'bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/10 dark:to-orange-900/10 border border-yellow-100 dark:border-yellow-900/30' :
-                                    'bg-gray-50 dark:bg-gray-700/30 hover:bg-white dark:hover:bg-gray-700 border border-transparent'
+                                'bg-gray-50 dark:bg-gray-700/30 hover:bg-white dark:hover:bg-gray-700 border border-transparent'
                                 }`}
                         >
                             <div className="flex-shrink-0 w-8 flex justify-center">

@@ -5,6 +5,7 @@ import { ArrowLeft, Save, Trash2, MapPin, AlertTriangle, CheckCircle, XCircle, S
 import csrfManager from "../utils/csrfManager";
 import { toast } from 'react-hot-toast';
 import AdminLayout from '../components/layout/AdminLayout';
+import ConfirmationModal from '../components/modals/ConfirmationModal';
 
 const AdminIssueDetail = () => {
     const { id } = useParams();
@@ -24,7 +25,7 @@ const AdminIssueDetail = () => {
             try {
                 // Determine if we need token for GET (public in routes/issues.js, but good practice to include if avail)
                 // Actually GET /:id is public, so no token strictly needed, but let's be safe.
-                const response = await csrfManager.secureFetch(`http://localhost:5000/api/issues/${id}`);
+                const response = await csrfManager.secureFetch(`/api/issues/${id}`);
                 if (response.ok) {
                     const data = await response.json();
                     setIssue(data);
@@ -49,7 +50,7 @@ const AdminIssueDetail = () => {
             const token = await getToken();
             if (!token) { toast.error("Authentication required"); return; }
             if (status !== issue.status) {
-                await csrfManager.secureFetch(`http://localhost:5000/api/issues/${id}/status`, {
+                await csrfManager.secureFetch(`/api/issues/${id}/status`, {
                     method: 'PATCH',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -68,6 +69,7 @@ const AdminIssueDetail = () => {
         }
     };
 
+<<<<<<< HEAD
     const handleReviewResolution = async (isApproved) => {
         if (!isApproved && !reviewRemarks) {
             toast.error("Please provide remarks for rejection.");
@@ -108,11 +110,19 @@ const AdminIssueDetail = () => {
 
     const handleDelete = async () => {
         if (!window.confirm("Are you sure you want to delete this issue? This cannot be undone.")) return;
+=======
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+>>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
 
+    const handleDeleteClick = () => {
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
         try {
             const token = await getToken();
             if (!token) return;
-            const response = await csrfManager.secureFetch(`http://localhost:5000/api/issues/${id}`, {
+            const response = await csrfManager.secureFetch(`/api/issues/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -127,6 +137,8 @@ const AdminIssueDetail = () => {
             }
         } catch (error) {
             toast.error("Error clicking delete");
+        } finally {
+            setShowDeleteModal(false);
         }
     };
 
@@ -348,7 +360,7 @@ const AdminIssueDetail = () => {
                             </button>
 
                             <button
-                                onClick={handleDelete}
+                                onClick={handleDeleteClick}
                                 className="w-full py-3 bg-white dark:bg-gray-800 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 border border-gray-200 dark:border-gray-700 rounded-xl font-bold transition-all flex justify-center items-center gap-2"
                             >
                                 <Trash2 className="w-5 h-5" />
@@ -388,6 +400,15 @@ const AdminIssueDetail = () => {
                     </div>
                 </div>
             </div>
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onConfirm={confirmDelete}
+                title="Delete Issue"
+                message="Are you sure you want to delete this issue? This action cannot be undone."
+                confirmText="Delete Issue"
+                isDanger={true}
+            />
         </AdminLayout>
     );
 };

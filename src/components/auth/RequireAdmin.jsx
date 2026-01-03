@@ -1,33 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import {jwtDecode} from 'jwt-decode';
+import { useUser } from '@clerk/clerk-react';
+import { useLocation, Navigate } from 'react-router-dom';
 
 const RequireAdmin = ({ children }) => {
-  const [isAdmin, setIsAdmin] = useState(null);
+  const { user, isLoaded, isSignedIn } = useUser();
+  const location = useLocation();
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setIsAdmin(false);
-      return;
-    }
+  if (!isLoaded) return null;
 
-    try {
-      const decoded = jwtDecode(token);
-      if (decoded.role === 'admin') {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
-      }
-    } catch (err) {
-      console.error('Invalid token');
-      setIsAdmin(false);
-    }
-  }, []);
+  if (!isSignedIn) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
 
-  if (isAdmin === null) return null; // Optional: Loading spinner
+  const role = user.publicMetadata?.role;
 
-  return isAdmin ? children : <Navigate to="/login" />;
+  return role === 'admin' ? children : <Navigate to="/home" replace />;
 };
 
 export default RequireAdmin;

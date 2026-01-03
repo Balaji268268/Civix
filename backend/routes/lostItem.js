@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { reportLostItem, getLostItems } = require('../controllers/lostItemController');
-// const { verifyToken } = require('../middlewares/validate'); // Optional: Uncomment to protect
+const { verifyToken } = require('../middlewares/validate');
 
-router.post('/', reportLostItem);
-router.get('/', getLostItems);
+router.post('/', verifyToken, reportLostItem);
+router.get('/', verifyToken, getLostItems);
 
 module.exports = router;

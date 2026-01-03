@@ -21,10 +21,20 @@ const getUserByClerkId = asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
+<<<<<<< HEAD
   // Fetch stats separately (Case Insensitive)
   const complaintsCount = await Issue.countDocuments({
     email: { $regex: new RegExp(`^${user.email}$`, 'i') }
   });
+=======
+  // LAZY MIGRATION: Check if profile is complete based on logic, and update DB if field is false/missing
+  const computedStatus = user.isProfileComplete();
+
+  if (user.profileSetupCompleted !== computedStatus) {
+    user.profileSetupCompleted = computedStatus;
+    await user.save();
+  }
+>>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
 
   res.json({
     id: user._id,
@@ -33,10 +43,14 @@ const getUserByClerkId = asyncHandler(async (req, res) => {
     role: user.role,
     location: user.location,
     profilePictureUrl: user.profilePictureUrl || null,
+<<<<<<< HEAD
     isProfileComplete: user.isProfileComplete(),
     trustScore: user.trustScore,
     gamification: user.gamification,
     complaints: complaintsCount
+=======
+    isProfileComplete: user.profileSetupCompleted
+>>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
   });
 });
 
@@ -50,6 +64,18 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     return res.status(400).json({
       error: 'Name, email, and location are required'
     });
+  }
+
+  // AUTHORIZATION CHECK: Ensure user is updating their own profile
+  // req.user is set by verifyToken middleware
+  const requesterId = req.user.sub || req.user.id;
+  if (requesterId !== clerkUserId) {
+    // Allow admins to override? For now, strict ownership.
+    // Check if admin
+    const isAdmin = req.user.role === 'admin' || req.user.public_metadata?.role === 'admin';
+    if (!isAdmin) {
+      return res.status(403).json({ error: "Unauthorized: You can only update your own profile." });
+    }
   }
 
   // Sanitize inputs
@@ -71,9 +97,10 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   const user = await User.findOneAndUpdate(
     { clerkUserId },
     {
-      name: sanitizedName,
       email: sanitizedEmail,
       location: sanitizedLocation,
+      ...(req.body.coordinates ? { coordinates: req.body.coordinates } : {}),
+      profileSetupCompleted: true, // If we are here, required fields are present (validated above)
       ...(profilePictureUrl ? { profilePictureUrl: xss(profilePictureUrl) } : {})
     },
     { new: true, runValidators: true }
@@ -90,44 +117,53 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     role: user.role,
     location: user.location,
     profilePictureUrl: user.profilePictureUrl || null,
-    isProfileComplete: user.isProfileComplete(),
+    profilePictureUrl: user.profilePictureUrl || null,
+    isProfileComplete: user.profileSetupCompleted,
     message: 'Profile updated successfully'
   });
 });
 
 // Create or update user profile (for Clerk integration)
 const createOrUpdateUserProfile = asyncHandler(async (req, res) => {
+  console.log("--> createOrUpdateUserProfile HIT");
+  console.log("Request Body:", req.body);
   const { clerkUserId, email, name, location, profilePictureUrl } = req.body;
 
   if (!clerkUserId || !email) {
+    console.log("Error: Missing clerkUserId or email");
     return res.status(400).json({
       error: 'Clerk user ID and email are required'
     });
   }
 
-  // Try to find existing user by Clerk ID
-  let user = await User.findByClerkId(clerkUserId);
+  try {
+    // 1. Check if email is already taken by a DIFFERENT user (sanity check)
+    // We only care if we find a user by email, but they have a DIFFERENT Clerk ID than the one provided (and it's not just null)
+    // Actually, simpler: check if email exists.
+    const conflictingUser = await User.findOne({ email, clerkUserId: { $ne: clerkUserId } });
+    if (conflictingUser) {
+      // If the conflicting user has NO clerk ID, we might want to link (handled below). 
+      // But if they HAVE a different Clerk ID, it's a conflict.
+      if (conflictingUser.clerkUserId) {
+        return res.status(409).json({ error: 'Email already currently in use by another account.' });
+      }
+    }
 
-  if (user) {
-    // Update existing user
-    user.email = email;
-    if (name) user.name = name;
-    if (location) user.location = location;
-    if (profilePictureUrl) user.profilePictureUrl = profilePictureUrl;
-    await user.save();
-  } else {
-    // Check if user exists by email first (Account Linking)
-    const existingUserByEmail = await User.findOne({ email });
+    // 2. Try to find existing user by Clerk ID
+    let user = await User.findByClerkId(clerkUserId);
 
-    if (existingUserByEmail) {
-      // Link Clerk ID to existing user
-      user = existingUserByEmail;
-      user.clerkUserId = clerkUserId;
+    if (user) {
+      // UPDATE EXISTING USER
+      user.email = email;
       if (name) user.name = name;
       if (location) user.location = location;
+      if (req.body.coordinates) user.coordinates = req.body.coordinates;
       if (profilePictureUrl) user.profilePictureUrl = profilePictureUrl;
+      // Re-evaluate completion
+      user.profileSetupCompleted = user.isProfileComplete();
       await user.save();
     } else {
+<<<<<<< HEAD
       // Create brand new user
       // Create brand new user
       // Default approval logic
@@ -155,17 +191,51 @@ const createOrUpdateUserProfile = asyncHandler(async (req, res) => {
       await user.save();
     }
   }
+=======
+      // 3. Fallback: Check by Email (Account Linking)
+      const existingUserByEmail = await User.findOne({ email });
+>>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
 
-  res.json({
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
-    location: user.location,
-    profilePictureUrl: user.profilePictureUrl || null,
-    isProfileComplete: user.isProfileComplete(),
-    message: user.isProfileComplete() ? 'Profile complete' : 'Profile incomplete'
-  });
+      if (existingUserByEmail) {
+        // LINK ACCOUNTS
+        user = existingUserByEmail;
+        user.clerkUserId = clerkUserId;
+        if (name) user.name = name;
+        if (location) user.location = location;
+        if (profilePictureUrl) user.profilePictureUrl = profilePictureUrl;
+        user.profileSetupCompleted = user.isProfileComplete();
+        await user.save();
+      } else {
+        // 4. CREATE NEW USER
+        user = new User({
+          clerkUserId,
+          email,
+          name: name || null,
+          location: location || null,
+          coordinates: req.body.coordinates || null,
+          profilePictureUrl: profilePictureUrl || null,
+          password: 'clerk-auth', // Placeholder since Clerk handles auth
+          role: email.endsWith(process.env.DOMAIN_NAME || '@admin.com') ? 'admin' : 'user'
+        });
+        user.profileSetupCompleted = user.isProfileComplete();
+        await user.save();
+      }
+    }
+
+    res.json({
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      location: user.location,
+      profilePictureUrl: user.profilePictureUrl || null,
+      isProfileComplete: user.profileSetupCompleted,
+      message: user.profileSetupCompleted ? 'Profile complete' : 'Profile incomplete'
+    });
+  } catch (error) {
+    console.error("Profile Save Error:", error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
 });
 
 module.exports = {

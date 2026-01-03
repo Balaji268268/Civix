@@ -1,6 +1,7 @@
+
 import React, { useEffect, useState, useRef } from "react";
 import Papa from "papaparse";
-import { Search, MapPin, Navigation, Bus, Clock, Wifi } from "lucide-react";
+import { Bus, MapPin, Clock, AlertTriangle, Route } from 'lucide-react';
 
 export default function PublicTransportInfo() {
   const [selectedState, setSelectedState] = useState("Delhi");
@@ -41,7 +42,7 @@ export default function PublicTransportInfo() {
     // Initial Generation
     const newBuses = Array.from({ length: 15 }, (_, i) => ({
       id: i + 1,
-      route: `${Math.floor(Math.random() * 900) + 100}`,
+      route: `${Math.floor(Math.random() * 900) + 100} `,
       dest: ["Central Terminal", "Anand Vihar", "Nehru Place", "Dwarka Sec-21"][Math.floor(Math.random() * 4)],
       lat: 28.6139 + (Math.random() - 0.5) * 0.1,
       lng: 77.2090 + (Math.random() - 0.5) * 0.1,
@@ -82,17 +83,17 @@ export default function PublicTransportInfo() {
             strokeColor: "white",
             rotation: Math.random() * 360 // Random heading for simulation
           },
-          title: `Bus ${bus.route}`
+          title: `Bus ${bus.route} `
         });
 
         const infoWindow = new window.google.maps.InfoWindow({
           content: `
-              <div style="padding:5px">
+  < div style = "padding:5px" >
                 <strong>Bus ${bus.route}</strong><br/>
-                To: ${bus.dest}<br/>
-                Occupancy: ${bus.occupancy}%
-              </div>
-            `
+To: ${bus.dest} <br />
+Occupancy: ${bus.occupancy}%
+              </div >
+  `
         });
 
         marker.addListener("click", () => infoWindow.open(mapInstance, marker));
@@ -180,7 +181,7 @@ export default function PublicTransportInfo() {
                   <span className="text-lg font-bold text-gray-900 dark:text-white group-hover:text-green-600 transition-colors">
                     {bus.route}
                   </span>
-                  <span className={`px-2 py-0.5 rounded textxs font-bold ${bus.occupancy > 80 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+                  <span className={`px - 2 py - 0.5 rounded textxs font - bold ${bus.occupancy > 80 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'} `}>
                     {bus.occupancy}% Full
                   </span>
                 </div>
