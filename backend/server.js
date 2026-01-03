@@ -43,7 +43,7 @@ if (cluster.isPrimary) {
   require("dotenv").config();
 
   // Security middlewares
-  const { xssSanitizer } = require("./middlewares/xssSanitizer");
+  // const { xssSanitizer } = require("./middlewares/xssSanitizer"); // Removed due to conflict
   const {
     skipCSRFForRoutes,
     csrfErrorHandler,
@@ -100,8 +100,8 @@ if (cluster.isPrimary) {
 
 
   // === Security Middlewares ===
-  // Global XSS Sanitization
-  app.use(xssSanitizer);
+  // Global XSS Sanitization - REMOVED
+  // app.use(xssSanitizer);
 
   // CSRF Protection (skip for certain routes)
   // CSRF Protection (skip for certain routes)
