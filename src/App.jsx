@@ -18,6 +18,7 @@ import CivixSupportBot from './components/Chatbot/CivixSupportBot';
 import PageLoader from './components/PageLoader';
 import PortalGuard from './components/PortalGuard';
 import RequireProfile from './components/auth/RequireProfile';
+import CustomCursor from './components/CustomCursor';
 
 // Lazy Loaded Pages (Code Split)
 const UserDashboard = lazy(() => import('./Pages/UserDashboard'));
@@ -48,7 +49,7 @@ const Resources = lazy(() => import('./Pages/Resources'));
 const MyComplaints = lazy(() => import('./Pages/MyComplaints'));
 const CivicEducation = lazy(() => import('./Pages/CivicEducation'));
 const CivicSimulator = lazy(() => import('./Pages/CivicSimulator'));
-const Contributors = lazy(() => import('./Pages/Contributors'));
+
 const SOS = lazy(() => import('./Pages/SOS'));
 const TaxImpact = lazy(() => import('./Pages/TaxImpact'));
 const RepersentativeFinder = lazy(() => import('./Pages/RepersentativeFinder'));
@@ -174,6 +175,7 @@ const App = () => {
 
   return (
     <HelmetProvider>
+      <CustomCursor />
       <CivixSupportBot />
       <ScrollToTop />
       <ScrollToTopOnRouteChange />
@@ -401,7 +403,7 @@ const App = () => {
             <Route path='/user-map' element={<UserMap />} />
             <Route path="/resources" element={<Resources />} />
             <Route path="/complaints" element={<MyComplaints />} />
-            <Route path="/contributors" element={<Contributors />} />
+
             <Route path="/sos" element={<SOS />} />
             <Route path='/chatroom' element={<Chatroom />} />
             <Route path='/tax-impact' element={<TaxImpact />} />

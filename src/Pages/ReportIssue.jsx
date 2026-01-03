@@ -31,14 +31,9 @@ const ReportIssue = () => {
     category: 'Roads',
     contact: '',
     isAnonymous: false,
-<<<<<<< HEAD
     files: null,
     coords: null
-  });
-=======
-    files: null
   }, false); // Use localStorage (false) instead of sessionStorage
->>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [isAnalyzingFiles, setIsAnalyzingFiles] = useState(false);
@@ -173,7 +168,7 @@ const ReportIssue = () => {
     data.append("category", formData.category);
     data.append("email", user?.primaryEmailAddress?.emailAddress || "");
     data.append("issueType", issueType);
-    data.append("issueType", issueType);
+
     data.append("phone", formData.contact);
     if (formData.coords) {
       data.append("lat", formData.coords.lat);

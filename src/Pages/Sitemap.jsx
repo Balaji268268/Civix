@@ -94,11 +94,13 @@ const Sitemap = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-24 pb-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-50 via-green-50/30 to-emerald-50/50 dark:from-slate-900 dark:via-slate-800/50 dark:to-emerald-900/20">
-            {/* Background Decoration matching Home.jsx */}
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-24 pb-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden transition-colors duration-500">
+
+            {/* Modern Background Blobs - Global Standard */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-1/4 -right-32 w-64 h-64 bg-gradient-to-br from-emerald-100/40 to-teal-100/40 dark:from-emerald-900/30 dark:to-teal-900/30 rounded-full blur-3xl"></div>
-                <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-green-100/40 to-emerald-100/40 dark:from-green-900/30 dark:to-emerald-900/30 rounded-full blur-3xl"></div>
+                <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.15),transparent_50%)]" />
+                <div className="absolute top-[20%] right-[-10%] w-96 h-96 bg-emerald-500/20 rounded-full blur-[100px]" />
+                <div className="absolute bottom-[10%] left-[-10%] w-96 h-96 bg-teal-500/20 rounded-full blur-[100px]" />
             </div>
 
             <div className="relative max-w-7xl mx-auto">

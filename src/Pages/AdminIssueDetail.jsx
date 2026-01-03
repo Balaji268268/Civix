@@ -69,7 +69,8 @@ const AdminIssueDetail = () => {
         }
     };
 
-<<<<<<< HEAD
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+
     const handleReviewResolution = async (isApproved) => {
         if (!isApproved && !reviewRemarks) {
             toast.error("Please provide remarks for rejection.");
@@ -78,7 +79,7 @@ const AdminIssueDetail = () => {
         setReviewing(true);
         try {
             const token = await getToken();
-            const res = await csrfManager.secureFetch(`http://localhost:5000/api/issues/${id}/review-resolution`, {
+            const res = await csrfManager.secureFetch(`/api/issues/${id}/review-resolution`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -87,7 +88,7 @@ const AdminIssueDetail = () => {
                 body: JSON.stringify({
                     isApproved,
                     remarks: reviewRemarks || (isApproved ? "Approved by Moderator" : "Rejected"),
-                    reviewedBy: "Admin" // Replace with actual user name if available in context
+                    reviewedBy: "Admin"
                 })
             });
 
@@ -108,11 +109,7 @@ const AdminIssueDetail = () => {
         }
     };
 
-    const handleDelete = async () => {
-        if (!window.confirm("Are you sure you want to delete this issue? This cannot be undone.")) return;
-=======
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
->>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
+
 
     const handleDeleteClick = () => {
         setShowDeleteModal(true);

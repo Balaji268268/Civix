@@ -57,7 +57,14 @@ const Feedback = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50/30 via-white to-emerald-50/50 dark:from-slate-900 dark:via-slate-800 dark:to-green-950/50 p-4 sm:p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 relative overflow-hidden transition-colors duration-500 p-4 sm:p-6">
+
+      {/* Modern Background Blobs - Global Standard */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.15),transparent_50%)]" />
+        <div className="absolute top-[20%] right-[-10%] w-96 h-96 bg-emerald-500/20 rounded-full blur-[100px]" />
+        <div className="absolute bottom-[10%] left-[-10%] w-96 h-96 bg-teal-500/20 rounded-full blur-[100px]" />
+      </div>
       <div className="max-w-2xl mx-auto space-y-8">
         {/* Header */}
         <div className="text-center space-y-4">
@@ -97,9 +104,8 @@ const Feedback = () => {
                         value={formData[field]}
                         onChange={(e) => handleInputChange(field, e.target.value)}
                         onBlur={() => handleBlur(field)}
-                        className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 dark:bg-slate-800 dark:border-slate-600 transition ${
-                          isFieldValid(field) ? 'border-green-500' : ''
-                        } ${isFieldInvalid(field) ? 'border-red-500' : ''}`}
+                        className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 dark:bg-slate-800 dark:border-slate-600 transition ${isFieldValid(field) ? 'border-green-500' : ''
+                          } ${isFieldInvalid(field) ? 'border-red-500' : ''}`}
                         placeholder={`Enter your ${field}`}
                       />
                       {isFieldValid(field) && <CheckCircle className="absolute right-3 top-2.5 w-5 h-5 text-green-500" />}
@@ -127,9 +133,8 @@ const Feedback = () => {
                     value={category}
                     onChange={(e) => handleInputChange('category', e.target.value)}
                     onBlur={() => handleBlur('category')}
-                    className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 dark:bg-slate-800 dark:border-slate-600 transition ${
-                      isFieldValid('category') ? 'border-green-500' : ''
-                    } ${isFieldInvalid('category') ? 'border-red-500' : ''}`}
+                    className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 dark:bg-slate-800 dark:border-slate-600 transition ${isFieldValid('category') ? 'border-green-500' : ''
+                      } ${isFieldInvalid('category') ? 'border-red-500' : ''}`}
                   >
                     <option value="">-- Choose Category --</option>
                     <option value="elections">Elections & Governance</option>
@@ -162,9 +167,8 @@ const Feedback = () => {
                       whileTap={{ scale: 0.8, rotate: -10 }}
                       animate={rating === index + 1 ? { scale: [1, 1.3, 1], rotate: [0, 10, 0] } : { scale: 1, rotate: 0 }}
                       transition={{ duration: 0.4 }}
-                      className={`w-16 h-16 rounded-2xl border flex items-center justify-center text-2xl transition-all ${
-                        rating === index + 1 ? 'bg-emerald-500 text-white border-emerald-500 shadow-lg' : 'bg-white/60 dark:bg-slate-700/60 border-green-100/50 dark:border-slate-600/50 hover:bg-white/80 dark:hover:bg-slate-700/80 hover:shadow-md'
-                      } ${isFieldInvalid('rating') ? 'border-red-500' : ''}`}
+                      className={`w-16 h-16 rounded-2xl border flex items-center justify-center text-2xl transition-all ${rating === index + 1 ? 'bg-emerald-500 text-white border-emerald-500 shadow-lg' : 'bg-white/60 dark:bg-slate-700/60 border-green-100/50 dark:border-slate-600/50 hover:bg-white/80 dark:hover:bg-slate-700/80 hover:shadow-md'
+                        } ${isFieldInvalid('rating') ? 'border-red-500' : ''}`}
                     >
                       {emoji}
                     </motion.button>
@@ -186,9 +190,8 @@ const Feedback = () => {
                     rows="4"
                     maxLength={500}
                     placeholder="Share your thoughts..."
-                    className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 dark:bg-slate-800 dark:border-slate-600 transition ${
-                      isFieldValid('feedback') ? 'border-green-500' : ''
-                    } ${isFieldInvalid('feedback') ? 'border-red-500' : ''}`}
+                    className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-slate-50 dark:bg-slate-800 dark:border-slate-600 transition ${isFieldValid('feedback') ? 'border-green-500' : ''
+                      } ${isFieldInvalid('feedback') ? 'border-red-500' : ''}`}
                   />
                   <Sparkles className="absolute bottom-2 right-2 w-5 h-5 text-slate-400" />
                   {isFieldValid('feedback') && <CheckCircle className="absolute right-3 top-2.5 w-5 h-5 text-green-500" />}

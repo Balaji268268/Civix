@@ -45,11 +45,15 @@ function Privacy() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-hidden font-sans">
-      {/* Decorative background blobs - slightly adjusted colors for better contrast */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-purple-400/20 dark:bg-purple-500/10 rounded-full blur-3xl animate-blob-1"></div>
-      <div className="absolute bottom-10 right-10 w-96 h-96 bg-cyan-500/20 dark:bg-cyan-400/10 rounded-full blur-3xl animate-blob-2"></div>
-      
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 relative overflow-hidden transition-colors duration-500 font-sans">
+
+      {/* Modern Background Blobs - Global Standard */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(99,102,241,0.15),transparent_50%)]" />{/* Indigo tinted for Privacy */}
+        <div className="absolute top-[20%] right-[-10%] w-96 h-96 bg-indigo-500/20 rounded-full blur-[100px]" />
+        <div className="absolute bottom-[10%] left-[-10%] w-96 h-96 bg-purple-500/20 rounded-full blur-[100px]" />
+      </div>
+
       <div className="relative max-w-6xl mx-auto px-6 py-20">
         {/* Header */}
         <div className="text-center mb-16">
@@ -82,11 +86,10 @@ function Privacy() {
               >
                 <div className="flex items-center space-x-4">
                   <div
-                    className={`flex items-center justify-center w-12 h-12 rounded-xl text-white shadow-md transition-all duration-500 ${
-                      expandedSection === section.id
-                        ? "bg-gradient-to-br from-indigo-500 to-blue-500 scale-110 rotate-12"
-                        : "bg-gradient-to-br from-purple-500 to-fuchsia-600"
-                    }`}
+                    className={`flex items-center justify-center w-12 h-12 rounded-xl text-white shadow-md transition-all duration-500 ${expandedSection === section.id
+                      ? "bg-gradient-to-br from-indigo-500 to-blue-500 scale-110 rotate-12"
+                      : "bg-gradient-to-br from-purple-500 to-fuchsia-600"
+                      }`}
                   >
                     {section.icon}
                   </div>
@@ -100,9 +103,8 @@ function Privacy() {
                   </div>
                 </div>
                 <div
-                  className={`text-indigo-500 transition-transform duration-300 ${
-                    expandedSection === section.id ? "rotate-180" : "rotate-0"
-                  }`}
+                  className={`text-indigo-500 transition-transform duration-300 ${expandedSection === section.id ? "rotate-180" : "rotate-0"
+                    }`}
                 >
                   {expandedSection === section.id ? <ChevronUp /> : <ChevronDown />}
                 </div>

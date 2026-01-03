@@ -84,6 +84,42 @@ function Home() {
     }
   };
 
+  // Automatic Redirect for Logged-In Users
+  useEffect(() => {
+    const autoRedirect = async () => {
+      if (isSignedIn && !profileLoading) {
+        if (!isProfileComplete) {
+          navigate('/profile-setup', { replace: true });
+          return;
+        }
+
+        // Robust check: Metadata > Backend > Default
+        let role = user?.publicMetadata?.role;
+        if (!role) {
+          try {
+            const res = await csrfManager.secureFetch(`/api/profile/${user.id}`);
+            if (res.ok) {
+              const data = await res.json();
+              role = data.role;
+            }
+          } catch (e) {
+            console.warn("Role fetch fallback failed:", e);
+          }
+        }
+
+        switch (role) {
+          case 'admin': navigate('/admin/dashboard', { replace: true }); break;
+          case 'moderator': navigate('/moderator', { replace: true }); break;
+          case 'officer': navigate('/officer/dashboard', { replace: true }); break;
+          case 'user':
+          default: navigate('/user/dashboard', { replace: true });
+        }
+      }
+    };
+
+    autoRedirect();
+  }, [isSignedIn, profileLoading, isProfileComplete, user, navigate]);
+
   // Removed passive useEffect redirect to prevent loops on Home page visits.
   // Users now explicitly choose to enter the app via "Get Started".
 

@@ -112,60 +112,63 @@ function About() {
   ];
 
   return (
-    <div className={`about-container ${isDarkMode ? 'dark-mode' : 'light-mode'}`}>
-      <div className="content-wrapper">
+    <div className={`min-h-screen relative overflow-hidden transition-colors duration-500 ${isDarkMode ? 'bg-gray-950 text-white' : 'bg-gray-50 text-gray-900'}`}>
+
+      {/* Modern Background Blobs - Content Verified as "Perfect" by User */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.15),transparent_50%)]" />
+        <div className="absolute top-[20%] right-[-10%] w-96 h-96 bg-emerald-500/20 rounded-full blur-[100px]" />
+        <div className="absolute bottom-[10%] left-[-10%] w-96 h-96 bg-teal-500/20 rounded-full blur-[100px]" />
+      </div>
+
+      <div className="relative z-10">
         {/* HERO */}
-        <section className="hero-section" data-aos="fade-up">
-          <div className="hero-content">
-            <div className="glitter-container" aria-hidden>
-              {[...Array(10)].map((_, i) => (
-                <span
-                  key={i}
-                  className="glitter-star"
-                  style={{
-                    top: `${Math.random() * 100}%`,
-                    left: `${Math.random() * 100}%`,
-                    animationDelay: `${Math.random() * 5}s`,
-                    animationDuration: `${3 + Math.random() * 2}s`,
-                  }}
-                />
-              ))}
-            </div>
+        <section className="relative pt-32 pb-20 px-6 text-center" data-aos="fade-up">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="inline-flex items-center px-4 py-2 rounded-full bg-emerald-100/10 border border-emerald-500/20 backdrop-blur-md text-emerald-600 dark:text-emerald-400 font-medium text-sm mb-6"
+          >
+            <span className="mr-2">✨</span> Empowering Citizens
+          </motion.div>
 
-            <motion.div
-              initial={{ scale: 0.85, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.6, type: 'spring', stiffness: 120 }}
-              className="hero-badge"
+          <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-8 leading-tight">
+            Report Local Issues.
+            <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-400">
+              Make Your City Better.
+            </span>
+          </h1>
+
+          <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-10 leading-relaxed">
+            Civix helps citizens report and track local civic issues like potholes, broken lights,
+            and garbage collection problems with unprecedented ease and transparency.
+          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link to="/signup">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-emerald-500/30 transition-all"
+              >
+                Get Started
+              </motion.button>
+            </Link>
+            <motion.button
+              onClick={() => setShowMore(!showMore)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-8 py-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl font-bold text-lg shadow-md hover:shadow-xl transition-all"
             >
-              ✨ Empowering Citizens
-            </motion.div>
-
-            <h1 className="hero-title">
-              Report Local Issues.
-              <br />
-              <span className="gradient-text">Make Your City Better.</span>
-            </h1>
-
-            <p className="hero-description">
-              Civix helps citizens report and track local civic issues like potholes, broken lights,
-              and garbage collection problems with unprecedented ease and transparency.
-            </p>
-
-            <div className="hero-cta">
-              <Link to="/signup">
-                <button className="cta-primary">Get Started</button>
-              </Link>
-
-              <button onClick={() => setShowMore(!showMore)}>
-                {showMore ? "Show Less" : "Learn More"}
-              </button>
-            </div>
+              {showMore ? "Show Less" : "Learn More"}
+            </motion.button>
           </div>
         </section>
 
         {/* EXPANDABLE SECTION */}
-        <AnimatePresence initial={false}>
+        <AnimatePresence>
           {showMore && (
             <motion.div
               key="learn-more"
@@ -173,72 +176,107 @@ function About() {
               initial={{ height: 0, opacity: 0 }}
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              style={{ overflow: "hidden" }}
-              className="mt-10 space-y-16"
+              transition={{ duration: 0.5, ease: "easeInOut" }}
+              className="overflow-hidden"
             >
 
-              {/* FEATURES */}
-              <section className="relative py-20 px-6 ">
-                <div className="relative max-w-6xl mx-auto">
+              {/* FEATURES GRID */}
+              <section className="py-20 px-6">
+                <div className="max-w-7xl mx-auto">
                   <div className="text-center mb-16">
-                    <h2 className="text-4xl md:text-5xl font-bold mb-6">
+                    <h2 className="text-3xl md:text-5xl font-bold mb-4">
                       Everything you need to make a
-                      <span className="block text-green-600">real difference</span>
+                      <span className="text-emerald-500 block mt-2">real difference</span>
                     </h2>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {features.map((feature, index) => (
-                      <div
+                      <motion.div
                         key={index}
-                        className={`group relative p-6 rounded-2xl transition-all duration-300 cursor-pointer
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: index * 0.1 }}
+                        className={`group relative p-8 rounded-3xl transition-all duration-300 cursor-pointer overflow-hidden border
                           ${activeFeature === index
-                            ? 'bg-white shadow-xl border border-green-200 transform translate-y-[-4px]'
-                            : 'bg-white/70 hover:bg-white hover:shadow-lg border border-white/50'
+                            ? 'bg-emerald-900/10 border-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.15)] ring-1 ring-emerald-500/30'
+                            : 'bg-white/50 dark:bg-gray-900/50 backdrop-blur-md border-gray-100 dark:border-gray-800 hover:border-emerald-500/30'
                           }`}
                         onMouseEnter={() => setActiveFeature(index)}
                         onMouseLeave={() => setActiveFeature(null)}
                       >
-                        <div className="relative mb-5 w-14 h-14 rounded-xl flex items-center justify-center bg-green-50 text-green-600">
-                          {feature.icon}
-                        </div>
-                        <h3 className="text-lg font-semibold mb-3">{feature.title}</h3>
-                        <p className="text-sm mb-3">{feature.description}</p>
+                        {/* Subtle Glow Background on Hover */}
                         {activeFeature === index && (
-                          <p className="text-xs text-slate-500">{feature.details}</p>
+                          <div className="absolute inset-0 bg-emerald-500/5 transition-colors duration-300 rounded-3xl" />
                         )}
-                      </div>
+
+                        <div className={`mb-6 w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300
+                          ${activeFeature === index
+                            ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 scale-110'
+                            : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'}`}>
+                          {React.cloneElement(feature.icon, { className: "w-7 h-7" })}
+                        </div>
+
+                        <h3 className={`text-xl font-bold mb-3 transition-colors ${activeFeature === index ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
+                          {feature.title}
+                        </h3>
+
+                        <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed mb-4">
+                          {feature.description}
+                        </p>
+
+                        <AnimatePresence>
+                          {activeFeature === index && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              className="border-t border-emerald-500/20 pt-4"
+                            >
+                              <p className="text-sm text-emerald-800 dark:text-emerald-300/80 font-medium">
+                                {feature.details}
+                              </p>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
                     ))}
                   </div>
                 </div>
               </section>
 
               {/* WHY SECTION */}
-              <section className="why-section py-16 px-6 md:px-12 bg-gradient-to-r from-green-600 to-emerald-500 rounded-2xl shadow-lg" data-aos="fade-up" data-aos-delay="300">
-                <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-12">
-                  <div className="why-text text-white md:w-2/3">
-                    <h2 className="text-3xl md:text-4xl font-bold mb-4">Why Choose Civix?</h2>
-                    <p className="text-lg opacity-90 leading-relaxed mb-8">
-                      Civix empowers citizens by simplifying the process to voice concerns and foster positive
-                      change in communities. We connect the public with civic authorities for enhanced governance,
-                      transparency, and real results that matter.
-                    </p>
-                  </div>
-                </div>
-              </section>
+              <section className="py-20 px-6 relative">
+                <div className="max-w-7xl mx-auto bg-gradient-to-r from-gray-900 to-gray-800 dark:from-emerald-950/50 dark:to-gray-900/80 border border-gray-700/50 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-16 overflow-hidden relative shadow-2xl">
+                  {/* Decorative Elements */}
+                  <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
 
-              {/* MISSION & VISION */}
-              <section className="mission-vision-section" data-aos="fade-up" data-aos-delay="400">
-                <div className="mv-container">
-                  <div className="mv-text">
-                    <h2 className="section-title">Our Mission</h2>
-                    <p>To empower every citizen to take action and improve their city by making civic reporting simple, transparent, and impactful.</p>
-                    <h2 className="section-title">Our Vision</h2>
-                    <p>A world where communities and governments work hand-in-hand to create cleaner, safer, and more livable cities for everyone.</p>
-                  </div>
-                  <div className="mv-image">
-                    <img src={mission} alt="Mission" onLoad={() => AOS.refresh()} />
+                  <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
+                    <div className="md:w-1/2 text-left">
+                      <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">Why Choose Civix?</h2>
+                      <p className="text-lg text-gray-300 leading-relaxed mb-8">
+                        Civix empowers citizens by simplifying the process to voice concerns and foster positive
+                        change in communities. We connect the public with civic authorities for enhanced governance.
+                      </p>
+                      <Link to="/signup">
+                        <button className="px-6 py-3 bg-white text-emerald-900 hover:bg-emerald-50 rounded-lg font-bold transition-all shadow-lg shadow-white/10">
+                          Join the Movement
+                        </button>
+                      </Link>
+                    </div>
+
+                    {/* Stats / Visuals */}
+                    <div className="md:w-1/2 grid grid-cols-2 gap-4">
+                      <div className="bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 text-center hover:bg-white/10 transition-colors">
+                        <div className="text-4xl font-bold text-emerald-400 mb-2">50k+</div>
+                        <div className="text-sm text-gray-400">Issues Resolved</div>
+                      </div>
+                      <div className="bg-white/5 backdrop-blur-md p-6 rounded-2xl border border-white/10 text-center hover:bg-white/10 transition-colors">
+                        <div className="text-4xl font-bold text-teal-400 mb-2">98%</div>
+                        <div className="text-sm text-gray-400">Response Rate</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </section>

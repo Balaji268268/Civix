@@ -21,20 +21,17 @@ const getUserByClerkId = asyncHandler(async (req, res) => {
     return res.status(404).json({ error: 'User not found' });
   }
 
-<<<<<<< HEAD
   // Fetch stats separately (Case Insensitive)
   const complaintsCount = await Issue.countDocuments({
     email: { $regex: new RegExp(`^${user.email}$`, 'i') }
   });
-=======
-  // LAZY MIGRATION: Check if profile is complete based on logic, and update DB if field is false/missing
-  const computedStatus = user.isProfileComplete();
 
+  // Ensure profile status is up to date
+  const computedStatus = user.isProfileComplete();
   if (user.profileSetupCompleted !== computedStatus) {
     user.profileSetupCompleted = computedStatus;
     await user.save();
   }
->>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
 
   res.json({
     id: user._id,
@@ -43,14 +40,10 @@ const getUserByClerkId = asyncHandler(async (req, res) => {
     role: user.role,
     location: user.location,
     profilePictureUrl: user.profilePictureUrl || null,
-<<<<<<< HEAD
-    isProfileComplete: user.isProfileComplete(),
+    isProfileComplete: user.profileSetupCompleted,
     trustScore: user.trustScore,
     gamification: user.gamification,
     complaints: complaintsCount
-=======
-    isProfileComplete: user.profileSetupCompleted
->>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
   });
 });
 
@@ -163,8 +156,6 @@ const createOrUpdateUserProfile = asyncHandler(async (req, res) => {
       user.profileSetupCompleted = user.isProfileComplete();
       await user.save();
     } else {
-<<<<<<< HEAD
-      // Create brand new user
       // Create brand new user
       // Default approval logic
       let isApproved = true;
@@ -186,40 +177,11 @@ const createOrUpdateUserProfile = asyncHandler(async (req, res) => {
           points: 100, // Welcome bonus
           level: 1,
           badges: []
-        }
+        },
+        coordinates: req.body.coordinates || null
       });
+      user.profileSetupCompleted = user.isProfileComplete();
       await user.save();
-    }
-  }
-=======
-      // 3. Fallback: Check by Email (Account Linking)
-      const existingUserByEmail = await User.findOne({ email });
->>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
-
-      if (existingUserByEmail) {
-        // LINK ACCOUNTS
-        user = existingUserByEmail;
-        user.clerkUserId = clerkUserId;
-        if (name) user.name = name;
-        if (location) user.location = location;
-        if (profilePictureUrl) user.profilePictureUrl = profilePictureUrl;
-        user.profileSetupCompleted = user.isProfileComplete();
-        await user.save();
-      } else {
-        // 4. CREATE NEW USER
-        user = new User({
-          clerkUserId,
-          email,
-          name: name || null,
-          location: location || null,
-          coordinates: req.body.coordinates || null,
-          profilePictureUrl: profilePictureUrl || null,
-          password: 'clerk-auth', // Placeholder since Clerk handles auth
-          role: email.endsWith(process.env.DOMAIN_NAME || '@admin.com') ? 'admin' : 'user'
-        });
-        user.profileSetupCompleted = user.isProfileComplete();
-        await user.save();
-      }
     }
 
     res.json({

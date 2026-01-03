@@ -1,4 +1,3 @@
-```javascript
 import React, { useEffect, useState } from 'react';
 import { motion, useMotionValue, useSpring, AnimatePresence } from 'framer-motion';
 
@@ -26,15 +25,15 @@ const CustomCursor = () => {
 
       // Smart Hover Detection
       const target = e.target;
-      const isClickable = 
-        target.tagName === 'BUTTON' || 
-        target.tagName === 'A' || 
+      const isClickable =
+        target.tagName === 'BUTTON' ||
+        target.tagName === 'A' ||
         target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
         target.closest('button') ||
         target.closest('a') ||
         window.getComputedStyle(target).cursor === 'pointer';
-        
+
       setIsHovering(isClickable);
     };
 
@@ -47,7 +46,7 @@ const CustomCursor = () => {
         y: e.clientY
       };
       setRipples((prev) => [...prev, newRipple]);
-      
+
       // Cleanup ripple after animation
       setTimeout(() => {
         setRipples((prev) => prev.filter(r => r.id !== newRipple.id));
@@ -55,7 +54,7 @@ const CustomCursor = () => {
     };
 
     const handleMouseUp = () => setIsClicking(false);
-    
+
     // Visibility handling
     const handleMouseEnter = () => setIsVisible(true);
     const handleMouseLeave = () => setIsVisible(false);
@@ -139,4 +138,3 @@ const CustomCursor = () => {
 };
 
 export default CustomCursor;
-```

@@ -241,90 +241,100 @@ const ContactForm = () => {
 
 function Contact() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 dark:from-green-950 dark:via-slate-900 dark:to-emerald-950 px-4 py-12 sm:py-16 overflow-x-hidden select-none transition-colors duration-300">
-      <div className="max-w-5xl mx-auto">
-        <div className="grid lg:grid-cols-5 gap-10 items-start">
-          {/* Sidebar Info */}
-          <div className="lg:col-span-2 space-y-8">
-            <div>
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-emerald-400 to-lime-400 rounded-2xl shadow-md mb-4">
-                <Sparkles className="w-8 h-8 text-white drop-shadow" />
-              </div>
-              <h1 className="text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-emerald-600 to-lime-700 dark:from-emerald-400 dark:to-lime-500 bg-clip-text text-transparent mb-3 leading-tight">
-                Contact Us
-              </h1>
-              <div className="w-20 h-1 bg-gradient-to-r from-emerald-400 to-lime-400 rounded-full mb-4"></div>
-              <p className="text-lg text-green-800/90 dark:text-green-200/90 leading-relaxed">
-                Have questions or need help? We'd love to hear from you.
-                <br />
-                Fill out the form and we'll respond quickly.
-              </p>
-            </div>
-            <div className="space-y-4">
-              <div className="group p-4 bg-white dark:bg-slate-800 rounded-xl border border-green-200 dark:border-emerald-700/50 hover:border-lime-300 dark:hover:border-lime-400/50 shadow-md hover:shadow-lg transition-all duration-300">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-emerald-100 to-lime-100 dark:from-emerald-900/50 dark:to-lime-900/50 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <Mail className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-green-900 dark:text-green-100 mb-1">
-                      Email Us
-                    </h3>
-                    <a
-                      href="mailto:venkatabalaji529@gmail.com"
-                      className="text-emerald-600 dark:text-emerald-400 hover:text-lime-700 dark:hover:text-lime-300 transition-colors font-medium"
-                    >
-                      venkatabalaji529@gmail.com
-                    </a>
-                  </div>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 relative overflow-hidden transition-colors duration-500">
+
+      {/* Modern Background Blobs - Global Standard */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.15),transparent_50%)]" />
+        <div className="absolute top-[20%] right-[-10%] w-96 h-96 bg-emerald-500/20 rounded-full blur-[100px]" />
+        <div className="absolute bottom-[10%] left-[-10%] w-96 h-96 bg-teal-500/20 rounded-full blur-[100px]" />
+      </div>
+
+      <div className="relative z-10 px-4 py-12 sm:py-16 select-none">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid lg:grid-cols-5 gap-10 items-start">
+            {/* Sidebar Info */}
+            <div className="lg:col-span-2 space-y-8">
+              <div>
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-emerald-400 to-lime-400 rounded-2xl shadow-md mb-4">
+                  <Sparkles className="w-8 h-8 text-white drop-shadow" />
                 </div>
-              </div>
-              <div className="group p-4 bg-white dark:bg-slate-800 rounded-xl border border-green-200 dark:border-emerald-700/50 hover:border-lime-300 dark:hover:border-lime-400/50 shadow-md hover:shadow-lg transition-all duration-300">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-emerald-100 to-lime-100 dark:from-emerald-900/50 dark:to-lime-900/50 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                    <Clock className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-green-900 dark:text-green-100 mb-1">
-                      Response Time
-                    </h3>
-                    <p className="text-green-700 dark:text-green-300 font-medium">
-                      Within 24 hours
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="p-4 bg-gradient-to-br from-green-50 to-lime-50 dark:from-green-950/50 dark:to-lime-950/30 rounded-xl border border-lime-200/50 dark:border-lime-700/30">
-              <h3 className="text-base font-semibold text-emerald-800 dark:text-emerald-200 mb-2">
-                Why Contact Us?
-              </h3>
-              <ul className="space-y-1 text-sm text-emerald-700 dark:text-emerald-300">
-                {[
-                  "Technical support and assistance",
-                  "Feature requests and feedback",
-                  "General inquiries and questions",
-                ].map((txt, idx) => (
-                  <li key={txt} className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-lime-600 dark:text-lime-400" />
-                    <span>{txt}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-          {/* Form */}
-          <div className="lg:col-span-3">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-emerald-100 dark:border-emerald-700/50 p-8 md:p-10">
-              <div className="mb-8 text-center">
-                <h2 className="text-2xl font-bold text-emerald-700 dark:text-emerald-300 mb-1">
-                  Send us a Message
-                </h2>
-                <p className="text-green-700/80 dark:text-green-300/80">
-                  We'll respond as quickly as possible
+                <h1 className="text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-emerald-600 to-lime-700 dark:from-emerald-400 dark:to-lime-500 bg-clip-text text-transparent mb-3 leading-tight">
+                  Contact Us
+                </h1>
+                <div className="w-20 h-1 bg-gradient-to-r from-emerald-400 to-lime-400 rounded-full mb-4"></div>
+                <p className="text-lg text-green-800/90 dark:text-green-200/90 leading-relaxed">
+                  Have questions or need help? We'd love to hear from you.
+                  <br />
+                  Fill out the form and we'll respond quickly.
                 </p>
               </div>
-              <ContactForm />
+              <div className="space-y-4">
+                <div className="group p-4 bg-white dark:bg-slate-800 rounded-xl border border-green-200 dark:border-emerald-700/50 hover:border-lime-300 dark:hover:border-lime-400/50 shadow-md hover:shadow-lg transition-all duration-300">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-100 to-lime-100 dark:from-emerald-900/50 dark:to-lime-900/50 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                      <Mail className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-green-900 dark:text-green-100 mb-1">
+                        Email Us
+                      </h3>
+                      <a
+                        href="mailto:venkatabalaji529@gmail.com"
+                        className="text-emerald-600 dark:text-emerald-400 hover:text-lime-700 dark:hover:text-lime-300 transition-colors font-medium"
+                      >
+                        venkatabalaji529@gmail.com
+                      </a>
+                    </div>
+                  </div>
+                </div>
+                <div className="group p-4 bg-white dark:bg-slate-800 rounded-xl border border-green-200 dark:border-emerald-700/50 hover:border-lime-300 dark:hover:border-lime-400/50 shadow-md hover:shadow-lg transition-all duration-300">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-100 to-lime-100 dark:from-emerald-900/50 dark:to-lime-900/50 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                      <Clock className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-green-900 dark:text-green-100 mb-1">
+                        Response Time
+                      </h3>
+                      <p className="text-green-700 dark:text-green-300 font-medium">
+                        Within 24 hours
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-green-50 to-lime-50 dark:from-green-950/50 dark:to-lime-950/30 rounded-xl border border-lime-200/50 dark:border-lime-700/30">
+                <h3 className="text-base font-semibold text-emerald-800 dark:text-emerald-200 mb-2">
+                  Why Contact Us?
+                </h3>
+                <ul className="space-y-1 text-sm text-emerald-700 dark:text-emerald-300">
+                  {[
+                    "Technical support and assistance",
+                    "Feature requests and feedback",
+                    "General inquiries and questions",
+                  ].map((txt, idx) => (
+                    <li key={txt} className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-lime-600 dark:text-lime-400" />
+                      <span>{txt}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            {/* Form */}
+            <div className="lg:col-span-3">
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-emerald-100 dark:border-emerald-700/50 p-8 md:p-10">
+                <div className="mb-8 text-center">
+                  <h2 className="text-2xl font-bold text-emerald-700 dark:text-emerald-300 mb-1">
+                    Send us a Message
+                  </h2>
+                  <p className="text-green-700/80 dark:text-green-300/80">
+                    We'll respond as quickly as possible
+                  </p>
+                </div>
+                <ContactForm />
+              </div>
             </div>
           </div>
         </div>

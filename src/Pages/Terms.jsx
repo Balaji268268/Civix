@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
-import { 
-  ArrowUp, 
-  CheckCircle, 
-  User, 
-  Building2, 
-  Ban, 
-  RefreshCw, 
+import {
+  ArrowUp,
+  CheckCircle,
+  User,
+  Building2,
+  Ban,
+  RefreshCw,
   Scale,
   Shield,
   ChevronRight,
@@ -69,10 +69,17 @@ function Terms() {
   ];
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50 dark:from-gray-900 dark:via-slate-900 dark:to-blue-950">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 relative overflow-hidden transition-colors duration-500">
+
+      {/* Modern Background Blobs - Global Standard */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,rgba(59,130,246,0.15),transparent_50%)]" />{/* Blue tinted for Terms */}
+        <div className="absolute top-[20%] right-[-10%] w-96 h-96 bg-blue-500/20 rounded-full blur-[100px]" />
+        <div className="absolute bottom-[10%] left-[-10%] w-96 h-96 bg-cyan-500/20 rounded-full blur-[100px]" />
+      </div>
       {/* Floating Back to Top Button */}
       {showTop && (
-        <button 
+        <button
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           className="fixed bottom-8 right-8 p-3 rounded-full bg-gradient-to-br from-blue-600 to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
         >
@@ -81,26 +88,22 @@ function Terms() {
       )}
 
       {/* Header */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-emerald-500/10 dark:from-blue-400/5 dark:via-purple-400/5 dark:to-emerald-400/5"></div>
-        
-        <div className="absolute top-20 left-10 w-28 h-28 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute top-40 right-20 w-40 h-40 bg-gradient-to-br from-emerald-400/20 to-teal-400/20 rounded-full blur-3xl"></div>
-        
+      <div className="relative overflow-hidden z-10">
+
         <div className="relative max-w-6xl mx-auto px-6 py-24 text-center">
           <div className="inline-flex items-center justify-center w-24 h-24 bg-gradient-to-br from-blue-600 via-purple-600 to-emerald-600 rounded-3xl mb-8 shadow-2xl rotate-[-3deg] hover:rotate-0 transition-transform duration-700 ease-out">
             <Scale className="w-12 h-12 text-white" />
           </div>
-          
+
           <h1 className="text-6xl md:text-7xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 bg-clip-text text-transparent mb-6 leading-tight">
             Terms of Service
           </h1>
-          
+
           <p className="max-w-3xl mx-auto text-xl md:text-2xl text-gray-600 dark:text-gray-300 leading-relaxed mb-10">
-            These Terms of Service govern your use of <span className="font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">Civix</span>. 
+            These Terms of Service govern your use of <span className="font-bold bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">Civix</span>.
             By accessing or using our platform, you agree to these terms.
           </p>
-          
+
           <div className="inline-flex items-center space-x-3 px-6 py-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-full border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
             <Shield className="w-5 h-5 text-emerald-600" />
             <span className="text-gray-700 dark:text-gray-300 font-medium">Legal compliance and user protection</span>
@@ -114,14 +117,13 @@ function Terms() {
         <aside className="hidden lg:block col-span-1">
           <nav className="sticky top-32 space-y-3 p-6 rounded-2xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-md shadow-lg border border-gray-200/50 dark:border-gray-700/50">
             {terms.map((term) => (
-              <a 
+              <a
                 key={term.id}
                 href={`#${term.id}`}
-                className={`block px-3 py-2 rounded-lg font-medium text-sm transition-colors ${
-                  activeSection === term.id 
-                    ? 'bg-gradient-to-r from-blue-500 to-emerald-500 text-white shadow-md' 
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
+                className={`block px-3 py-2 rounded-lg font-medium text-sm transition-colors ${activeSection === term.id
+                  ? 'bg-gradient-to-r from-blue-500 to-emerald-500 text-white shadow-md'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
               >
                 {term.title}
               </a>
@@ -132,15 +134,15 @@ function Terms() {
         {/* Terms Content */}
         <div className="col-span-3 space-y-12">
           {terms.map((term) => (
-            <section 
-              key={term.id} 
-              id={term.id} 
+            <section
+              key={term.id}
+              id={term.id}
               className="relative group overflow-hidden rounded-3xl transition-all duration-300 hover:scale-[1.01] hover:-translate-y-1"
               onMouseEnter={() => setActiveSection(term.id)}
               onMouseLeave={() => setActiveSection(null)}
             >
               <div className={`absolute inset-0 bg-gradient-to-br ${term.bgGradient} opacity-30 group-hover:opacity-50 transition`} />
-              
+
               <div className="relative bg-white/90 dark:bg-gray-800/90 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 rounded-3xl p-10 shadow-lg group-hover:shadow-xl">
                 <div className="flex items-start gap-6 mb-6">
                   <div className={`flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br ${term.color} text-white shadow-lg group-hover:scale-105 transition-transform`}>
@@ -149,10 +151,9 @@ function Terms() {
                   <div>
                     <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                       {term.title}
-                      <ChevronRight 
-                        className={`w-6 h-6 text-gray-400 transition-transform ${
-                          activeSection === term.id ? 'translate-x-1 text-gray-600 dark:text-gray-300' : ''
-                        }`}
+                      <ChevronRight
+                        className={`w-6 h-6 text-gray-400 transition-transform ${activeSection === term.id ? 'translate-x-1 text-gray-600 dark:text-gray-300' : ''
+                          }`}
                       />
                     </h2>
                     <div className="mt-2 w-24 h-1 bg-gradient-to-r from-gray-300 to-transparent dark:from-gray-600 group-hover:from-current transition-all"></div>

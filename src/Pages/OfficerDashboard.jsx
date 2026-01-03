@@ -35,12 +35,9 @@ export default function OfficerDashboard() {
             try {
                 // Fetch tasks assigned to this officer
                 const token = await getToken();
-<<<<<<< HEAD
                 const email = user.primaryEmailAddress.emailAddress;
-                const res = await csrfManager.secureFetch(`http://localhost:5000/api/issues/assigned?email=${email}`, {
-=======
-                const res = await csrfManager.secureFetch('/api/issues/assigned', {
->>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
+                // Using relative path
+                const res = await csrfManager.secureFetch(`/api/issues/assigned?email=${email}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 

@@ -188,8 +188,8 @@ const LikeButton = ({ liked, count, onClick }) => {
             className={`group flex items-center gap-1.5 text-sm transition-colors relative ${liked ? 'text-emerald-500' : 'text-gray-500 hover:text-pink-500'}`}
         >
             <div className="relative">
-                <div className={`p-2 rounded-full transition-colors ${liked ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'group-hover:bg-pink-50 dark:group-hover:bg-pink-900/20'}`}>
-                    <Heart className={`w-4.5 h-4.5 ${liked ? 'fill-emerald-500 stroke-emerald-500' : ''}`} />
+                <div className={`p-2 rounded-full transition-colors ${liked ? 'bg-emerald-500 text-white shadow-emerald-200 dark:shadow-emerald-900/30 shadow-lg' : 'group-hover:bg-pink-50 dark:group-hover:bg-pink-900/20'}`}>
+                    <Heart className={`w-4.5 h-4.5 ${liked ? 'fill-white stroke-white' : ''}`} />
                 </div>
                 {/* Confetti Explosion */}
                 <AnimatePresence>
