@@ -5,14 +5,9 @@ const { verifyToken, isAdmin, isModerator } = require("../middlewares/validate")
 const { upload } = require("../middlewares/multer.middleware");
 
 
-<<<<<<< HEAD
-router.post("/", upload.single("file"), issueController.createIssue);
+router.post("/", verifyToken, upload.single("file"), issueController.createIssue);
 router.post("/analyze-image", upload.single("file"), issueController.analyzeIssueImage);
 router.post("/generate-caption", upload.single("file"), issueController.generateCaption);
-=======
-
-router.post("/", verifyToken, upload.single("file"), issueController.createIssue);
->>>>>>> 6dfaa0f0271f642bfb702ab31aa972d1c7f0668a
 
 
 router.patch("/:id/status", verifyToken, isModerator, issueController.updateIssueStatus);
