@@ -1,6 +1,6 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from sentence_transformers import CrossEncoder, SentenceTransformer, util
+# from sentence_transformers import CrossEncoder, SentenceTransformer, util (Moved to lazy loaders)
 import numpy as np
 import re
 import logging
@@ -19,6 +19,7 @@ def get_bi_encoder():
     if _BI_ENCODER is None:
         try:
             print("1. Lazy Loading Bi-Encoder (all-MiniLM-L6-v2)...")
+            from sentence_transformers import SentenceTransformer, util # Lazy Import
             _BI_ENCODER = SentenceTransformer('all-MiniLM-L6-v2')
             print("   [✓] Bi-Encoder Ready.")
         except Exception as e:
@@ -30,6 +31,7 @@ def get_cross_encoder():
     if _CROSS_ENCODER is None:
         try:
             print("2. Lazy Loading Cross-Encoder (nli-distilroberta-base)...")
+            from sentence_transformers import CrossEncoder # Lazy Import
             # This model outputs 3 scores: Contradiction, Entailment, Neutral
             _CROSS_ENCODER = CrossEncoder('cross-encoder/nli-distilroberta-base')
             print("   [✓] Cross-Encoder Ready.")
@@ -128,6 +130,7 @@ def predict_priority(request):
             return Response({'priority': PRIORITY_KEYS[best_idx], 'confidence': confidence})
             
         elif bi_model: 
+            from sentence_transformers import util
             emb = bi_model.encode(txt)
             proto_embs = bi_model.encode(PRIORITY_LABELS)
             scores = util.cos_sim(emb, proto_embs)[0]
@@ -183,6 +186,7 @@ def detect_fake(request):
             })
             
         elif bi_model:
+            from sentence_transformers import util
             emb = bi_model.encode(full_text)
             spam_emb = bi_model.encode(["fake nonsense glitch test spam garbage ads promotion"])
             score = float(util.cos_sim(emb, spam_emb)[0][0])
@@ -216,6 +220,7 @@ def categorize(request):
             return Response({'category': CATEGORIES_KEYS[best_idx], 'confidence': confidence})
             
         elif bi_model:
+            from sentence_transformers import util
             emb = bi_model.encode(txt)
             cat_embs = bi_model.encode(CATEGORIES_LABELS) 
             scores = util.cos_sim(emb, cat_embs)[0]
@@ -243,6 +248,7 @@ def find_duplicates(request):
         if not existing: return Response({'duplicates': []})
 
         # Step 1: Retrieval (Bi-Encoder)
+        from sentence_transformers import util
         cand_emb = bi_model.encode(candidate_title)
         existing_titles = [i.get('title', '') for i in existing]
         title_embs = bi_model.encode(existing_titles)
