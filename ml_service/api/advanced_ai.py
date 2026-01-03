@@ -1,14 +1,8 @@
-
 import os
-import torch
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from sentence_transformers import SentenceTransformer, util
-from transformers import pipeline
-import whisper
-import numpy as np
 
-# Global Model Cache (Lazy Loading to create startup not super slow)
+# Lazy Loaded Global Model Cache
 MODELS = {
     "semantic": None,
     "toxicity": None,
@@ -20,12 +14,14 @@ MODELS = {
 def load_semantic_model():
     if MODELS["semantic"] is None:
         print("Loading Semantic Model...")
+        from sentence_transformers import SentenceTransformer
         MODELS["semantic"] = SentenceTransformer('all-MiniLM-L6-v2')
     return MODELS["semantic"]
 
 def load_toxicity_model():
     if MODELS["toxicity"] is None:
         print("Loading Toxicity Model...")
+        from transformers import pipeline
         # Using a small distilled model for speed
         MODELS["toxicity"] = pipeline("text-classification", model="unitary/unbiased-toxic-roberta", top_k=1)
     return MODELS["toxicity"]
@@ -33,6 +29,7 @@ def load_toxicity_model():
 def load_whisper_model():
     if MODELS["whisper"] is None:
         print("Loading Whisper Model...")
+        import whisper
         MODELS["whisper"] = whisper.load_model("base")
     return MODELS["whisper"]
 
@@ -47,6 +44,8 @@ def check_semantic_duplicate(req):
             return Response({"is_duplicate": False, "score": 0.0})
 
         model = load_semantic_model()
+        import torch
+        from sentence_transformers import util
         
         # Encode
         new_embedding = model.encode(new_text, convert_to_tensor=True)
