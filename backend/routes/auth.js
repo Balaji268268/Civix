@@ -80,7 +80,8 @@ router.post('/signup',
       .trim()
       .isLength({ min: 3, max: 30 })
       .matches(/^[a-zA-Z0-9_]+$/)
-      .withMessage('Username must be 3-30 alphanumeric characters'),
+      .not().isIn(['admin', 'moderator', 'root', 'system', 'support', 'civix', 'official'])
+      .withMessage('Username is reserved or invalid'),
     body('email')
       .trim()
       .isEmail()

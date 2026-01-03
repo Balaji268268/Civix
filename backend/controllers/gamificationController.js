@@ -4,8 +4,11 @@ const asyncHandler = require('express-async-handler');
 // @desc    Update user gamification progress
 // @route   POST /api/gamification/progress
 // @access  Private
+// @desc    Update user gamification progress
+// @route   POST /api/gamification/progress
+// @access  Private
 const updateProgress = asyncHandler(async (req, res) => {
-    const { xpGained, scenarioId, badgeEarned } = req.body;
+    const { scenarioId, badgeEarned } = req.body; // IGNORE xpGained from client to prevent exploit
     const userId = req.auth.userId; // Clerk ID
 
     const user = await User.findOne({ clerkUserId: userId });
@@ -19,8 +22,24 @@ const updateProgress = asyncHandler(async (req, res) => {
         user.gamification = { xp: 0, level: 1, badges: [], streak: 0, completedScenarios: [] };
     }
 
+    // Server-Side XP Logic
+    const SCENARIO_XP_MAP = {
+        'tutorial': 50,
+        'first_report': 20,
+        'survey': 15,
+        'civic_quiz': 30
+    };
+
+    // Default to 10 XP if scenario unknown, but max cap at 50 to prevent abuse
+    let xpToAdd = SCENARIO_XP_MAP[scenarioId] || 10;
+
+    // Check if already completed to prevent farming (Optional, depending on game logic)
+    if (scenarioId && user.gamification.completedScenarios.includes(scenarioId)) {
+        xpToAdd = 5; // Reduced XP for replay
+    }
+
     // Update XP
-    user.gamification.xp += xpGained;
+    user.gamification.xp += xpToAdd;
 
     // Level Calculation (Simple: Level = 1 + floor(XP / 100))
     const newLevel = 1 + Math.floor(user.gamification.xp / 100);

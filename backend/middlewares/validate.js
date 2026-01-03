@@ -81,7 +81,7 @@ const isAdmin = (req, res, next) => {
   // For debugging, temporarily allow if no role is found but email matches admin pattern (unsafe but useful for debugging)
   const isAdminEmail = req.user?.email?.includes("admin");
 
-  if (role === 'admin' || isAdminEmail || true) { // TEMPORARY BYPASS: Allowing all for now to confirm endpoint function, remove "|| true" after checking logs
+  if (role === 'admin' || isAdminEmail) {
     next();
   } else {
     console.warn("Access Denied. User Role:", role);
@@ -95,7 +95,7 @@ const isModerator = (req, res, next) => {
   // Allow admin/moderator emails or specific overrides
   const isPrivilegedEmail = req.user?.email?.includes("admin") || req.user?.email?.includes("moderator");
 
-  if (role === 'moderator' || role === 'admin' || isPrivilegedEmail || true) { // TEMPORARY BYPASS: Unblocking for dev to allow testing
+  if (role === 'moderator' || role === 'admin' || isPrivilegedEmail) {
     next();
   } else {
     console.warn("Access Denied (Moderator). User Role:", role);

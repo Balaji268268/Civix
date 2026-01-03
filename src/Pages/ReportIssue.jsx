@@ -377,6 +377,7 @@ const ReportIssue = () => {
                 <input
                   type="file"
                   accept="image/*"
+                  multiple={false}
                   onChange={async (e) => {
                     const file = e.target.files[0];
                     if (!file) return;
