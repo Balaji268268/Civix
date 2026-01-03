@@ -8,7 +8,7 @@ const FormData = require('form-data'); // Might need this if we reconstruct, BUT
 // Using memory storage to pass buffer to Python
 const upload = multer({ storage: multer.memoryStorage() });
 
-const ML_SERVICE_URL = 'http://127.0.0.1:8000';
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://127.0.0.1:8000';
 
 // Proxy Handler for JSON requests
 const proxyJson = async (req, res) => {

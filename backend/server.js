@@ -51,6 +51,9 @@ if (cluster.isPrimary) {
 
   const app = express();
 
+  // Trust proxy for Render/Vercel (fixes express-rate-limit error)
+  app.set('trust proxy', 1);
+
   // === Database Initialization ===
 
   // Commented db.js import so that the app can run on MongoDB only to rectify the issue of multiple database connections
