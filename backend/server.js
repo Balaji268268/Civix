@@ -129,6 +129,7 @@ if (cluster.isPrimary) {
     "/api/issues/generate-caption", // AI Caption (Multipart)
     "/api/issues", // Create Issue (Multipart - Uploads)
     /^\/api\/issues\/.*\/submit-resolution$/, // Resolution Proof (Multipart)
+    /^\/api\/posts.*$/, // Posts (Likes, Comments - handled by Auth Token)
   ];
   app.use(skipCSRFForRoutes(csrfSkipRoutes));
 
