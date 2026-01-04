@@ -21,7 +21,7 @@ const PostFeed = ({ limit = 20, compact = false, activeTab = 'feed' }) => {
         setLoading(true);
         try {
             const token = await getToken();
-            const endpoint = activeTab === 'discussions' ? 'http://localhost:5000/api/posts?filter=discussions' : 'http://localhost:5000/api/posts';
+            const endpoint = activeTab === 'discussions' ? '/api/posts?filter=discussions' : '/api/posts';
 
             const res = await csrfManager.secureFetch(endpoint, {
                 headers: token ? { 'Authorization': `Bearer ${token}` } : {}
@@ -46,7 +46,7 @@ const PostFeed = ({ limit = 20, compact = false, activeTab = 'feed' }) => {
             const token = await getToken();
             if (!token) { toast.error("Please login to post"); setSubmitting(false); return; }
 
-            const res = await csrfManager.secureFetch('http://localhost:5000/api/posts', {
+            const res = await csrfManager.secureFetch('/api/posts', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -95,7 +95,7 @@ const PostFeed = ({ limit = 20, compact = false, activeTab = 'feed' }) => {
                 return p;
             }));
 
-            const res = await csrfManager.secureFetch(`http://localhost:5000/api/posts/${postId}/like`, {
+            const res = await csrfManager.secureFetch(`/api/posts/${postId}/like`, {
                 method: 'PUT',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -294,7 +294,7 @@ const CommentModal = ({ post, onClose, getToken, user, onCommentAdded }) => {
         setSubmitting(true);
         try {
             const token = await getToken();
-            const res = await csrfManager.secureFetch(`http://localhost:5000/api/posts/${post._id}/comment`, {
+            const res = await csrfManager.secureFetch(`/api/posts/${post._id}/comment`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,

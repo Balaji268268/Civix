@@ -15,7 +15,7 @@ const PollFeed = () => {
             try {
                 const token = await getToken();
                 // Secure fetch automatically handles headers if integrated well, but explicit token ensures auth context for 'hasVoted'
-                const response = await csrfManager.secureFetch('http://localhost:5000/api/polls', {
+                const response = await csrfManager.secureFetch('/api/polls', {
                     headers: token ? { 'Authorization': `Bearer ${token}` } : {}
                 });
 
@@ -55,7 +55,7 @@ const PollFeed = () => {
         setVotingId(pollId);
         try {
             const token = await getToken();
-            const response = await csrfManager.secureFetch(`http://localhost:5000/api/polls/${pollId}/vote`, {
+            const response = await csrfManager.secureFetch(`/api/polls/${pollId}/vote`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
