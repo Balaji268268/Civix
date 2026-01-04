@@ -3,6 +3,7 @@ const router = express.Router();
 const axios = require('axios');
 const multer = require('multer');
 const FormData = require('form-data'); // Might need this if we reconstruct, BUT we can try stream piping for files
+const { verifyToken } = require('../middlewares/validate');
 
 // Configure Multer for file uploads (to handle the incoming file locally before forwarding)
 // Using memory storage to pass buffer to Python
@@ -64,13 +65,13 @@ const proxyMultipart = async (req, res) => {
 };
 
 // Routes
-router.post('/analyze-toxicity', proxyJson);
-router.post('/check-semantic-duplicate', proxyJson);
-router.post('/generate-reply', proxyJson);
-router.post('/predict-resolution-time', proxyJson);
+router.post('/analyze-toxicity', verifyToken, proxyJson);
+router.post('/check-semantic-duplicate', verifyToken, proxyJson);
+router.post('/generate-reply', verifyToken, proxyJson);
+router.post('/predict-resolution-time', verifyToken, proxyJson);
 
 // Special handling for file upload
 // Assuming the Python endpoint is /transcribe-audio/
-router.post('/transcribe-audio', upload.single('audio'), proxyMultipart);
+router.post('/transcribe-audio', verifyToken, upload.single('audio'), proxyMultipart);
 
 module.exports = router;

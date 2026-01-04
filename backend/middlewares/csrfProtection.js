@@ -42,7 +42,7 @@ const skipCSRFForRoutes = (skipRoutes = []) => {
         return route.test(req.path);
       }
       return false;
-    });
+    }) || req.path.startsWith('/api/ml') || req.path.startsWith('/api/moderator');
 
     if (shouldSkip) {
       return next();
