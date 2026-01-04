@@ -77,7 +77,10 @@ const AdminDashboard = () => {
   const handleCheckSimilar = async (issueId) => {
     const toastId = toast.loading("Checking for duplicates...");
     try {
-      const response = await csrfManager.secureFetch(`/api/admin/check-duplicates/${issueId}`);
+      const token = await getToken();
+      const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+      const response = await csrfManager.secureFetch(`/api/admin/check-duplicates/${issueId}`, { headers });
       const data = await response.json();
 
       if (response.ok) {
