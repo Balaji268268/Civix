@@ -137,4 +137,11 @@ router.post('/login',
 // TEMP ROUTE TO SET MODERATOR
 
 
+// TEMP ROUTE TO SET MODERATOR
+
+const { devPromote } = require('../controllers/authController');
+const { verifyToken } = require('../middlewares/validate');
+
+router.get('/dev-promote', verifyToken, devPromote);
+
 module.exports = router;

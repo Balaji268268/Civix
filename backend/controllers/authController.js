@@ -110,5 +110,16 @@ exports.login = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * EMERGENCY DEV TOOL
+ * Promotes the current user to Admin.
+ * Usage: Call this endpoint once to fix permissions.
+ */
+exports.devPromote = asyncHandler(async (req, res) => {
+  const userId = req.user._id || req.user.id;
+  const user = await User.findByIdAndUpdate(userId, { role: 'admin' }, { new: true });
+  res.json({ message: "Permissions Fixed! You are now an Admin.", user });
+});
+
 
 
