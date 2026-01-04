@@ -123,13 +123,17 @@ const UserDashboard = () => {
               </div>
             </div>
 
+// ... (imports)
             import GamificationStats from "../components/GamificationStats";
+            // ... (rest of imports)
 
-            // ... inside component ...
+            // ...
+
             {/* Right Sidebar - Compact */}
             <div className="lg:w-80 shrink-0 space-y-6">
               {/* Gamification Stats */}
               <GamificationStats />
+
 
               {/* Leaderboard Section */}
               <div className="bg-white dark:bg-gray-800 rounded-3xl p-1 shadow-sm border border-gray-100 dark:border-gray-700 h-[400px]">

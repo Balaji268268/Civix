@@ -51,9 +51,10 @@ export default function UserMap() {
       const userEmail = user?.primaryEmailAddress?.emailAddress;
 
       const mapped = data.filter(issue => {
-        const isResolved = issue.status === 'Resolved';
-        const isMine = userEmail && issue.email && (issue.email.toLowerCase() === userEmail.toLowerCase());
-        return isResolved || isMine;
+        const isPublicStatus = ['Resolved', 'In Progress', 'Pending'].includes(issue.status); // Allow more statuses for public map per user request
+        // Prioritize: Resolved/In Progress are definitely public. Pending might be okay to show "Reported".
+        // User said: "show the issues from all the issues submited and their status showing the state"
+        return isPublicStatus;
       }).map(issue => {
         // Try parse coordinates from location string "lat, lng" OR explicit coords field
         let lat = null, lng = null;

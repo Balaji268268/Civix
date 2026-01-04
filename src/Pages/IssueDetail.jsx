@@ -324,25 +324,39 @@ const IssueDetail = () => {
               </div>
             </div>
 
+            {/* Status Message / Polite Feedback */}
             <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
-              <h3 className="font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                <Activity className="w-5 h-5 text-blue-500" /> AI Insights
-              </h3>
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Category</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{issue.category}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Confidence</span>
-                  <span className="font-medium text-gray-900 dark:text-white">{(issue.fakeConfidence * 100).toFixed(1)}%</span>
-                </div>
-                {issue.isFake && (
-                  <div className="p-2 bg-red-100 text-red-700 text-xs font-bold rounded text-center">
-                    Marked as Potentially Fake
+              {issue.status === 'Resolved' && (
+                <div className="text-center">
+                  <h3 className="font-bold text-gray-900 dark:text-white mb-2">How did we do?</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Your feedback helps us improve.</p>
+                  <div className="flex justify-center gap-2">
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <button key={star} className="text-2xl hover:scale-110 transition-transform">⭐</button>
+                    ))}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+
+              {issue.status === 'Rejected' && (
+                <div className="text-center">
+                  <h3 className="font-bold text-gray-900 dark:text-white mb-2">Report Not Accepted</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    We appreciate your vigilance. Unfortunately, this report didn't meet our criteria or was a duplicate.
+                    Please continue to report valid issues!
+                  </p>
+                </div>
+              )}
+
+              {!['Resolved', 'Rejected', 'Closed'].includes(issue.status) && (
+                <div className="text-center">
+                  <h3 className="font-bold text-gray-900 dark:text-white mb-2">Thank You for Your Patience</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Our system is processing your report. We prioritize issues based on severity and community voting.
+                    We'll update you as soon as there is progress!
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
