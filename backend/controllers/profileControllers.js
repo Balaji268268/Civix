@@ -60,13 +60,17 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   }
 
   // AUTHORIZATION CHECK: Ensure user is updating their own profile
-  // req.user is set by verifyToken middleware
-  const requesterId = req.user.sub || req.user.id;
-  if (requesterId !== clerkUserId) {
-    // Allow admins to override? For now, strict ownership.
+  // req.user is set by verifyToken middleware (Mongoose Document)
+  const requesterClerkId = req.user.clerkUserId || req.user.sub || req.user.id;
+
+  // Debug Log
+  // console.log(`[Profile Update] Request: ${clerkUserId}, Actual: ${requesterClerkId}`);
+
+  if (requesterClerkId !== clerkUserId) {
     // Check if admin
     const isAdmin = req.user.role === 'admin' || req.user.public_metadata?.role === 'admin';
     if (!isAdmin) {
+      console.warn(`[Profile] Unauthorized Update Attempt. user: ${requesterClerkId}, target: ${clerkUserId}`);
       return res.status(403).json({ error: "Unauthorized: You can only update your own profile." });
     }
   }
@@ -110,7 +114,6 @@ const updateUserProfile = asyncHandler(async (req, res) => {
     role: user.role,
     location: user.location,
     profilePictureUrl: user.profilePictureUrl || null,
-    profilePictureUrl: user.profilePictureUrl || null,
     isProfileComplete: user.profileSetupCompleted,
     message: 'Profile updated successfully'
   });
@@ -119,7 +122,7 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 // Create or update user profile (for Clerk integration)
 const createOrUpdateUserProfile = asyncHandler(async (req, res) => {
   console.log("--> createOrUpdateUserProfile HIT");
-  console.log("Request Body:", req.body);
+  // console.log("Request Body:", req.body);
   const { clerkUserId, email, name, location, profilePictureUrl } = req.body;
 
   if (!clerkUserId || !email) {
@@ -127,6 +130,19 @@ const createOrUpdateUserProfile = asyncHandler(async (req, res) => {
     return res.status(400).json({
       error: 'Clerk user ID and email are required'
     });
+  }
+
+  // SECURITY: Ensure the authenticated user matches the body ID
+  if (req.user) {
+    const authId = req.user.clerkUserId || req.user.sub;
+    if (authId && authId !== clerkUserId) {
+      // Admin override?
+      const isAdmin = req.user.role === 'admin';
+      if (!isAdmin) {
+        console.warn(`[Profile Create/Update] ID Mismatch. Auth: ${authId}, Body: ${clerkUserId}`);
+        return res.status(403).json({ error: "Identity mismatch. You cannot update another user's profile." });
+      }
+    }
   }
 
   try {
