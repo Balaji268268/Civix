@@ -193,6 +193,58 @@ const approveUser = asyncHandler(async (req, res) => {
     res.status(200).json({ message: "User approved successfully", user });
 });
 
+// PATCH /api/admin/users/:id/role
+const updateUserRole = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { role, department } = req.body;
+
+    const user = await User.findById(id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Validate Roles
+    const validRoles = ['user', 'admin', 'moderator', 'officer'];
+    if (role && !validRoles.includes(role)) {
+        return res.status(400).json({ error: "Invalid role selected" });
+    }
+
+    if (role) user.role = role;
+    if (department !== undefined) user.department = department; // Can be null
+
+    await user.save();
+    res.status(200).json({ message: "User role updated successfully", user });
+});
+
+// POST /api/admin/users (Create new user/officer)
+const bcrypt = require('bcrypt');
+const createUser = asyncHandler(async (req, res) => {
+    const { name, email, password, role, department } = req.body;
+
+    if (!name || !email || !password || !role) {
+        return res.status(400).json({ error: "All fields are required" });
+    }
+
+    // Check existing
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+        return res.status(409).json({ error: "User with this email already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = await User.create({
+        name,
+        email,
+        username: email.split('@')[0], // rudimentary username
+        password: hashedPassword,
+        role,
+        department: department || null,
+        isApproved: true, // Auto-approve admin created users
+        profileSetupCompleted: true
+    });
+
+    res.status(201).json({ message: "User created successfully", user: newUser });
+});
+
 // --- Community Analytics (GenAI) ---
 const getCommunityInsights = async (req, res) => {
     try {
@@ -298,4 +350,4 @@ const exportSystemData = asyncHandler(async (req, res) => {
     res.status(200).send(csvContent);
 });
 
-module.exports = { getAdminStats, findDuplicatesForIssue, getAllUsers, getUserDetails, approveUser, getCommunityInsights, getSettings, updateSettings, exportSystemData };
+module.exports = { getAdminStats, findDuplicatesForIssue, getAllUsers, getUserDetails, approveUser, updateUserRole, createUser, getCommunityInsights, getSettings, updateSettings, exportSystemData };
