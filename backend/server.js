@@ -185,6 +185,13 @@ if (cluster.isPrimary) {
 
   // Global Error Handler
   const errorHandler = require("./middlewares/errorHandler.js");
+
+  // DEBUG LOGGER: Print full stack trace for 500 errors
+  app.use((err, req, res, next) => {
+    console.error("DEBUG ERROR LOG:", err.stack);
+    next(err);
+  });
+
   app.use(errorHandler);
 
   // === Socket.io Setup ===
