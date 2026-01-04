@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import { toast } from 'react-hot-toast';
 import { MapPin, Upload, ShieldCheck, Loader2, ArrowRight, User } from 'lucide-react';
 import csrfManager from "../utils/csrfManager";
@@ -14,6 +14,7 @@ import useFormPersistence from "../hooks/useFormPersistence"; // Import Hook
 const ReportIssue = () => {
   const navigate = useNavigate();
   const { user } = useUser();
+  const { getToken } = useAuth();
 
   // State for Flow
   const [step, setStep] = useState('select-type'); // select-type, form
@@ -184,8 +185,12 @@ const ReportIssue = () => {
 
     try {
       // Use csrfManager.secureFetch to handle tokens and credentials automatically
+      const token = await getToken();
       const response = await csrfManager.secureFetch("/api/issues", {
         method: "POST",
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: data
       });
 
@@ -388,9 +393,12 @@ const ReportIssue = () => {
                     formDataObj.append('file', file);
 
                     try {
+                      const token = await getToken();
+                      const headers = { 'Authorization': `Bearer ${token}` };
+
                       const [analyzeRes, captionRes] = await Promise.allSettled([
-                        csrfManager.secureFetch('/api/issues/analyze-image', { method: 'POST', body: formDataObj }),
-                        csrfManager.secureFetch('/api/issues/generate-caption', { method: 'POST', body: formDataObj })
+                        csrfManager.secureFetch('/api/issues/analyze-image', { method: 'POST', body: formDataObj, headers }),
+                        csrfManager.secureFetch('/api/issues/generate-caption', { method: 'POST', body: formDataObj, headers })
                       ]);
 
                       // Handle Classification
