@@ -70,6 +70,30 @@ const PostFeed = ({ limit = 20, compact = false, activeTab = 'feed' }) => {
         }
     };
 
+    const handleDeletePost = async (postId) => {
+        if (!window.confirm("Delete this post?")) return;
+        try {
+            const token = await getToken();
+            const res = await csrfManager.secureFetch(`/api/posts/${postId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                setPosts(posts.filter(p => p._id !== postId));
+                toast.success("Post deleted");
+            } else {
+                toast.error("Delete failed");
+            }
+        } catch (e) {
+            toast.error("Error deleting post");
+        }
+    };
+
+    const handleQuotePost = (post) => {
+        setNewPostContent(`Reposting @${post.author?.name}: "${post.content}"\n\n`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     const handleLike = async (postId) => {
         // Optimistic UI Update
         const previousPosts = [...posts];
@@ -157,6 +181,8 @@ const PostFeed = ({ limit = 20, compact = false, activeTab = 'feed' }) => {
                         user={user}
                         handleLike={handleLike}
                         onCommentClick={() => setCommentModalPost(post)}
+                        onDelete={handleDeletePost}
+                        onRepost={handleQuotePost}
                     />
                 ))
             )}
@@ -188,8 +214,8 @@ const LikeButton = ({ liked, count, onClick }) => {
             className={`group flex items-center gap-1.5 text-sm transition-colors relative ${liked ? 'text-emerald-500' : 'text-gray-500 hover:text-pink-500'}`}
         >
             <div className="relative">
-                <div className={`p-2 rounded-full transition-colors ${liked ? 'bg-emerald-500 text-white shadow-emerald-200 dark:shadow-emerald-900/30 shadow-lg' : 'group-hover:bg-pink-50 dark:group-hover:bg-pink-900/20'}`}>
-                    <Heart className={`w-4.5 h-4.5 ${liked ? 'fill-white stroke-white' : ''}`} />
+                <div className={`p-2 rounded-full transition-colors ${liked ? 'bg-emerald-50 text-emerald-500 shadow-emerald-200 dark:shadow-emerald-900/30' : 'group-hover:bg-pink-50 dark:group-hover:bg-pink-900/20'}`}>
+                    <Heart className={`w-4.5 h-4.5 ${liked ? 'fill-emerald-500 stroke-emerald-500' : ''}`} />
                 </div>
                 {/* Confetti Explosion */}
                 <AnimatePresence>
@@ -220,17 +246,29 @@ const LikeButton = ({ liked, count, onClick }) => {
     );
 };
 
-const Post = ({ post, user, handleLike, onCommentClick }) => {
-    // Check if liked. We need to check if user._id is in post.likes. 
-    // BUT user.id is ClerkID. post.likes contains MongoIDs.
-    // We need the backend to flag `isLiked` or we act blind.
-    // Hack: For now, we rely on the backend response. Visually it might not be perfect on load unless we fetch profile.
-    // Limitation alert: Likes won't show blue on refresh unless we map ClerkID -> MongoID globally.
-    // Let's assume the user object passed from app has `_id`? Or we fetch it.
-    // For now, let's just show the count.
+const Post = ({ post, user, handleLike, onCommentClick, onDelete, onRepost }) => {
+    const isAuthor = user?.id === post.author?.clerkUserId || user?.id === post.author?._id || user?.publicMetadata?.role === 'admin';
+    const [showMenu, setShowMenu] = useState(false);
+
+    const handleShare = async () => {
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: `Post by ${post.author?.name}`,
+                    text: post.content,
+                    url: window.location.href, // Or specific post link if available
+                });
+            } else {
+                await navigator.clipboard.writeText(`${post.content} - by ${post.author?.name}`);
+                toast.success("Link copied to clipboard");
+            }
+        } catch (e) {
+            console.error("Share failed", e);
+        }
+    };
 
     return (
-        <div className="bg-white dark:bg-black border-b border-gray-100 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-900/40 transition-colors cursor-pointer block">
+        <div className="bg-white dark:bg-black border-b border-gray-100 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-900/40 transition-colors cursor-pointer block relative">
             <div className="flex gap-3">
                 <div className="shrink-0">
                     <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
@@ -245,16 +283,58 @@ const Post = ({ post, user, handleLike, onCommentClick }) => {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center justify-between mb-1 relative">
                         <div className="flex items-center gap-1.5 text-sm">
                             <span className="font-bold text-gray-900 dark:text-gray-100 truncate hover:underline cursor-pointer">{post.author?.name || 'Citizen'}</span>
                             <span className="text-gray-500">@{post.author?.email?.split('@')[0] || 'anony'}</span>
                             <span className="text-gray-500">·</span>
                             <span className="text-gray-500 hover:underline">{new Date(post.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                         </div>
-                        <button className="text-gray-400 hover:text-emerald-500 p-1 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/20">
-                            <MoreHorizontal className="w-4 h-4" />
-                        </button>
+
+                        {/* 3-Dots Menu */}
+                        <div className="relative">
+                            <button
+                                onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+                                className="text-gray-400 hover:text-emerald-500 p-1 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+                            >
+                                <MoreHorizontal className="w-4 h-4" />
+                            </button>
+
+                            <AnimatePresence>
+                                {showMenu && (
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.95 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.95 }}
+                                        className="absolute right-0 top-6 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-100 dark:border-gray-700 z-50 overflow-hidden py-1"
+                                    >
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleShare(); setShowMenu(false); }}
+                                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2"
+                                        >
+                                            <Share2 className="w-4 h-4" /> Share
+                                        </button>
+                                        {isAuthor && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onDelete(post._id); setShowMenu(false); }}
+                                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                                            >
+                                                <Trash2 className="w-4 h-4" /> Delete
+                                            </button>
+                                        )}
+                                        {!isAuthor && (
+                                            <button className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-2">
+                                                Report
+                                            </button>
+                                        )}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                            {/* Backdrop to close menu */}
+                            {showMenu && (
+                                <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setShowMenu(false); }}></div>
+                            )}
+                        </div>
                     </div>
 
                     <p className="text-gray-900 dark:text-gray-200 whitespace-pre-wrap leading-normal text-[15px] mb-3">
@@ -269,15 +349,22 @@ const Post = ({ post, user, handleLike, onCommentClick }) => {
 
                     <div className="flex items-center justify-between text-gray-500 max-w-md mt-3">
                         <ActionButton icon={MessageCircle} count={post.comments?.length || 0} color="blue" onClick={onCommentClick} />
-                        <ActionButton icon={Repeat} count={0} color="green" />
+
+                        {/* Repost / Quote */}
+                        <ActionButton
+                            icon={Repeat}
+                            count={0}
+                            color="green"
+                            onClick={() => onRepost(post)}
+                        />
 
                         <LikeButton
-                            liked={post.likes?.includes(user?.id)}
+                            liked={post.isLiked || post.likes?.includes(user?.id)}
                             count={post.likes?.length || 0}
                             onClick={() => handleLike(post._id)}
                         />
 
-                        <ActionButton icon={Share2} color="emerald" />
+                        <ActionButton icon={Share2} color="emerald" onClick={handleShare} />
                     </div>
                 </div>
             </div>
