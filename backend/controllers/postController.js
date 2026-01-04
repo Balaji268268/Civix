@@ -5,8 +5,13 @@ const User = require('../models/userModel');
 exports.createPost = async (req, res) => {
     try {
         const { content, image, type, title, eventDate, location, eventCategory } = req.body;
-        // Assuming req.user is populated by verifyToken middleware
-        const user = await User.findOne({ clerkUserId: req.user.id });
+
+        // Fix: req.user is already populated
+        let user = req.user;
+        if (!user._id) {
+            user = await User.findOne({ clerkUserId: req.user.id || req.user.sub });
+        }
+
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
@@ -119,7 +124,10 @@ exports.deletePost = async (req, res) => {
         }
 
         // Check ownership or admin role
-        const user = await User.findOne({ clerkUserId: req.user.id });
+        let user = req.user;
+        if (!user._id) {
+            user = await User.findOne({ clerkUserId: req.user.id || req.user.sub });
+        }
         if (!user) return res.status(403).json({ message: "Unauthorized" });
 
         // Allow if author or admin
@@ -180,8 +188,13 @@ exports.addComment = async (req, res) => {
 
         if (!text) return res.status(400).json({ message: "Comment text required" });
 
-        const user = await User.findOne({ clerkUserId: req.user.id });
-        if (!user) return res.status(404).json({ message: "User not found" });
+        // Fix: req.user is already the DB User
+        let user = req.user;
+        if (!user._id) {
+            user = await User.findOne({ clerkUserId: req.user.id || req.user.sub });
+        }
+
+        if (!user) return res.status(404).json({ message: "User not found (Auth Error)" });
 
         const post = await Post.findById(id);
         if (!post) return res.status(404).json({ message: "Post not found" });
