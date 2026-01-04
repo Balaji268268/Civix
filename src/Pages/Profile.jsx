@@ -221,6 +221,37 @@ const Profile = () => {
                       <p className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase mb-1">Trust Score</p>
                       <p className="text-lg font-bold text-gray-900 dark:text-white">{profileData?.trustScore || 100}</p>
                     </div>
+
+                    {/* Feature: Bootstrap Admin Claim */}
+                    {profileData?.role !== 'admin' && (
+                      <div className="col-span-2">
+                        <button
+                          onClick={async () => {
+                            try {
+                              const token = await getToken();
+                              const res = await csrfManager.secureFetch('/api/auth/claim-admin', {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                              });
+                              const data = await res.json();
+                              if (res.ok) {
+                                toast.success(data.message);
+                                fetchProfileData();
+                                // Force reload to update permissions
+                                setTimeout(() => window.location.reload(), 1000);
+                              } else {
+                                toast.error(data.error || "Claim failed");
+                              }
+                            } catch (e) {
+                              toast.error("Error claiming admin");
+                            }
+                          }}
+                          className="w-full py-2 text-xs font-bold text-gray-500 hover:text-emerald-600 border border-dashed border-gray-300 rounded-lg hover:border-emerald-500 transition-colors"
+                        >
+                          (Debug) Claim Admin Access
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Gamification Teaser */}
