@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { MapPin, Upload, ShieldCheck, Loader2, ArrowRight, User } from 'lucide-react';
 import csrfManager from "../utils/csrfManager";
 import UserLayout from "../components/layout/UserLayout";
+import API_BASE_URL from '../config'; // Import Config
 
 import DuplicateIssueModal from "../components/DuplicateIssueModal";
 import VoiceInput from '../components/VoiceInput';
@@ -382,6 +383,7 @@ const ReportIssue = () => {
                 <input
                   type="file"
                   accept="image/*"
+                  multiple={false}
                   onChange={async (e) => {
                     const file = e.target.files[0];
                     if (!file) return;

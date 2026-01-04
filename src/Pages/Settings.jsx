@@ -35,7 +35,7 @@ const Settings = () => {
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        const res = await csrfManager.secureFetch('http://localhost:5000/api/admin/settings');
+        const res = await csrfManager.secureFetch('/api/admin/settings');
         if (res.ok) {
           const data = await res.json();
           setSettings(prev => ({ ...prev, ...data }));
@@ -62,7 +62,7 @@ const Settings = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await csrfManager.secureFetch('http://localhost:5000/api/admin/settings', {
+      const res = await csrfManager.secureFetch('/api/admin/settings', {
         method: 'PATCH',
         body: JSON.stringify(settings),
         headers: {
@@ -85,8 +85,9 @@ const Settings = () => {
   const handleExportData = async () => {
     toast.loading("Preparing system export...", { id: 'export' });
     try {
-      const token = localStorage.getItem('token'); // Raw fetch for file download usually easier than wrapper if blob needed
-      const response = await fetch('http://localhost:5000/api/admin/export', {
+      // Raw fetch for file download usually easier than wrapper if blob needed
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${API_URL}/api/admin/export`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

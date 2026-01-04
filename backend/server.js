@@ -115,22 +115,18 @@ if (cluster.isPrimary) {
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
 
-  // ... (lines 87-156 skipped in thought, but included in tool execution context implicitly via line ranges if careful, or just replace the blocks)
-  // To avoid messing up large chunks, I will do two replaces or one big one.
-  // The file is small enough to risk a larger replace if I am careful. 
-  // But wait, the socket.io part is further down.
-  // I'll effectively replace the first block now, and the socket.io block in a second tool call or rely on the user to re-read. 
-  // Actually, I can use the same allowedOrigins variable if I declare it wide scope, but I can't easily do that with tool constraints effectively.
-  // Using two replaces is safer.
-
-  // NOTE: I am ONLY replacing the first cors block here.
-
-
   // === Security Middlewares ===
-  // Global XSS Sanitization - REMOVED
+  const mongoSanitize = require('express-mongo-sanitize');
+  const hpp = require('hpp');
+
+  // Global XSS Sanitization - REMOVED due to import conflict
   // app.use(xssSanitizer);
 
-  // CSRF Protection (skip for certain routes)
+  // NoSQL Injection Prevention
+  app.use(mongoSanitize());
+
+  // HTTP Parameter Pollution Prevention
+  app.use(hpp());
   // CSRF Protection (skip for certain routes)
   const csrfSkipRoutes = [
     "/api-docs", // Swagger documentation

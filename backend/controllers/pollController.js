@@ -97,29 +97,40 @@ const votePoll = async (req, res) => {
         const poll = await Poll.findById(pollId);
         if (!poll) return res.status(404).json({ error: 'Poll not found' });
 
-        // Checks
-        if (!poll.isActive || new Date() > poll.expiresAt) {
-            return res.status(400).json({ error: 'Poll is closed' });
-        }
-        if (poll.votedBy.includes(user._id)) {
-            return res.status(400).json({ error: 'You have already voted' });
-        }
-        if (optionIndex < 0 || optionIndex >= poll.options.length) {
-            return res.status(400).json({ error: 'Invalid option' });
-        }
+        // Atomic Vote: Check Condition AND Update in one go
+        // This prevents race conditions where 2 requests pass the check simultaneously
+        const updatedPoll = await Poll.findOneAndUpdate(
+            {
+                _id: pollId,
+                isActive: true,
+                expiresAt: { $gt: new Date() }, // Must be active
+                votedBy: { $ne: user._id }      // Must NOT have voted
+            },
+            {
+                $inc: { [`options.${optionIndex}.votes`]: 1 },
+                $push: { votedBy: user._id }
+            },
+            { new: true, runValidators: true }
+        );
 
-        // Update Vote
-        poll.options[optionIndex].votes += 1;
-        poll.votedBy.push(user._id);
-        await poll.save();
+        if (!updatedPoll) {
+            // If null, it means one of the conditions failed
+            // We can do a quick read to give a better error message
+            const pollCheck = await Poll.findById(pollId);
+            if (!pollCheck) return res.status(404).json({ error: 'Poll not found' });
+            if (pollCheck.votedBy.includes(user._id)) return res.status(400).json({ error: 'You have already voted' });
+            if (!pollCheck.isActive || new Date() > pollCheck.expiresAt) return res.status(400).json({ error: 'Poll is closed' });
+
+            return res.status(400).json({ error: 'Vote failed. Please try again.' });
+        }
 
         // Award Points for Voting (Gamification Hook)
         await awardPoints(user._id, 'VOTE_POLL');
 
         res.status(200).json({
             message: 'Vote recorded',
-            updatedOptions: poll.options,
-            totalVotes: poll.totalVotes // Virtual might not work on save result directly without re-fetch, but easy to calc
+            updatedOptions: updatedPoll.options,
+            totalVotes: updatedPoll.options.reduce((acc, curr) => acc + curr.votes, 0)
         });
 
     } catch (error) {
