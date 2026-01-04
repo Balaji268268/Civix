@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/clerk-react';
 import { Trophy, Star, Medal } from 'lucide-react';
-import csrfManager from '../../utils/csrfManager';
+import csrfManager from '../utils/csrfManager';
 
 const GamificationStats = () => {
     const { getToken } = useAuth();
