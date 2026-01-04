@@ -389,8 +389,8 @@ const ReportIssue = () => {
 
                     try {
                       const [analyzeRes, captionRes] = await Promise.allSettled([
-                        csrfManager.secureFetch('http://localhost:5000/api/issues/analyze-image', { method: 'POST', body: formDataObj }),
-                        csrfManager.secureFetch('http://localhost:5000/api/issues/generate-caption', { method: 'POST', body: formDataObj })
+                        csrfManager.secureFetch('/api/issues/analyze-image', { method: 'POST', body: formDataObj }),
+                        csrfManager.secureFetch('/api/issues/generate-caption', { method: 'POST', body: formDataObj })
                       ]);
 
                       // Handle Classification
