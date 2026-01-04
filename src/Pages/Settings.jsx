@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '../components/layout/AdminLayout';
-import csrfManager from '../utils/csrfManager'; // Import csrfManager
+import csrfManager from '../utils/csrfManager';
+import { useAuth } from '@clerk/clerk-react';
 import {
   Database, Shield, Moon, Sun, Download, Bell,
   Lock, AlertTriangle, Save, RefreshCw, Mail, Smartphone
@@ -82,20 +83,22 @@ const Settings = () => {
     }
   };
 
+  const { getToken } = useAuth();
+
   const handleExportData = async () => {
     toast.loading("Preparing system export...", { id: 'export' });
     try {
-      // Raw fetch for file download usually easier than wrapper if blob needed
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const response = await fetch(`${API_URL}/api/admin/export`, {
+      const token = await getToken();
+      // Use secureFetch to handle the URL resolution automatically
+      const res = await csrfManager.secureFetch('/api/admin/export', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
-      if (!response.ok) throw new Error("Export failed");
+      if (!res.ok) throw new Error("Export failed");
 
-      const blob = await response.blob();
+      const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
