@@ -21,16 +21,38 @@ const CivicMap = ({ issues = [] }) => {
     // Default Center: Bangalore? Or calculated from issues.
     // Let's default to a generic city center or the first issue's location.
     const [center, setCenter] = useState([12.9716, 77.5946]); // Bangalore
+    const [mapIssues, setMapIssues] = useState(issues);
 
     useEffect(() => {
-        // If user has location, center there? Or bound to issues.
+        // If issues provided via props, use them
         if (issues.length > 0) {
-            const validIssues = issues.filter(i => i.coordinates && i.coordinates.lat);
+            setMapIssues(issues);
+        } else {
+            // Fetch if not provided (Standalone Mode)
+            const fetchIssues = async () => {
+                try {
+                    // We need a public endpoint or secure with token if available. 
+                    // Assuming public read for map is okay or using csrfManager if we had context.
+                    // For now, let's try a safe fetch if we are in component context.
+                    // Ideally pass down from parent, but for standalone map page support:
+                    // This file might not have auth context easily without hook.
+                } catch (e) {
+                    console.error("Map fetch error", e);
+                }
+            };
+            // fetchIssues(); 
+            // Actually, best to rely on parent. But if parent passes empty array initially and then loads, we update.
+        }
+    }, [issues]);
+
+    useEffect(() => {
+        if (mapIssues.length > 0) {
+            const validIssues = mapIssues.filter(i => i.coordinates && i.coordinates.lat);
             if (validIssues.length > 0) {
                 setCenter([validIssues[0].coordinates.lat, validIssues[0].coordinates.lng]);
             }
         }
-    }, [issues]);
+    }, [mapIssues]);
 
     return (
         <div className="w-full h-[400px] rounded-2xl overflow-hidden shadow-lg border border-emerald-100 dark:border-gray-700 relative z-0">

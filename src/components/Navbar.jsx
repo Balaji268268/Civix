@@ -153,14 +153,14 @@ const Navbar = () => {
       icon: Vote,
     },
     {
-      title: "Issue Map",          // 👈 New link
-      href: "/user-map",
-      icon: Map,        // You can use MessageSquare or another better icon
+      title: "Report Issue",        // 👈 Moved here for prominence
+      href: "/report-issue",
+      icon: AlertTriangle,
     },
     {
-      title: "Feedback",          // 👈 New link
-      href: "/feedback",
-      icon: AlertTriangle,        // You can use MessageSquare or another better icon
+      title: "Issue Map",
+      href: "/user-map",
+      icon: Map,
     },
   ];
 
