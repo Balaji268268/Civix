@@ -39,12 +39,18 @@ const verifyToken = async (req, res, next) => {
     if (!dbUser) {
       // SYNC ON DEMAND: User exists in Clerk but not in Mongo. Create them now.
       console.log(`[Auth] User ${decoded.sub} missing in DB. Syncing...`);
-      const email = decoded.email || (decoded.emails && decoded.emails[0]?.email_address); // Handle Clerk token variations
+      const email = decoded.email || (decoded.emails && decoded.emails[0]?.email_address) || decoded.email_address;
+
       // Determine role: If email contains "admin" or is the very first user, make admin.
       const userCount = await User.countDocuments();
       let role = 'user';
       if (email?.includes('admin') || userCount === 0) {
         role = 'admin';
+      }
+
+      if (!email) {
+        console.error("[Auth] Sync Aborted: No email found in token.", decoded);
+        throw new Error("Cannot sync user without email");
       }
 
       try {
@@ -53,9 +59,10 @@ const verifyToken = async (req, res, next) => {
           email: email,
           name: decoded.name || decoded.fullName || 'New User',
           role: role,
-          profilePictureUrl: decoded.imageUrl || decoded.picture,
+          profilePictureUrl: decoded.imageUrl || decoded.picture || decoded.image_url,
           isApproved: true,
-          profileSetupCompleted: false
+          profileSetupCompleted: false,
+          password: "CLERK_AUTH_USER_PLACEHOLDER_HASH" // Required by Schema
         });
         console.log(`[Auth] Synced User: ${email} as ${role}`);
       } catch (createErr) {
