@@ -403,6 +403,7 @@ const App = () => {
             <Route path='/user-map' element={<UserMap />} />
             <Route path="/resources" element={<Resources />} />
             <Route path="/complaints" element={<MyComplaints />} />
+            <Route path="/my-complaints" element={<MyComplaints />} />
 
             <Route path="/sos" element={<SOS />} />
             <Route path='/chatroom' element={<Chatroom />} />
