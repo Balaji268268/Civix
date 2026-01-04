@@ -33,25 +33,51 @@ const verifyToken = async (req, res, next) => {
       throw new Error("Token extraction failed. Token seems malformed.");
     }
 
-    // Fetch full user from DB to populate role, email, etc.
-    // Use sub (Clerk ID) to find the user
-    const dbUser = await User.findOne({ clerkUserId: decoded.sub });
+    // Fetch full user from DB using Clerk ID (sub)
+    let dbUser = await User.findOne({ clerkUserId: decoded.sub });
 
-    if (dbUser) {
-      req.user = dbUser; // Attach full Mongoose document (has .role, .email, ._id, etc.)
-      // Add clerk properties back if needed, or rely on dbUser fields
-      req.user.clerkId = decoded.sub;
-    } else {
-      // Fallback for registration flow or sync issues
-      req.user = decoded;
-      req.user.id = decoded.sub; // Map sub to id for basic compatibility
+    if (!dbUser) {
+      // SYNC ON DEMAND: User exists in Clerk but not in Mongo. Create them now.
+      console.log(`[Auth] User ${decoded.sub} missing in DB. Syncing...`);
+      const email = decoded.email || (decoded.emails && decoded.emails[0]?.email_address); // Handle Clerk token variations
+      // Determine role: If email contains "admin" or is the very first user, make admin.
+      const userCount = await User.countDocuments();
+      let role = 'user';
+      if (email?.includes('admin') || userCount === 0) {
+        role = 'admin';
+      }
+
+      try {
+        dbUser = await User.create({
+          clerkUserId: decoded.sub,
+          email: email,
+          name: decoded.name || decoded.fullName || 'New User',
+          role: role,
+          profilePictureUrl: decoded.imageUrl || decoded.picture,
+          isApproved: true,
+          profileSetupCompleted: false
+        });
+        console.log(`[Auth] Synced User: ${email} as ${role}`);
+      } catch (createErr) {
+        console.error("Auto-Sync Failed (Duplicate?):", createErr.message);
+        // Race condition fallback: try finding again
+        dbUser = await User.findOne({ clerkUserId: decoded.sub });
+      }
     }
 
-    console.log(`[Auth] User: ${req.user.email || 'N/A'} | Role: ${req.user.role || 'N/A'}`);
+    if (dbUser) {
+      req.user = dbUser; // Attach full Mongoose document
+    } else {
+      // Fallback (Should rarely happen now)
+      req.user = decoded;
+      req.user.id = decoded.sub;
+    }
+
+    // console.log(`[Auth] User: ${req.user.email} | Role: ${req.user.role}`);
     next();
   } catch (err) {
     console.error("Token Validation Error:", err.message);
-    return res.status(403).json({ message: 'Invalid or expired token' });
+    return res.status(403).json({ message: 'Invalid or expired token', error: err.message });
   }
 };
 
@@ -97,7 +123,14 @@ const isAdmin = (req, res, next) => {
     next();
   } else {
     console.warn("Access Denied. User Role:", role);
-    return res.status(403).json({ message: 'Admin access only' });
+    return res.status(403).json({
+      message: 'Admin access only',
+      debug: {
+        role: role || 'none',
+        email: req.user?.email,
+        id: req.user?._id || req.user?.id
+      }
+    });
   }
 };
 
