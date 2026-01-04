@@ -31,9 +31,11 @@ const USER_MODELS = [
 ];
 
 const ACTIVE_MODELS = [
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
-    "gemini-1.0-pro"
+    "gemini-2.5-flash",
+    "gemini-3-flash",
+    "gemini-2.5-flash-lite",
+    "gemma-3-27b",
+    "gemma-3-12b"
 ];
 
 let globalKeyIndex = 0;
