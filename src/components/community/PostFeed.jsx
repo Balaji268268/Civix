@@ -11,7 +11,7 @@ const PostFeed = ({ limit = 20, compact = false, activeTab = 'feed' }) => {
     const [newPostContent, setNewPostContent] = useState('');
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
-    const [commentModalPost, setCommentModalPost] = useState(null);
+    const [repostModalPost, setRepostModalPost] = useState(null);
 
     useEffect(() => {
         fetchPosts();
@@ -90,8 +90,7 @@ const PostFeed = ({ limit = 20, compact = false, activeTab = 'feed' }) => {
     };
 
     const handleQuotePost = (post) => {
-        setNewPostContent(`Reposting @${post.author?.name}: "${post.content}"\n\n`);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setRepostModalPost(post);
     };
 
     const handleLike = async (postId) => {
@@ -201,20 +200,119 @@ const PostFeed = ({ limit = 20, compact = false, activeTab = 'feed' }) => {
                     />
                 )}
             </AnimatePresence>
+            {/* Repost Modal */}
+            <AnimatePresence>
+                {repostModalPost && (
+                    <RepostModal
+                        post={repostModalPost}
+                        onClose={() => setRepostModalPost(null)}
+                        getToken={getToken}
+                        user={user}
+                        onRepostAdded={(newPost) => {
+                            setPosts([newPost, ...posts]);
+                            toast.success("Reposted!");
+                        }}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 };
 
 /* --- Sub Components --- */
+const RepostModal = ({ post, onClose, getToken, user, onRepostAdded }) => {
+    const [text, setText] = useState('');
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleSubmit = async () => {
+        setSubmitting(true);
+        try {
+            const token = await getToken();
+            // Create a new post with the quoted content
+            // Since we don't have a 'quote' field, we append the quote to the text nicely
+            const contentv = `${text}\n\n[Reposting @${post.author?.name}]\n> ${post.content}`;
+
+            const res = await csrfManager.secureFetch('/api/posts', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    content: contentv,
+                    image: post.image // Option: carry over image? Maybe. Let's keep it simple text for now or specific UI.
+                })
+            });
+
+            if (res.ok) {
+                const newPost = await res.json();
+                onRepostAdded(newPost);
+                onClose();
+            }
+        } catch (e) {
+            toast.error("Failed to repost");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white dark:bg-gray-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden"
+            >
+                <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                    <h3 className="font-bold text-lg">Quote Post</h3>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+
+                <div className="p-4">
+                    <textarea
+                        autoFocus
+                        value={text}
+                        onChange={e => setText(e.target.value)}
+                        placeholder="Add a comment..."
+                        className="w-full bg-transparent border-none text-lg text-gray-900 dark:text-white placeholder-gray-500 focus:ring-0 resize-none h-24 p-0 mb-4"
+                    />
+
+                    {/* Quoted Post Preview */}
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-gray-50 dark:bg-gray-800/50">
+                        <div className="flex items-center gap-1.5 text-sm mb-1">
+                            <span className="font-bold text-gray-900 dark:text-gray-100">{post.author?.name}</span>
+                            <span className="text-gray-500">@{post.author?.email?.split('@')[0]}</span>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-3">{post.content}</p>
+                    </div>
+
+                    <div className="flex justify-end mt-4">
+                        <button
+                            onClick={handleSubmit}
+                            disabled={submitting}
+                            className="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-full font-bold text-sm disabled:opacity-50"
+                        >
+                            Repost
+                        </button>
+                    </div>
+                </div>
+            </motion.div>
+        </div>
+    );
+};
+
 const LikeButton = ({ liked, count, onClick }) => {
     return (
         <motion.button
             whileTap={{ scale: 0.8 }}
             onClick={(e) => { e.stopPropagation(); onClick(); }}
-            className={`group flex items-center gap-1.5 text-sm transition-colors relative ${liked ? 'text-emerald-500' : 'text-gray-500 hover:text-pink-500'}`}
+            className={`group flex items-center gap-1.5 text-sm transition-colors relative ${liked ? 'text-emerald-500' : 'text-gray-500 hover:text-emerald-500'}`}
         >
             <div className="relative">
-                <div className={`p-2 rounded-full transition-colors ${liked ? 'bg-emerald-50 text-emerald-500 shadow-emerald-200 dark:shadow-emerald-900/30' : 'group-hover:bg-pink-50 dark:group-hover:bg-pink-900/20'}`}>
+                <div className={`p-2 rounded-full transition-colors ${liked ? 'bg-emerald-50 text-emerald-500 shadow-emerald-200 dark:shadow-emerald-900/30' : 'group-hover:bg-emerald-50 dark:group-hover:bg-emerald-900/20'}`}>
                     <Heart className={`w-4.5 h-4.5 ${liked ? 'fill-emerald-500 stroke-emerald-500' : ''}`} />
                 </div>
                 {/* Confetti Explosion */}
