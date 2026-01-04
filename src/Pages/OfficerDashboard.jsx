@@ -68,7 +68,8 @@ export default function OfficerDashboard() {
 
         try {
             const token = await getToken();
-            const res = await fetch(`http://localhost:5000/api/issues/${selectedTask._id}/submit-resolution`, {
+            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const res = await fetch(`${API_URL}/api/issues/${selectedTask._id}/submit-resolution`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`

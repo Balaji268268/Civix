@@ -6,6 +6,7 @@ import { MapPin, User, Mail, Camera, Save, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import useProfileStatus from '../hooks/useProfileStatus';
 import csrfManager from '../utils/csrfManager';
+import API_BASE_URL from '../config'; // Import Config
 
 const ProfileSetup = ({ onComplete }) => {
   const { user } = useUser();
@@ -115,8 +116,8 @@ const ProfileSetup = ({ onComplete }) => {
     try {
       const token = await window.Clerk?.session?.getToken();
 
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await csrfManager.secureFetch(`${API_URL}/api/profile/create-or-update`, {
+      // Use centralized config
+      const res = await csrfManager.secureFetch(`${API_BASE_URL}/api/profile/create-or-update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

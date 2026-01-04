@@ -56,7 +56,8 @@ export default function RecordAudio() {
 
     try {
       // 1. Call Backend
-      const response = await csrfManager.secureFetch("http://localhost:5000/api/ml/transcribe-audio/", {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const response = await csrfManager.secureFetch(`${API_URL}/api/ml/transcribe-audio/`, {
         method: "POST",
         body: formData
       });

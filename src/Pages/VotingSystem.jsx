@@ -109,7 +109,7 @@ const VotingSystem = () => {
     try {
       const token = await getToken();
       if (!token) return;
-      const res = await csrfManager.secureFetch('http://localhost:5000/api/polls/create', {
+      const res = await csrfManager.secureFetch('/api/polls/create', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({

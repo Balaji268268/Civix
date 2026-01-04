@@ -82,7 +82,7 @@ const UserPosts = () => {
         try {
             const token = await getToken();
             if (!token) return;
-            const res = await csrfManager.secureFetch(`http://localhost:5000/api/posts/${postId}`, {
+            const res = await csrfManager.secureFetch(`/api/posts/${postId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

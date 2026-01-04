@@ -1,4 +1,6 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+import API_BASE_URL from '../config';
+
+const BACKEND_URL = API_BASE_URL;
 
 class CSRFManager {
   constructor() {

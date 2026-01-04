@@ -113,7 +113,7 @@ const Users = () => {
   const handleApproveUser = async (userId) => {
     try {
       const token = await getToken();
-      const res = await csrfManager.secureFetch(`http://localhost:5000/api/admin/users/${userId}/approve`, {
+      const res = await csrfManager.secureFetch(`/api/admin/users/${userId}/approve`, {
         method: 'PATCH',
         headers: { 'Authorization': `Bearer ${token}` }
       });

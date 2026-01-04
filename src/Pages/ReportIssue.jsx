@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { MapPin, Upload, ShieldCheck, Loader2, ArrowRight, User } from 'lucide-react';
 import csrfManager from "../utils/csrfManager";
 import UserLayout from "../components/layout/UserLayout";
+import API_BASE_URL from '../config'; // Import Config
 
 import DuplicateIssueModal from "../components/DuplicateIssueModal";
 import VoiceInput from '../components/VoiceInput';
@@ -390,8 +391,8 @@ const ReportIssue = () => {
 
                     try {
                       const [analyzeRes, captionRes] = await Promise.allSettled([
-                        csrfManager.secureFetch('http://localhost:5000/api/issues/analyze-image', { method: 'POST', body: formDataObj }),
-                        csrfManager.secureFetch('http://localhost:5000/api/issues/generate-caption', { method: 'POST', body: formDataObj })
+                        csrfManager.secureFetch(`${API_BASE_URL}/api/issues/analyze-image`, { method: 'POST', body: formDataObj }),
+                        csrfManager.secureFetch(`${API_BASE_URL}/api/issues/generate-caption`, { method: 'POST', body: formDataObj })
                       ]);
 
                       // Handle Classification
