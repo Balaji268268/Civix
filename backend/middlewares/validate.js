@@ -1,8 +1,9 @@
 const { validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
+const User = require('../models/userModel');
 
 // Basic token validation
-const verifyToken = (req, res, next) => {
+const verifyToken = async (req, res, next) => {
   let token = null;
 
   if (req.headers.authorization?.startsWith('Bearer ')) {
@@ -21,8 +22,6 @@ const verifyToken = (req, res, next) => {
     // DEBUG: Using decode instead of verify because we are receiving Clerk tokens (RS256)
     // but the backend is configured with a local secret (HS256).
     // TODO: Switch to @clerk/clerk-sdk-node for proper verification.
-    // DEBUG: Log the extracted token to debug failure
-    console.log("Extracted Token:", token);
 
     if (token === 'undefined' || token === 'null') {
       throw new Error(`Token is literally "${token}"`);
@@ -34,8 +33,21 @@ const verifyToken = (req, res, next) => {
       throw new Error("Token extraction failed. Token seems malformed.");
     }
 
-    req.user = decoded;
-    console.log("Decoded User:", JSON.stringify(req.user, null, 2)); // Debug log
+    // Fetch full user from DB to populate role, email, etc.
+    // Use sub (Clerk ID) to find the user
+    const dbUser = await User.findOne({ clerkUserId: decoded.sub });
+
+    if (dbUser) {
+      req.user = dbUser; // Attach full Mongoose document (has .role, .email, ._id, etc.)
+      // Add clerk properties back if needed, or rely on dbUser fields
+      req.user.clerkId = decoded.sub;
+    } else {
+      // Fallback for registration flow or sync issues
+      req.user = decoded;
+      req.user.id = decoded.sub; // Map sub to id for basic compatibility
+    }
+
+    console.log(`[Auth] User: ${req.user.email || 'N/A'} | Role: ${req.user.role || 'N/A'}`);
     next();
   } catch (err) {
     console.error("Token Validation Error:", err.message);
