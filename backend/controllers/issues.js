@@ -6,6 +6,8 @@ const sendEmail = require('../utils/sendEmail');
 const { asyncHandler } = require('../utils/asyncHandler');
 const { uploadOnCloudinary } = require("../utils/cloudinary.js");
 const { callGemini, callGeminiVision } = require("../utils/gemini");
+const Post = require('../models/post');
+const { awardPoints } = require('./gamificationController');
 const axios = require('axios');
 
 // Helper: ML Service Config
@@ -214,6 +216,36 @@ const createIssue = asyncHandler(async (req, res) => {
     });
   } catch (notifError) {
     console.warn("Failed to create admin notification for issue:", notifError.message);
+  }
+
+  // --- 5. GAMIFICATION & COMMUNITY INTEGRATION ---
+  try {
+    // A. Award Points to Reporter
+    const reporter = await User.findOne({ email });
+    if (reporter) {
+      await awardPoints(reporter._id, 'REPORT_ISSUE');
+      console.log(`[Gamification] Awarded points to ${reporter.email} for reporting`);
+    }
+
+    // B. Auto-Create Community Post
+    if (!isPrivate) {
+      let postAuthor = reporter ? reporter._id : null;
+
+      // If anonymous reporting (no user found), maybe assign to a "System" or "Civix Bot" user?
+      // For now, only post if we have a valid user author, otherwise it breaks Post schema.
+      if (postAuthor) {
+        const newPost = await Post.create({
+          content: `🚨 **New Issue Reported**: ${title}\n\n${description}\n\n📍 ${location || 'No location provided'}\n\nHelp verify this by upvoting! #CivicDuty #${finalCategory.replace(/\s+/g, '')}`,
+          image: fileUrl || null,
+          author: postAuthor,
+          type: 'post',
+          linkedIssue: issue._id
+        });
+        console.log(`[Community] Auto-posted issue to feed: ${newPost._id}`);
+      }
+    }
+  } catch (gameError) {
+    console.error("Gamification/Post Error (Non-blocking):", gameError.message);
   }
 
   return res.status(201).json({

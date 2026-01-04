@@ -1,7 +1,110 @@
 const Post = require('../models/post');
 const User = require('../models/userModel');
+const Issue = require('../models/issues');
+const { awardPoints } = require('./gamificationController');
 
-// Create a new post
+// ... (existing code for createPost, getUserPosts, getAllPosts, deletePost)
+
+// Toggle Like
+exports.toggleLike = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Fix: req.user is already the DB User from validate.js
+        let user = req.user;
+        if (!user._id) {
+            user = await User.findOne({ clerkUserId: req.user.id || req.user.sub });
+        }
+
+        if (!user) {
+            console.log("[ToggleLike] User not found for ID:", req.user?.id);
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const post = await Post.findById(id);
+        if (!post) {
+            console.log("[ToggleLike] Post not found:", id);
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        // Fix: Use string comparison for ObjectIds
+        const index = post.likes.findIndex(likeId => likeId.toString() === user._id.toString());
+
+        if (index === -1) {
+            post.likes.push(user._id);
+            // Gamification: Award XP for Liking (Upvoting)
+            await awardPoints(user._id, 'LIKE_POST');
+        } else {
+            post.likes.splice(index, 1);
+        }
+        await post.save();
+
+        // --- Dynamic Priority Logic (for Issue Posts) ---
+        if (post.linkedIssue && post.likes.length >= 10) {
+            try {
+                const issue = await Issue.findById(post.linkedIssue);
+                if (issue && issue.priority === 'Medium') {
+                    issue.priority = 'High';
+                    issue.timeline.push({
+                        status: issue.status,
+                        message: `Priority upgraded to High due to community upvotes (${post.likes.length} likes).`,
+                        byUser: 'System'
+                    });
+                    await issue.save();
+                    console.log(`[Priority Upgrade] Issue ${issue.complaintId} upgraded to High`);
+                }
+            } catch (err) {
+                console.warn("Failed to upgrade issue priority:", err.message);
+            }
+        }
+
+        // Return updated simple object or populate?
+        res.status(200).json(post);
+    } catch (error) {
+        console.error("[ToggleLike] Error:", error);
+        res.status(500).json({ message: "Like failed" });
+    }
+};
+
+// Add Comment
+exports.addComment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { text } = req.body;
+
+        if (!text) return res.status(400).json({ message: "Comment text required" });
+
+        // Fix: req.user is already the DB User
+        let user = req.user;
+        if (!user._id) {
+            user = await User.findOne({ clerkUserId: req.user.id || req.user.sub });
+        }
+
+        if (!user) return res.status(404).json({ message: "User not found (Auth Error)" });
+
+        const post = await Post.findById(id);
+        if (!post) return res.status(404).json({ message: "Post not found" });
+
+        const newComment = {
+            user: user._id,
+            text,
+            createdAt: new Date()
+        };
+
+        post.comments.push(newComment);
+        await post.save();
+
+        // Gamification: Award XP for Commenting
+        await awardPoints(user._id, 'COMMENT_POST');
+
+        // Return fully populated post
+        await post.populate('comments.user', 'name profilePictureUrl');
+        res.status(201).json(post);
+    } catch (error) {
+        console.error("Comment error:", error);
+        res.status(500).json({ message: "Comment failed" });
+    }
+};
 exports.createPost = async (req, res) => {
     try {
         const { content, image, type, title, eventDate, location, eventCategory } = req.body;

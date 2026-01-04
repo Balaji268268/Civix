@@ -22,6 +22,12 @@ const postSchema = new mongoose.Schema({
     eventCategory: { type: String }, // e.g. Volunteering, Health
     attendees: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 
+    // Linked Issue (for auto-posts)
+    linkedIssue: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Issue'
+    },
+
     author: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

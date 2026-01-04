@@ -85,7 +85,11 @@ const POINTS_MAP = {
     REPORT_ISSUE: 10,
     VOTE_POLL: 5,
     ISSUE_RESOLVED: 50,
-    VERIFIED_REPORT: 20
+    ISSUE_RESOLVED: 50,
+    VERIFIED_REPORT: 20,
+    LIKE_POST: 2,
+    COMMENT_POST: 5,
+    SHARE_POST: 5
 };
 
 // Badges Configuration
