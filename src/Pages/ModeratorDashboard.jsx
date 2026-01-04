@@ -52,7 +52,10 @@ export default function ModeratorDashboard() {
     const fetchIssues = async () => {
         setLoading(true);
         try {
-            const res = await csrfManager.secureFetch('/api/issues');
+            const token = await getToken();
+            const res = await csrfManager.secureFetch('/api/issues', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             const data = await res.json();
             // Filter relevant: Pending, Open, In Progress
             const activeIssues = data.filter(i =>
@@ -93,9 +96,13 @@ export default function ModeratorDashboard() {
     const runAiAnalysis = async (issue) => {
         setAnalyzing(true);
         try {
+            const token = await getToken();
             const response = await csrfManager.secureFetch('/api/moderator/analyze', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     title: issue.title,
                     description: issue.description,
