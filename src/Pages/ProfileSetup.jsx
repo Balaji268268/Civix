@@ -116,8 +116,8 @@ const ProfileSetup = ({ onComplete }) => {
     try {
       const token = await window.Clerk?.session?.getToken();
 
-      // Use centralized config
-      const res = await csrfManager.secureFetch(`${API_BASE_URL}/api/profile/create-or-update`, {
+      // Use centralized config - delegated to csrfManager
+      const res = await csrfManager.secureFetch('/api/profile/create-or-update', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
