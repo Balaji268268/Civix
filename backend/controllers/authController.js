@@ -110,4 +110,33 @@ exports.login = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Claim Admin Role (Bootstrap)
+ * Allows the FIRST user (or if 0 admins exist) to become Admin.
+ */
+exports.claimAdmin = asyncHandler(async (req, res) => {
+  const userId = req.user._id || req.user.id;
+  const adminCount = await User.countDocuments({ role: 'admin' });
+
+  if (adminCount > 0) {
+    // If admins already exist, this endpoint is forbidden (except for dev override if needed)
+    // Check if the current user IS the admin
+    const currentUser = await User.findById(userId);
+    if (currentUser.role === 'admin') {
+      return res.status(200).json({ message: "You are already an Admin!" });
+    }
+    return res.status(403).json({ error: "Admin already claimed. Contact existing admin." });
+  }
+
+  // Promote current user
+  const updatedUser = await User.findByIdAndUpdate(userId, { role: 'admin' }, { new: true });
+
+  console.log(`[Bootstrap] User ${updatedUser.email} promoted to ADMIN via claim-admin.`);
+
+  return res.status(200).json({
+    message: "Success! You are now the Admin.",
+    user: updatedUser
+  });
+});
+
 
