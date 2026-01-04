@@ -36,6 +36,7 @@ import {
 import TrendingFeed from "./TrendingFeed";
 import Leaderboard from "../components/gamification/Leaderboard";
 import PageTransition from "../components/PageTransition";
+import GamificationStats from "../components/GamificationStats";
 
 const UserDashboard = () => {
 
@@ -123,11 +124,6 @@ const UserDashboard = () => {
               </div>
             </div>
 
-// ... (imports)
-            import GamificationStats from "../components/GamificationStats";
-            // ... (rest of imports)
-
-            // ...
 
             {/* Right Sidebar - Compact */}
             <div className="lg:w-80 shrink-0 space-y-6">
