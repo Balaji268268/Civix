@@ -54,6 +54,14 @@ if (cluster.isPrimary) {
   // Trust proxy for Render/Vercel (fixes express-rate-limit error)
   app.set('trust proxy', 1);
 
+  // Shim for req.query to prevent "Cannot set property query of #<IncomingMessage>" crash
+  app.use((req, res, next) => {
+    if (req.query && !Object.getOwnPropertyDescriptor(req, 'query').writable) {
+      Object.defineProperty(req, 'query', { value: { ...req.query }, writable: true });
+    }
+    next();
+  });
+
   // === Database Initialization ===
 
   // Commented db.js import so that the app can run on MongoDB only to rectify the issue of multiple database connections
