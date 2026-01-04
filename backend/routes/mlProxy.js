@@ -9,14 +9,18 @@ const { verifyToken } = require('../middlewares/validate');
 // Using memory storage to pass buffer to Python
 const upload = multer({ storage: multer.memoryStorage() });
 
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'http://127.0.0.1:8000';
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'https://civix-ml.onrender.com';
 
 // Proxy Handler for JSON requests
 const proxyJson = async (req, res) => {
     try {
-        // Change: /api/ml/predict -> /api/predict
-        const url = `${ML_SERVICE_URL}${req.originalUrl.replace('/api/ml', '/api')}`;
-        console.log(`Proxying JSON to: ${url}`);
+        // Construct URL: Remove /api/ml prefix, ensure no double slashes
+        // If ML service is at root, we might want to strip /api too? 
+        // Assuming ML Service has /generate-reply or /api/generate-reply. 
+        // Let's keep /api mapping for now but be clean.
+        const cleanPath = req.originalUrl.replace('/api/ml', '/api').replace('//', '/');
+        const url = `${ML_SERVICE_URL}${cleanPath}`;
+        console.log(`[ML Proxy] Proxying to: ${url}`);
 
         const response = await axios({
             method: req.method,
@@ -41,8 +45,9 @@ const proxyJson = async (req, res) => {
 // Proxy Handler for Multipart/File requests (Transcribe)
 const proxyMultipart = async (req, res) => {
     try {
-        const url = `${ML_SERVICE_URL}${req.originalUrl.replace('/api/ml', '/api')}`;
-        console.log(`Proxying File to: ${url}`);
+        const cleanPath = req.originalUrl.replace('/api/ml', '/api').replace('//', '/');
+        const url = `${ML_SERVICE_URL}${cleanPath}`;
+        console.log(`[ML Proxy] Proxying File to: ${url}`);
 
         if (!req.file) {
             return res.status(400).json({ error: "No file uploaded" });
