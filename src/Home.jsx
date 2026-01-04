@@ -53,11 +53,11 @@ function Home() {
     // Ideally show a spinner, but for now, we just wait or let them click again.
     if (profileLoading) return;
 
-    // 2. Strict Profile Check
-    if (!isProfileComplete) {
-      navigate('/profile-setup');
-      return;
-    }
+    // 2. Strict Profile Check (DISABLED)
+    // if (!isProfileComplete) {
+    //   navigate('/profile-setup');
+    //   return;
+    // }
 
     // 3. Role-Based Navigation (Pro Flow)
     // Robust check: Metadata > Backend > Default
@@ -88,10 +88,10 @@ function Home() {
   useEffect(() => {
     const autoRedirect = async () => {
       if (isSignedIn && !profileLoading) {
-        if (!isProfileComplete) {
-          navigate('/profile-setup', { replace: true });
-          return;
-        }
+        // if (!isProfileComplete) {
+        //   navigate('/profile-setup', { replace: true });
+        //   return;
+        // }
 
         // Robust check: Metadata > Backend > Default
         let role = user?.publicMetadata?.role;

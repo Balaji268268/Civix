@@ -22,12 +22,12 @@ const RequireProfile = ({ children }) => {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    // Strict Check: If profile is NOT complete, force them to setup
-    if (!isProfileComplete) {
-        return <Navigate to="/profile-setup" replace />;
-    }
+    // BYPASS: Profile Setup is disabled.
+    // if (!isProfileComplete) {
+    //     return <Navigate to="/profile-setup" replace />;
+    // }
 
-    // If complete, allow access
+    // Always allow access
     return children;
 };
 

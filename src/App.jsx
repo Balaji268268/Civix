@@ -44,7 +44,7 @@ const DownloadIOS = lazy(() => import('./Pages/DownloadIOS'));
 const NewIssue = lazy(() => import('./Pages/NewIssue'));
 const CommunityVotingPage = lazy(() => import('./Pages/CommunityVotingPage'));
 const Profile = lazy(() => import('./Pages/Profile'));
-const ProfileSetup = lazy(() => import('./Pages/ProfileSetup'));
+// const ProfileSetup = lazy(() => import('./Pages/ProfileSetup'));
 const Resources = lazy(() => import('./Pages/Resources'));
 const MyComplaints = lazy(() => import('./Pages/MyComplaints'));
 const CivicEducation = lazy(() => import('./Pages/CivicEducation'));
@@ -384,16 +384,15 @@ const App = () => {
               }
             />
 
-            {/* Profile Setup */}
-            <Route
+            {/* Profile Setup - DISABLED/REMOVED */}
+            {/* <Route
               path="/profile-setup"
               element={
                 <PortalGuard allowedRoles={['user', 'admin']}>
-                  {/* Pass refetch/complete prop if needed */}
                   <ProfileSetup onComplete={() => setIsProfileComplete(true)} />
                 </PortalGuard>
               }
-            />
+            /> */}
 
             {/* Misc Public/User Routes */}
             <Route path='/electricity' element={<Electricity />} />
