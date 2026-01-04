@@ -229,16 +229,46 @@ const createUser = asyncHandler(async (req, res) => {
         return res.status(409).json({ error: "User with this email already exists" });
     }
 
+    let clerkId = null;
+    let profilePictureUrl = null;
+
+    // 1. Create in Clerk (if Key Available)
+    if (process.env.CLERK_SECRET_KEY) {
+        try {
+            const { clerkClient } = require('@clerk/clerk-sdk-node');
+            const clerkUser = await clerkClient.users.createUser({
+                firstName: name.split(' ')[0],
+                lastName: name.split(' ').slice(1).join(' ') || '',
+                emailAddress: [email],
+                password: password,
+                publicMetadata: { role: role, department: department }
+            });
+            clerkId = clerkUser.id;
+            profilePictureUrl = clerkUser.imageUrl;
+            console.log(`[Admin] Created Clerk User: ${clerkId}`);
+        } catch (clerkErr) {
+            console.error("Clerk Creation Failed:", clerkErr);
+            // Optional: return error if strict Clerk sync is required
+            if (clerkErr.errors && clerkErr.errors[0]?.message) {
+                return res.status(400).json({ error: `Clerk Error: ${clerkErr.errors[0].message}` });
+            }
+        }
+    } else {
+        console.warn("[Admin] CLERK_SECRET_KEY missing. User created in DB only (cannot login via Clerk).");
+    }
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = await User.create({
+        clerkUserId: clerkId, // Link to Clerk
         name,
         email,
-        username: email.split('@')[0], // rudimentary username
+        username: email.split('@')[0],
         password: hashedPassword,
         role,
         department: department || null,
-        isApproved: true, // Auto-approve admin created users
+        profilePictureUrl: profilePictureUrl,
+        isApproved: true,
         profileSetupCompleted: true
     });
 
