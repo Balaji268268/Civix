@@ -131,6 +131,7 @@ if (cluster.isPrimary) {
     /^\/api\/issues\/.*\/submit-resolution$/, // Resolution Proof (Multipart)
     /^\/api\/posts.*$/, // Posts (Likes, Comments - handled by Auth Token)
     /^\/api\/moderator.*$/, // Moderator Actions (Protected by Token + Role)
+    /^\/api\/ml.*$/, // ML Proxy (Protected by Token)
   ];
   app.use(skipCSRFForRoutes(csrfSkipRoutes));
 
