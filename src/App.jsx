@@ -53,7 +53,7 @@ const CivicSimulator = lazy(() => import('./Pages/CivicSimulator'));
 const SOS = lazy(() => import('./Pages/SOS'));
 const TaxImpact = lazy(() => import('./Pages/TaxImpact'));
 const RepersentativeFinder = lazy(() => import('./Pages/RepersentativeFinder'));
-const Users = lazy(() => import('./Pages/Users'));
+const Users = lazy(() => import('./Pages/Admin/UserManagement'));
 const AdminUserDetails = lazy(() => import('./Pages/AdminUserDetails'));
 const UserPosts = lazy(() => import('./Pages/UserPosts'));
 const Settings = lazy(() => import('./Pages/Settings'));
