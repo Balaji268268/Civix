@@ -136,14 +136,27 @@ exports.deletePost = async (req, res) => {
 };
 
 // Toggle Like
+// Toggle Like
 exports.toggleLike = async (req, res) => {
     try {
         const { id } = req.params;
-        const user = await User.findOne({ clerkUserId: req.user.id });
-        if (!user) return res.status(404).json({ message: "User not found" });
+
+        // Fix: req.user is already the DB User from validate.js
+        let user = req.user;
+        if (!user._id) {
+            user = await User.findOne({ clerkUserId: req.user.id || req.user.sub });
+        }
+
+        if (!user) {
+            console.log("[ToggleLike] User not found for ID:", req.user?.id);
+            return res.status(404).json({ message: "User not found" });
+        }
 
         const post = await Post.findById(id);
-        if (!post) return res.status(404).json({ message: "Post not found" });
+        if (!post) {
+            console.log("[ToggleLike] Post not found:", id);
+            return res.status(404).json({ message: "Post not found" });
+        }
 
         const index = post.likes.indexOf(user._id);
         if (index === -1) {
@@ -154,6 +167,7 @@ exports.toggleLike = async (req, res) => {
         await post.save();
         res.status(200).json(post);
     } catch (error) {
+        console.error("[ToggleLike] Error:", error);
         res.status(500).json({ message: "Like failed" });
     }
 };
