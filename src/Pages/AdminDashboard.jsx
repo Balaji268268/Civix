@@ -23,9 +23,12 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const token = await getToken();
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
         const [statsRes, issuesRes] = await Promise.all([
-          csrfManager.secureFetch(`/api/admin/stats?t=${Date.now()}`),
-          csrfManager.secureFetch(`/api/issues?t=${Date.now()}`)
+          csrfManager.secureFetch(`/api/admin/stats?t=${Date.now()}`, { headers }),
+          csrfManager.secureFetch(`/api/issues?t=${Date.now()}`, { headers })
         ]);
 
         if (statsRes.ok) {
