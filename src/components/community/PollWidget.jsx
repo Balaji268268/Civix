@@ -14,7 +14,7 @@ const PollWidget = () => {
             try {
                 const token = await getToken();
                 if (!token) return;
-                const res = await csrfManager.secureFetch('http://localhost:5000/api/polls', {
+                const res = await csrfManager.secureFetch('/api/polls', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
