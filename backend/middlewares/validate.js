@@ -39,7 +39,28 @@ const verifyToken = async (req, res, next) => {
     if (!dbUser) {
       // SYNC ON DEMAND: User exists in Clerk but not in Mongo. Create them now.
       console.log(`[Auth] User ${decoded.sub} missing in DB. Syncing...`);
-      const email = decoded.email || (decoded.emails && decoded.emails[0]?.email_address) || decoded.email_address;
+
+      let email = decoded.email || (decoded.emails && decoded.emails[0]?.email_address) || decoded.email_address;
+      let firstName = decoded.name || decoded.fullName || 'New User';
+      let imageUrl = decoded.imageUrl || decoded.picture || decoded.image_url;
+
+      // FALLBACK: If email is missing (common with minimal session tokens), fetch from Clerk API
+      if (!email && process.env.CLERK_SECRET_KEY) {
+        try {
+          console.log("[Auth] Token missing email. Fetching full profile from Clerk API...");
+          const { clerkClient } = require('@clerk/clerk-sdk-node');
+          const clerkUser = await clerkClient.users.getUser(decoded.sub);
+
+          if (clerkUser) {
+            email = clerkUser.emailAddresses[0]?.emailAddress;
+            firstName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || 'New User';
+            imageUrl = clerkUser.imageUrl;
+            console.log(`[Auth] Fetched from Clerk: ${email}`);
+          }
+        } catch (clerkErr) {
+          console.error("[Auth] Clerk API Fetch Failed:", clerkErr.message);
+        }
+      }
 
       // Determine role: If email contains "admin" or is the very first user, make admin.
       const userCount = await User.countDocuments();
@@ -57,9 +78,9 @@ const verifyToken = async (req, res, next) => {
         dbUser = await User.create({
           clerkUserId: decoded.sub,
           email: email,
-          name: decoded.name || decoded.fullName || 'New User',
+          name: firstName,
           role: role,
-          profilePictureUrl: decoded.imageUrl || decoded.picture || decoded.image_url,
+          profilePictureUrl: imageUrl,
           isApproved: true,
           profileSetupCompleted: false,
           password: "CLERK_AUTH_USER_PLACEHOLDER_HASH" // Required by Schema
