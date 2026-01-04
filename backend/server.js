@@ -55,10 +55,18 @@ if (cluster.isPrimary) {
   // Trust proxy for Render/Vercel (fixes express-rate-limit error)
   app.set('trust proxy', 1);
 
-  // Shim for req.query to prevent "Cannot set property query of #<IncomingMessage>" crash
+  // Shim for req.query to prevent "Cannot set property query" crash
   app.use((req, res, next) => {
-    if (req.query && !Object.getOwnPropertyDescriptor(req, 'query').writable) {
-      Object.defineProperty(req, 'query', { value: { ...req.query }, writable: true });
+    try {
+      if (req.query) {
+        const desc = Object.getOwnPropertyDescriptor(req, 'query');
+        // If no descriptor (inherited) or, if exists, is not writable
+        if (!desc || !desc.writable) {
+          Object.defineProperty(req, 'query', { value: { ...req.query }, writable: true });
+        }
+      }
+    } catch (err) {
+      console.error("Query Shim Error:", err);
     }
     next();
   });
