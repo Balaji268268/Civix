@@ -136,10 +136,5 @@ router.post('/login',
 
 // TEMP ROUTE TO SET MODERATOR
 
-const { claimAdmin } = require('../controllers/authController');
-const { verifyToken } = require('../middlewares/validate');
-
-// Use POST /api/auth/claim-admin
-router.post('/claim-admin', verifyToken, claimAdmin);
 
 module.exports = router;
