@@ -166,13 +166,24 @@ exports.toggleLike = async (req, res) => {
             return res.status(404).json({ message: "Post not found" });
         }
 
-        const index = post.likes.indexOf(user._id);
+        if (!post) {
+            console.log("[ToggleLike] Post not found:", id);
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        // Fix: Use string comparison for ObjectIds
+        const index = post.likes.findIndex(likeId => likeId.toString() === user._id.toString());
+
         if (index === -1) {
             post.likes.push(user._id);
         } else {
             post.likes.splice(index, 1);
         }
         await post.save();
+
+        // Return updated simple object or populate?
+        // Let's return the updated list size or boolean to help frontend if needed, 
+        // but frontend expects the post object.
         res.status(200).json(post);
     } catch (error) {
         console.error("[ToggleLike] Error:", error);

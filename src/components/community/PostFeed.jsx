@@ -394,6 +394,12 @@ const CommentModal = ({ post, onClose, getToken, user, onCommentAdded }) => {
                 const updatedPost = await res.json();
                 onCommentAdded(updatedPost);
                 toast.success("Reply sent");
+                setText(''); // Clear input but keep modal open to see new comment? Or close? User usually expects close or see update.
+                // Let's reload comments locally or just close. User asked to see replies.
+                // If we close, we can't see replies. Let's NOT close automatically if we want to support conversation, 
+                // BUT standard UI usually closes modal. 
+                // However, user specifically asked: "when i click the comment section it should have the previous replies too and new reply also"
+                // So I definitely need to RENDER them.
                 onClose();
             }
         } catch (e) {
@@ -409,39 +415,63 @@ const CommentModal = ({ post, onClose, getToken, user, onCommentAdded }) => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white dark:bg-gray-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden"
+                className="bg-white dark:bg-gray-900 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
             >
-                <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                <div className="p-4 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center shrink-0">
+                    <h3 className="font-bold text-lg text-gray-900 dark:text-white">Replies</h3>
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors">
                         <X className="w-5 h-5 text-gray-900 dark:text-gray-100" />
                     </button>
-                    <button
-                        onClick={handleSubmit}
-                        disabled={!text.trim() || submitting}
-                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-1.5 rounded-full font-bold text-sm disabled:opacity-50"
-                    >
-                        Reply
-                    </button>
                 </div>
-                <div className="p-4">
-                    <div className="flex gap-4">
+
+                <div className="overflow-y-auto flex-1 p-4 space-y-6">
+                    {/* Original Post (Context) */}
+                    <div className="flex gap-4 relative">
                         <div className="flex flex-col items-center">
                             <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden shrink-0">
                                 {post.author?.profilePictureUrl ? <img src={post.author.profilePictureUrl} className="w-full h-full object-cover" /> : <div className="bg-gray-400 w-full h-full" />}
                             </div>
-                            <div className="w-0.5 grow bg-gray-200 dark:bg-gray-800 my-2"></div>
+                            <div className="w-0.5 grow bg-gray-200 dark:bg-gray-700 my-2"></div>
                         </div>
-                        <div className="pb-6">
+                        <div className="pb-2">
                             <div className="flex items-center gap-1.5 text-sm mb-1">
                                 <span className="font-bold text-gray-900 dark:text-gray-100">{post.author?.name}</span>
                                 <span className="text-gray-500">@{post.author?.email?.split('@')[0]}</span>
                                 <span className="text-gray-500">· {new Date(post.createdAt).toLocaleDateString()}</span>
                             </div>
-                            <p className="text-gray-900 dark:text-gray-200">{post.content}</p>
-                            <div className="text-gray-500 text-sm mt-2">Replying to <span className="text-emerald-500">@{post.author?.email?.split('@')[0]}</span></div>
+                            <p className="text-gray-900 dark:text-gray-200 text-[15px]">{post.content}</p>
                         </div>
                     </div>
 
+                    {/* Existing Comments */}
+                    {post.comments && post.comments.length > 0 && (
+                        <div className="space-y-4">
+                            {post.comments.map((comment, index) => (
+                                <div key={index} className="flex gap-4">
+                                    <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden shrink-0">
+                                        {comment.user?.profilePictureUrl ? (
+                                            <img src={comment.user.profilePictureUrl} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center bg-gray-300 text-xs font-bold text-gray-600">
+                                                {comment.user?.name?.[0]}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-2 text-sm mb-0.5">
+                                            <span className="font-bold text-gray-900 dark:text-gray-100">{comment.user?.name || 'User'}</span>
+                                            <span className="text-gray-500 text-xs">{new Date(comment.date || Date.now()).toLocaleDateString()}</span>
+                                        </div>
+                                        <p className="text-gray-800 dark:text-gray-300 text-sm">{comment.text}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Input Area */}
+                <div className="p-4 border-t border-gray-100 dark:border-gray-800 shrink-0 bg-white dark:bg-gray-900">
                     <div className="flex gap-4">
                         <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden shrink-0">
                             {user?.imageUrl ? <img src={user.imageUrl} className="w-full h-full object-cover" /> : <div className="bg-emerald-100 w-full h-full" />}
@@ -452,8 +482,17 @@ const CommentModal = ({ post, onClose, getToken, user, onCommentAdded }) => {
                                 value={text}
                                 onChange={e => setText(e.target.value)}
                                 placeholder="Post your reply"
-                                className="w-full bg-transparent border-none text-lg text-gray-900 dark:text-white placeholder-gray-500 focus:ring-0 resize-none h-24 p-0"
+                                className="w-full bg-transparent border-none text-lg text-gray-900 dark:text-white placeholder-gray-500 focus:ring-0 resize-none h-20 p-2 focus:bg-gray-50 dark:focus:bg-gray-800 rounded-lg transition-colors"
                             />
+                            <div className="flex justify-end mt-2">
+                                <button
+                                    onClick={handleSubmit}
+                                    disabled={!text.trim() || submitting}
+                                    className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-1.5 rounded-full font-bold text-sm disabled:opacity-50"
+                                >
+                                    Reply
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
