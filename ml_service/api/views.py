@@ -20,6 +20,10 @@ logger = logging.getLogger(__name__)
 
 # --- API ENDPOINTS ---
 
+@api_view(['GET'])
+def health_check(request):
+    return Response({"status": "healthy", "service": "Civix ML"})
+
 @api_view(['POST'])
 def predict_priority(request):
     try:

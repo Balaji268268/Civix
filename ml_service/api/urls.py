@@ -3,6 +3,7 @@ from . import views
 from . import advanced_ai
 
 urlpatterns = [
+    path('health/', views.health_check),
     path('predict-priority/', views.predict_priority),
     path('detect-fake/', views.detect_fake),
     path('categorize/', views.categorize),
