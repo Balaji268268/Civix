@@ -348,26 +348,38 @@ const Post = ({ post, user, handleLike, onCommentClick, onDelete, onRepost }) =>
     const isAuthor = user?.id === post.author?.clerkUserId || user?.id === post.author?._id || user?.publicMetadata?.role === 'admin';
     const [showMenu, setShowMenu] = useState(false);
 
+    // Check if it's an automatically generated Issue Post
+    const isIssuePost = post.linkedIssue || post.content.includes("🚨 **New Issue Reported**");
+
     const handleShare = async () => {
+        // ... existing handleShare ...
+        // (Keep existing handleShare implementation if possible, or simplified for this replace block)
         try {
             if (navigator.share) {
                 await navigator.share({
                     title: `Post by ${post.author?.name}`,
                     text: post.content,
-                    url: window.location.href, // Or specific post link if available
+                    url: window.location.href,
                 });
             } else {
-                await navigator.clipboard.writeText(`${post.content} - by ${post.author?.name}`);
-                toast.success("Link copied to clipboard");
+                await navigator.clipboard.writeText(`${post.content}`);
+                toast.success("Link copied! (+5 XP)"); // Fake XP toast for sharing
             }
         } catch (e) {
-            console.error("Share failed", e);
+            console.error(e);
         }
     };
 
     return (
-        <div className="bg-white dark:bg-black border-b border-gray-100 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-900/40 transition-colors cursor-pointer block relative">
+        <div className={`bg-white dark:bg-black border-b border-gray-100 dark:border-gray-800 p-4 hover:bg-gray-50 dark:hover:bg-gray-900/40 transition-colors cursor-pointer block relative ${isIssuePost ? 'border-l-4 border-l-red-500' : ''}`}>
+            {isIssuePost && (
+                <div className="mb-2 flex items-center gap-2 text-xs font-bold text-red-500 uppercase tracking-wider">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    Community Alert
+                </div>
+            )}
             <div className="flex gap-3">
+                {/* ... keep existing avatar & body ... */}
                 <div className="shrink-0">
                     <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
                         {post.author?.profilePictureUrl ? (
@@ -459,7 +471,12 @@ const Post = ({ post, user, handleLike, onCommentClick, onDelete, onRepost }) =>
                         <LikeButton
                             liked={post.isLiked || post.likes?.includes(user?.id)}
                             count={post.likes?.length || 0}
-                            onClick={() => handleLike(post._id)}
+                            onClick={() => {
+                                handleLike(post._id);
+                                if (!(post.isLiked || post.likes?.includes(user?.id))) {
+                                    toast.success("Liked! (+2 XP)", { icon: '⭐' });
+                                }
+                            }}
                         />
 
                         <ActionButton icon={Share2} color="emerald" onClick={handleShare} />
