@@ -163,7 +163,7 @@ export default function ModeratorDashboard() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token} `
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     issueId: selectedIssue._id,
@@ -190,7 +190,7 @@ export default function ModeratorDashboard() {
 
         try {
             const token = await getToken();
-            const res = await csrfManager.secureFetch(`/ api / issues / ${id}/status`, {
+            const res = await csrfManager.secureFetch(`/api/issues/${id}/status`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -530,9 +530,13 @@ export default function ModeratorDashboard() {
                                     onClick={async () => {
                                         setAnalyzing(true); // Reuse analyzing state or local
                                         try {
+                                            const token = await getToken();
                                             const res = await csrfManager.secureFetch('/api/ml/generate-reply/', {
                                                 method: 'POST',
-                                                headers: { 'Content-Type': 'application/json' },
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                    'Authorization': `Bearer ${token}`
+                                                },
                                                 body: JSON.stringify({
                                                     description: selectedIssue.description,
                                                     status: statusAction.status,
