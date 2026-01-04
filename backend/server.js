@@ -130,6 +130,7 @@ if (cluster.isPrimary) {
     "/api/issues", // Create Issue (Multipart - Uploads)
     /^\/api\/issues\/.*\/submit-resolution$/, // Resolution Proof (Multipart)
     /^\/api\/posts.*$/, // Posts (Likes, Comments - handled by Auth Token)
+    /^\/api\/moderator.*$/, // Moderator Actions (Protected by Token + Role)
   ];
   app.use(skipCSRFForRoutes(csrfSkipRoutes));
 
