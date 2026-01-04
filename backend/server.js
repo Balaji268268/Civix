@@ -127,6 +127,8 @@ if (cluster.isPrimary) {
     "/api/auth/webhook", // Potential webhooks
     "/api/issues/analyze-image", // AI Image Analysis (Multipart)
     "/api/issues/generate-caption", // AI Caption (Multipart)
+    "/api/issues", // Create Issue (Multipart - Uploads)
+    /^\/api\/issues\/.*\/submit-resolution$/, // Resolution Proof (Multipart)
   ];
   app.use(skipCSRFForRoutes(csrfSkipRoutes));
 
