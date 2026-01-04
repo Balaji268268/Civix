@@ -6,6 +6,7 @@ const numCPUs = os.cpus().length;
 if (cluster.isPrimary) {
   console.log(`======================================`);
   console.log(`Civix Backend Primary Process Started`);
+  console.log(`DEPLOYMENT CHECK: Updated Code Loaded (Time: ${new Date().toISOString()})`);
   console.log(`Primary PID:${process.pid}`);
   console.log(`=======================================`);
   console.log(`Forking server for ${numCPUs} CPU Cores...`);

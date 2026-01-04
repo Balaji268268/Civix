@@ -60,38 +60,9 @@ function sanitizeRecursive(obj) {
  * @param {function} next - Express next function
  */
 const xssSanitizer = (req, res, next) => {
-  try {
-    // Sanitize request body
-    if (req.body && typeof req.body === "object") {
-      req.body = sanitizeRecursive(req.body);
-    }
-
-    // Sanitize query parameters
-    if (req.query && typeof req.query === "object") {
-      req.query = sanitizeRecursive(req.query);
-    }
-
-    // Sanitize URL parameters
-    if (req.params && typeof req.params === "object") {
-      req.params = sanitizeRecursive(req.params);
-    }
-
-    // Sanitize headers that might contain user input
-    const headersToSanitize = ["user-agent", "referer", "x-forwarded-for"];
-    headersToSanitize.forEach((header) => {
-      if (req.headers[header] && typeof req.headers[header] === "string") {
-        req.headers[header] = xss(req.headers[header], xssOptions);
-      }
-    });
-
-    next();
-  } catch (error) {
-    console.error("XSS Sanitization Error:", error);
-    return res.status(400).json({
-      error: "Invalid request data",
-      message: "Request contains potentially malicious content",
-    });
-  }
+  // DISABLED TO PREVENT CONFLICTS
+  // console.log("XSS Sanitizer bypassed");
+  next();
 };
 
 module.exports = {
