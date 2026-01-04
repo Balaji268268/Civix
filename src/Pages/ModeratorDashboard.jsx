@@ -530,7 +530,7 @@ export default function ModeratorDashboard() {
                                     onClick={async () => {
                                         setAnalyzing(true); // Reuse analyzing state or local
                                         try {
-                                            const res = await csrfManager.secureFetch('http://localhost:5000/api/ml/generate-reply/', {
+                                            const res = await csrfManager.secureFetch('/api/ml/generate-reply/', {
                                                 method: 'POST',
                                                 headers: { 'Content-Type': 'application/json' },
                                                 body: JSON.stringify({
