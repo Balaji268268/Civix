@@ -479,18 +479,40 @@ const findDuplicatesForIssue = asyncHandler(async (req, res) => {
 });
 
 const getAssignedIssues = asyncHandler(async (req, res) => {
-  // 1. Get Clerk ID from token (sub)
+  // 1. Get Clerk ID and Email from token
   const clerkId = req.user.sub || req.user.id;
+  const tokenEmail = req.user.email; // verifyToken middleware must populate this
 
   if (!clerkId) {
     return res.status(401).json({ error: "Invalid token: User ID missing" });
   }
 
-  // 2. Find MongoDB User
-  const user = await User.findOne({ clerkUserId: clerkId }); // or findByClerkId if available
+  // 2. Find MongoDB User (Smart Lookup)
+  // First try by Clerk ID
+  let user = await User.findOne({ clerkUserId: clerkId });
+
+  // If not found, try by Email (Self-Healing for manually created officers)
+  if (!user && tokenEmail) {
+    console.log(`[Officer Dashboard] User not found by ClerkId. Trying email: ${tokenEmail}`);
+    user = await User.findOne({ email: tokenEmail });
+
+    // If found by email, LINK the Clerk ID for future logins
+    if (user) {
+      user.clerkUserId = clerkId;
+      await user.save();
+      console.log(`[Officer Dashboard] Auto-linked Clerk ID ${clerkId} to user ${user.email}`);
+    }
+  }
+
+  // Fallback: If still not found, check if frontend sent email query (less secure, but useful for dev)
+  if (!user && req.query.email) {
+    // additional check: only if token email matches or is admin? 
+    // For now, let's stick to secure token email.
+  }
 
   if (!user) {
-    return res.status(404).json({ error: "User profile not found. Complete profile set up." });
+    console.warn(`[Officer Dashboard] Profile not found for ClerkID: ${clerkId}`);
+    return res.status(404).json({ error: "User profile not found. Please contact Admin." });
   }
 
   const issues = await Issue.find({

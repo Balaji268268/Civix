@@ -13,7 +13,12 @@ export default function CivixChatRoom() {
 
   useEffect(() => {
     // Initialize Socket Connection
-    socketRef.current = io(BACKEND_URL);
+    // Initialize Socket Connection with Render-compatible options
+    socketRef.current = io(BACKEND_URL, {
+      transports: ['websocket', 'polling'], // Mandate websocket first, fallback to polling
+      withCredentials: true,
+      reconnectionAttempts: 5
+    });
 
     // Listeners
     socketRef.current.on('receiveMessage', (message) => {
@@ -111,8 +116,8 @@ export default function CivixChatRoom() {
               } `}
           >
             <div className={`relative w - 11 h - 11 rounded - 2xl flex items - center justify - center text - white text - sm font - bold shadow - lg ${msg.isCurrentUser
-                ? 'bg-gradient-to-br from-green-500 to-green-600'
-                : 'bg-gradient-to-br from-emerald-400 to-green-500'
+              ? 'bg-gradient-to-br from-green-500 to-green-600'
+              : 'bg-gradient-to-br from-emerald-400 to-green-500'
               } group - hover: scale - 110 transition - transform duration - 200`}>
               {msg.avatar}
               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white"></div>
@@ -121,8 +126,8 @@ export default function CivixChatRoom() {
             <div className={`flex - 1 max - w - xs sm: max - w - md lg: max - w - lg ${msg.isCurrentUser ? 'text-right' : ''
               } `}>
               <div className={`relative rounded - 2xl p - 4 shadow - sm backdrop - blur - sm transition - all duration - 200 group - hover: shadow - md ${msg.isCurrentUser
-                  ? 'bg-gradient-to-br from-green-500 to-green-600 text-white ml-auto'
-                  : 'bg-white/90 border border-green-100/50 text-gray-800'
+                ? 'bg-gradient-to-br from-green-500 to-green-600 text-white ml-auto'
+                : 'bg-white/90 border border-green-100/50 text-gray-800'
                 } `}>
                 {!msg.isCurrentUser && (
                   <p className="text-sm font-semibold text-green-700 mb-2 flex items-center gap-2">
@@ -137,8 +142,8 @@ export default function CivixChatRoom() {
 
                 {/* Message tail */}
                 <div className={`absolute top - 4 w - 3 h - 3 transform rotate - 45 ${msg.isCurrentUser
-                    ? 'right-[-6px] bg-green-500'
-                    : 'left-[-6px] bg-white border-l border-t border-green-100/50'
+                  ? 'right-[-6px] bg-green-500'
+                  : 'left-[-6px] bg-white border-l border-t border-green-100/50'
                   } `}></div>
               </div>
 
