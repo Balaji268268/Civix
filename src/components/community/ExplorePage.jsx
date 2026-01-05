@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, TrendingUp, Hash } from 'lucide-react';
+import API_BASE_URL from '../../config';
 
 const ExplorePage = () => {
     const categories = [
@@ -16,7 +17,7 @@ const ExplorePage = () => {
     React.useEffect(() => {
         const fetchTrends = async () => {
             try {
-                const res = await fetch('http://localhost:5000/api/posts');
+                const res = await fetch(`${API_BASE_URL}/api/posts`);
                 if (res.ok) {
                     const data = await res.json();
                     setRecentPosts(data.slice(0, 5));

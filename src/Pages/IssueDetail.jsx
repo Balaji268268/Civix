@@ -63,7 +63,7 @@ const IssueDetail = () => {
 
     setAcknowledging(true);
     try {
-      const res = await csrfManager.secureFetch(`http://localhost:5000/api/issues/${id}/acknowledge-resolution`, {
+      const res = await csrfManager.secureFetch(`${API_BASE_URL}/api/issues/${id}/acknowledge-resolution`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -95,7 +95,7 @@ const IssueDetail = () => {
           // Fetch AI Prediction
           if (data.status !== 'Resolved' && data.status !== 'Rejected') {
             try {
-              const predRes = await csrfManager.secureFetch('http://localhost:5000/api/ml/predict-resolution-time/', {
+              const predRes = await csrfManager.secureFetch(`${API_BASE_URL}/api/ml/predict-resolution-time/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

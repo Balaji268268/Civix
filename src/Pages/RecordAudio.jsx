@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 import { Mic, Square, Loader2, FileAudio, Type } from "lucide-react";
 import { toast } from "react-hot-toast";
 import csrfManager from "../utils/csrfManager";
+import API_BASE_URL from "../config";
 import Navbar from "../components/Navbar";
 import PageTransition from "../components/PageTransition";
 
@@ -56,7 +57,7 @@ export default function RecordAudio() {
 
     try {
       // 1. Call Backend
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const API_URL = API_BASE_URL;
       const response = await csrfManager.secureFetch(`${API_URL}/api/ml/transcribe-audio/`, {
         method: "POST",
         body: formData

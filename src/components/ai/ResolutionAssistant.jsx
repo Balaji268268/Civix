@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, CheckCircle2, Hammer, Loader2 } from 'lucide-react';
 import csrfManager from '../../utils/csrfManager';
+import API_BASE_URL from '../../config';
 import { toast } from 'react-hot-toast';
 
 const ResolutionAssistant = ({ issue }) => {
@@ -10,7 +11,7 @@ const ResolutionAssistant = ({ issue }) => {
     const fetchInsights = async () => {
         setLoading(true);
         try {
-            const res = await csrfManager.secureFetch('http://localhost:5000/api/ai/suggest-resolution', {
+            const res = await csrfManager.secureFetch(`${API_BASE_URL}/api/ai/suggest-resolution`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { Mic, Square, Loader2, Play, Pause, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import csrfManager from '../utils/csrfManager';
+import API_BASE_URL from '../config';
 
 /**
  * VoiceInput Component
@@ -61,7 +62,7 @@ const VoiceInput = ({ onTranscribe }) => {
         formData.append("audio", audioBlob, "recording.webm");
 
         try {
-            const response = await csrfManager.secureFetch("http://localhost:5000/api/ml/transcribe-audio/", {
+            const response = await csrfManager.secureFetch(`${API_BASE_URL}/api/ml/transcribe-audio/`, {
                 method: "POST",
                 body: formData
             });

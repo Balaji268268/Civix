@@ -17,6 +17,7 @@ import {
 import toast from 'react-hot-toast';
 import { useAuth } from '@clerk/clerk-react';
 import csrfManager from '../../utils/csrfManager';
+import API_BASE_URL from '../../config';
 
 const PollCreation = ({ onClose, onPollCreated }) => {
   const [currentStep, setCurrentStep] = useState(1);
@@ -277,7 +278,7 @@ const PollCreation = ({ onClose, onPollCreated }) => {
         return;
       }
 
-      const response = await csrfManager.secureFetch('http://localhost:5000/api/polls/create', {
+      const response = await csrfManager.secureFetch(`${API_BASE_URL}/api/polls/create`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

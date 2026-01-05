@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { Clock, CheckCircle, XCircle, AlertTriangle, MapPin, Loader2, ArrowRight, User } from "lucide-react";
 import csrfManager from "../utils/csrfManager";
+import API_BASE_URL from "../config";
 import { toast } from 'react-hot-toast';
 import OfficerLayout from "../components/layout/OfficerLayout";
 
@@ -68,7 +69,7 @@ export default function OfficerDashboard() {
 
         try {
             const token = await getToken();
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+            const API_URL = API_BASE_URL; // Use centralized config
             const res = await fetch(`${API_URL}/api/issues/${selectedTask._id}/submit-resolution`, {
                 method: 'POST',
                 headers: {

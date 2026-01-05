@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import csrfManager from '../../utils/csrfManager';
+import API_BASE_URL from '../../config';
 
 const CivixSupportBot = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -30,7 +31,7 @@ const CivixSupportBot = () => {
         setIsTyping(true);
 
         try {
-            const res = await csrfManager.secureFetch('http://localhost:5000/api/chat/message', {
+            const res = await csrfManager.secureFetch(`${API_BASE_URL}/api/chat/message`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: userMsg.text })
@@ -83,8 +84,8 @@ const CivixSupportBot = () => {
                             {messages.map((msg) => (
                                 <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[80%] rounded-2xl p-3 text-sm shadow-sm ${msg.sender === 'user'
-                                            ? 'bg-emerald-600 text-white rounded-br-none'
-                                            : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-bl-none border border-gray-100 dark:border-gray-700'
+                                        ? 'bg-emerald-600 text-white rounded-br-none'
+                                        : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-bl-none border border-gray-100 dark:border-gray-700'
                                         }`}>
                                         {msg.text.split('\n').map((line, i) => (
                                             <p key={i} className={i > 0 ? 'mt-2' : ''} dangerouslySetInnerHTML={{ __html: line.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>') }} />

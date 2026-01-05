@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Users, Plus, ShieldCheck, MapPin, X } from 'lucide-react';
+import API_BASE_URL from '../../config';
 import { useAuth } from '@clerk/clerk-react';
 import csrfManager from '../../utils/csrfManager';
 import { toast } from 'react-hot-toast';
@@ -13,7 +14,7 @@ const CommunitiesPage = () => {
     React.useEffect(() => {
         const fetchCommunities = async () => {
             try {
-                const res = await fetch('http://localhost:5000/api/communities');
+                const res = await fetch(`${API_BASE_URL}/api/communities`);
                 if (res.ok) {
                     const data = await res.json();
                     setCommunities(data);
@@ -41,7 +42,7 @@ const CommunitiesPage = () => {
         setSubmitting(true);
         try {
             const token = await getToken();
-            const res = await csrfManager.secureFetch('http://localhost:5000/api/communities', {
+            const res = await csrfManager.secureFetch(`${API_BASE_URL}/api/communities`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -71,7 +72,7 @@ const CommunitiesPage = () => {
             const token = await getToken();
             if (!token) { toast.error("Please login to join"); return; }
 
-            const res = await csrfManager.secureFetch(`http://localhost:5000/api/communities/${id}/join`, {
+            const res = await csrfManager.secureFetch(`${API_BASE_URL}/api/communities/${id}/join`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

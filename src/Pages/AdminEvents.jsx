@@ -4,6 +4,7 @@ import { useAuth } from '@clerk/clerk-react';
 import csrfManager from '../utils/csrfManager';
 import { toast } from 'react-hot-toast';
 import { Plus, Trash2, Calendar, MapPin, Clock } from 'lucide-react';
+import API_BASE_URL from '../config';
 
 const AdminEvents = () => {
     const { getToken } = useAuth();
@@ -28,7 +29,7 @@ const AdminEvents = () => {
 
     const fetchEvents = async () => {
         try {
-            const res = await fetch('http://localhost:5000/api/posts?filter=events');
+            const res = await fetch(`${API_BASE_URL}/api/posts?filter=events`);
             if (res.ok) {
                 const data = await res.json();
                 setEvents(data);
@@ -45,7 +46,7 @@ const AdminEvents = () => {
         setSubmitting(true);
         try {
             const token = await getToken();
-            const res = await csrfManager.secureFetch('http://localhost:5000/api/posts', {
+            const res = await csrfManager.secureFetch(`${API_BASE_URL}/api/posts`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -77,7 +78,7 @@ const AdminEvents = () => {
         if (!window.confirm("Are you sure you want to delete this event?")) return;
         try {
             const token = await getToken();
-            const res = await csrfManager.secureFetch(`http://localhost:5000/api/posts/${id}`, {
+            const res = await csrfManager.secureFetch(`${API_BASE_URL}/api/posts/${id}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

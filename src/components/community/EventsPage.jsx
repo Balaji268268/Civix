@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, MapPin, Users, Clock, ArrowRight } from 'lucide-react';
+import API_BASE_URL from '../../config';
 import { motion } from 'framer-motion';
 
 const EventsPage = () => {
@@ -10,7 +11,7 @@ const EventsPage = () => {
     React.useEffect(() => {
         const fetchEvents = async () => {
             try {
-                const res = await fetch('http://localhost:5000/api/posts?filter=events');
+                const res = await fetch(`${API_BASE_URL}/api/posts?filter=events`);
                 if (res.ok) {
                     const data = await res.json();
                     setEvents(data);
