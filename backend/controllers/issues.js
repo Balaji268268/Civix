@@ -12,6 +12,7 @@ const axios = require('axios');
 
 // Helper: ML Service Config
 const ML_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
 
 // Helper: Smart Assignment Algorithm
 const assignIssueToOfficer = async (issue, category) => {
@@ -640,12 +641,12 @@ const analyzeIssueImage = asyncHandler(async (req, res) => {
   // 2. Fallback to Local URL if Cloudinary fails or is not setup
   if (!fileUrl) {
     // Assuming server is running on localhost:5000
-    fileUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+    fileUrl = `${BACKEND_URL}/uploads/${req.file.filename}`;
   }
 
   try {
     // 3. Call ML Service
-    const mlResponse = await axios.post('http://localhost:8000/api/analyze-image/', { imageUrl: fileUrl });
+    const mlResponse = await axios.post(`${ML_URL}/api/analyze-image/`, { imageUrl: fileUrl });
 
     // 4. Return Tags
     return res.json({
@@ -676,11 +677,11 @@ const generateCaption = asyncHandler(async (req, res) => {
   }
 
   if (!fileUrl) {
-    fileUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+    fileUrl = `${BACKEND_URL}/uploads/${req.file.filename}`;
   }
 
   try {
-    const mlResponse = await axios.post('http://localhost:8000/api/generate-caption/', { imageUrl: fileUrl });
+    const mlResponse = await axios.post(`${ML_URL}/api/generate-caption/`, { imageUrl: fileUrl });
     return res.json({
       description: mlResponse.data.description || "",
       message: "Caption generated successfully"
