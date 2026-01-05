@@ -9,7 +9,7 @@ const { verifyToken } = require('../middlewares/validate');
 // Using memory storage to pass buffer to Python
 const upload = multer({ storage: multer.memoryStorage() });
 
-const ML_SERVICE_URL = process.env.ML_SERVICE_URL || 'https://civix-ml.onrender.com';
+const ML_SERVICE_URL = process.env.ML_SERVICE_URL || (process.env.NODE_ENV === 'production' ? 'https://civix-ml.onrender.com' : 'http://localhost:8000');
 
 // Proxy Handler for JSON requests
 const proxyJson = async (req, res) => {

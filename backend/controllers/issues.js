@@ -11,7 +11,7 @@ const { awardPoints } = require('./gamificationController');
 const axios = require('axios');
 
 // Helper: ML Service Config
-const ML_URL = process.env.ML_SERVICE_URL || 'http://localhost:8000';
+const ML_URL = process.env.ML_SERVICE_URL || (process.env.NODE_ENV === 'production' ? 'https://civix-ml.onrender.com' : 'http://localhost:8000');
 const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
 
 // Helper: Smart Assignment Algorithm
