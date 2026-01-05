@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
             open: true,
             proxy: {
                 '/api': {
-                    target: 'http://localhost:5000',
+                    target: 'https://civix-qau9.onrender.com', // Universal Production Backend
                     changeOrigin: true,
                     secure: false,
                 },

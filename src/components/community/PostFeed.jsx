@@ -12,6 +12,7 @@ const PostFeed = ({ limit = 20, compact = false, activeTab = 'feed' }) => {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [repostModalPost, setRepostModalPost] = useState(null);
+    const [commentModalPost, setCommentModalPost] = useState(null);
 
     useEffect(() => {
         fetchPosts();
