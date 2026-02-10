@@ -88,8 +88,22 @@ const verifyToken = async (req, res, next) => {
         console.log(`[Auth] Synced User: ${email} as ${role}`);
       } catch (createErr) {
         console.error("Auto-Sync Failed (Duplicate?):", createErr.message);
-        // Race condition fallback: try finding again
-        dbUser = await User.findOne({ clerkUserId: decoded.sub });
+
+        // HEAL STRATEGY: If duplicate email, link the accounts
+        if (createErr.message.includes('E11000') || createErr.code === 11000) {
+          console.log(`[Auth] Healing: Found existing user with email ${email}. Linking Clerk ID...`);
+          dbUser = await User.findOne({ email: email });
+          if (dbUser) {
+            dbUser.clerkUserId = decoded.sub; // Update Clerk ID
+            if (!dbUser.name || dbUser.name === 'New User') dbUser.name = firstName;
+            if (!dbUser.profilePictureUrl) dbUser.profilePictureUrl = imageUrl;
+            await dbUser.save();
+            console.log(`[Auth] Healed User: Linked ${email} to Clerk ID ${decoded.sub}`);
+          }
+        } else {
+          // Race condition fallback: try finding again
+          dbUser = await User.findOne({ clerkUserId: decoded.sub });
+        }
       }
     }
 

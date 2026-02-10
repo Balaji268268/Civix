@@ -13,6 +13,8 @@ from api.advanced_ai import (
     GEMINI_API_KEY
 )
 from civix_ml.image_model import analyze_image_url, generate_caption
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 # Configure Logging
 logger = logging.getLogger(__name__)

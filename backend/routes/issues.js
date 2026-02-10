@@ -26,6 +26,8 @@ router.get("/:id/duplicates", verifyToken, isAdmin, issueController.findDuplicat
 router.post("/assign-manual", verifyToken, issueController.manualAssignIssue);
 router.get("/officers", verifyToken, issueController.getOfficersByDepartment);
 router.get("/ai-suggest/:id", verifyToken, issueController.suggestOfficer);
+// router.post("/report-officer", verifyToken, issueController.reportOfficer); // Legacy
+router.post("/add-feedback", verifyToken, issueController.addResolutionFeedback);
 
 router.get("/:id", issueController.getIssueById);
 

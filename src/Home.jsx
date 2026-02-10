@@ -61,19 +61,21 @@ function Home() {
 
     // 3. Role-Based Navigation (Pro Flow)
     // Robust check: Metadata > Backend > Default
-    let role = user?.publicMetadata?.role;
-    if (!role) {
-      try {
-        // Double-check backend if metadata is missing/stale
-        const res = await csrfManager.secureFetch(`/api/profile/${user.id}`);
-        if (res.ok) {
-          const data = await res.json();
-          role = data.role;
-        }
-      } catch (e) {
-        console.warn("Role fetch fallback failed:", e);
+    // Robust check: Backend > Metadata
+    // Always try fetching backend first as it is the source of truth for dynamic role changes
+    let role = null;
+    try {
+      const res = await csrfManager.secureFetch(`/api/profile/${user.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        role = data.role;
       }
+    } catch (e) {
+      console.warn("Role fetch fallback failed:", e);
     }
+
+    // Fallback to metadata if backend fetch fails
+    if (!role) role = user?.publicMetadata?.role;
 
     switch (role) {
       case 'admin': navigate('/admin/dashboard'); break;
@@ -94,18 +96,21 @@ function Home() {
         // }
 
         // Robust check: Metadata > Backend > Default
-        let role = user?.publicMetadata?.role;
-        if (!role) {
-          try {
-            const res = await csrfManager.secureFetch(`/api/profile/${user.id}`);
-            if (res.ok) {
-              const data = await res.json();
-              role = data.role;
-            }
-          } catch (e) {
-            console.warn("Role fetch fallback failed:", e);
+        // Robust check: Backend > Metadata
+        // Always try fetching backend first as it is the source of truth for dynamic role changes
+        let role = null;
+        try {
+          const res = await csrfManager.secureFetch(`/api/profile/${user.id}`);
+          if (res.ok) {
+            const data = await res.json();
+            role = data.role;
           }
+        } catch (e) {
+          console.warn("Role fetch fallback failed:", e);
         }
+
+        // Fallback to metadata if backend fetch fails
+        if (!role) role = user?.publicMetadata?.role;
 
         switch (role) {
           case 'admin': navigate('/admin/dashboard', { replace: true }); break;

@@ -2,7 +2,8 @@ const cluster = require("cluster");
 const os = require("os");
 const process = require("process");
 
-const numCPUs = os.cpus().length;
+// Optimization constraints: Limit workers to 4 (Half of CPU count) for safe parallelism
+const numCPUs = 4; // Balanced Load
 if (cluster.isPrimary) {
   console.log(`======================================`);
   console.log(`Civix Backend Primary Process Started`);
@@ -34,6 +35,18 @@ if (cluster.isPrimary) {
       cluster.fork();
     }
   });
+
+  // Graceful Shutdown for Nodemon restarts (Fixes orphaned processes on Windows)
+  const gracefulShutdown = () => {
+    console.log(`Primary ${process.pid} received kill signal. Terminating workers...`);
+    for (const id in cluster.workers) {
+      cluster.workers[id].kill();
+    }
+    process.exit(0);
+  };
+
+  process.on("SIGINT", gracefulShutdown);
+  process.on("SIGTERM", gracefulShutdown);
 } else {
   const express = require("express");
   const cors = require("cors");
@@ -41,6 +54,7 @@ if (cluster.isPrimary) {
   const cookieParser = require("cookie-parser");
   const rateLimit = require("express-rate-limit");
   const path = require("path");
+  const compression = require("compression");
   require("dotenv").config();
 
   // Security middlewares
@@ -51,6 +65,9 @@ if (cluster.isPrimary) {
   } = require("./middlewares/csrfProtection");
 
   const app = express();
+
+  // Optimization: Gzip Compression
+  app.use(compression());
 
   // Trust proxy for Render/Vercel (fixes express-rate-limit error)
   app.set('trust proxy', 1);
@@ -81,7 +98,6 @@ if (cluster.isPrimary) {
   // === Swagger Docs ===
   const { swaggerUi, specs } = require("./config/swagger.js");
 
-  // === Middlewares ===
   // === Middlewares ===
   const allowedOrigins = [
     "http://localhost:3000",
@@ -138,6 +154,7 @@ if (cluster.isPrimary) {
     /^\/api\/posts.*$/, // Posts (Likes, Comments - handled by Auth Token)
     /^\/api\/moderator.*$/, // Moderator Actions (Protected by Token + Role)
     /^\/api\/ml.*$/, // ML Proxy (Protected by Token)
+    /^\/api\/notifications.*$/, // Notifications (Polling/Streaming)
   ];
   app.use(skipCSRFForRoutes(csrfSkipRoutes));
 
@@ -186,6 +203,17 @@ if (cluster.isPrimary) {
   app.use("/api/ai", require("./routes/aiRoutes"));
   app.use("/api/gamification", gamificationRoutes);
   app.use("/api/ml", require("./routes/mlProxy")); // ML Service Proxy
+
+  // --- Feedback Bot (Unified Sharding) ---
+  // All workers run the bot, but they process different data shards based on worker.id
+  if (cluster.worker) {
+    global.workerId = cluster.worker.id;
+    global.totalWorkers = 4; // Must match numCPUs
+
+    console.log(`[FeedbackBot] Initializing on Worker ${cluster.worker.id} (Shard ${cluster.worker.id}/4)`);
+    const { startFeedbackLoop } = require("./utils/feedbackBot");
+    startFeedbackLoop();
+  }
 
   // === Swagger API Docs ===
   app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
@@ -250,6 +278,6 @@ if (cluster.isPrimary) {
   // === Start Server ===
   const PORT = process.env.PORT || 5000;
   httpServer.listen(PORT, () => {
-    console.log(`Server (HTTP + Socket.io) running at http://localhost:${PORT}`);
+    console.log(`[System Check] ✅ Worker Process ${process.pid} is OPERATIONAL and listening on port ${PORT}`);
   });
 }
