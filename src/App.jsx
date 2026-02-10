@@ -167,6 +167,11 @@ const App = () => {
                 localStorage.setItem("profileComplete", "true");
               }
             }
+
+            // Database-Driven Guide Trigger (Overrides LocalStorage)
+            if (data.hasSeenGuide === false) {
+              if (isMounted) setShowGuide(true);
+            }
           }
         } catch (error) {
           console.error("Profile check failed:", error);

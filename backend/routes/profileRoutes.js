@@ -4,7 +4,8 @@ const {
   getUserByClerkId,
   updateUserProfile,
   createOrUpdateUserProfile,
-  uploadProfilePicture
+  uploadProfilePicture,
+  updateGuideStatus
 } = require('../controllers/profileControllers.js');
 const upload = require('../middlewares/upload');
 const { verifyToken } = require('../middlewares/validate');
@@ -14,6 +15,9 @@ router.get('/:clerkUserId', getUserByClerkId);
 
 // Update user profile
 router.put('/:clerkUserId', verifyToken, updateUserProfile);
+
+// Update Guide Seen Status
+router.put('/:clerkUserId/guide-seen', verifyToken, updateGuideStatus);
 
 // Create or update user profile (for Clerk integration)
 router.post('/create-or-update', verifyToken, createOrUpdateUserProfile);

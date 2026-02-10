@@ -18,6 +18,16 @@ const userSchema = new mongoose.Schema({
   isAvailable: { type: Boolean, default: true },
   isApproved: { type: Boolean, default: true }, // Officers will be set to false on creation
 
+  // Officer Ratings
+  ratings: [{
+    rating: { type: Number, min: 1, max: 5 },
+    review: String,
+    givenBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    role: { type: String, enum: ['user', 'moderator'] },
+    createdAt: { type: Date, default: Date.now }
+  }],
+  averageRating: { type: Number, default: 0 },
+
   gamification: {
     points: { type: Number, default: 0 },
     xp: { type: Number, default: 0 }, // Keeping for backward compat if needed
@@ -31,7 +41,8 @@ const userSchema = new mongoose.Schema({
     streak: { type: Number, default: 0 },
     completedScenarios: [{ type: String }]
   },
-  profileSetupCompleted: { type: Boolean, default: false }
+  profileSetupCompleted: { type: Boolean, default: false },
+  hasSeenGuide: { type: Boolean, default: false }
 
 }, { timestamps: true });
 

@@ -248,5 +248,29 @@ module.exports = {
     }
 
     return res.json({ profilePictureUrl: imageUrl });
+    return res.json({ profilePictureUrl: imageUrl });
+  }),
+
+  // Update hasSeenGuide flag
+  updateGuideStatus: asyncHandler(async (req, res) => {
+    const { clerkUserId } = req.params;
+
+    // AUTHORIZATION CHECK
+    const requesterClerkId = req.user.clerkUserId || req.user.sub || req.user.id;
+    if (requesterClerkId !== clerkUserId) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    const user = await User.findOneAndUpdate(
+      { clerkUserId },
+      { hasSeenGuide: true },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({ message: 'Guide status updated', hasSeenGuide: true });
   })
 };
