@@ -18,10 +18,15 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:5000';
 const assignIssueToOfficer = async (issue, category) => {
   try {
     // Find officers in this department, sorted by least active tasks
+    // Intelligent Auto-Assignment:
+    // Only assign if officer has <= 3 active tasks
+    // Otherwise, leave unassigned for manual intervention
     const officer = await User.findOne({
       role: 'officer',
-      department: category
-    }).sort({ activeTasks: 1 });
+      department: category,
+      isAvailable: true,
+      activeTasks: { $lte: 3 }
+    }).sort({ trustScore: -1, activeTasks: 1 }); // BEST OFFICER STRATEGY: High Trust > Low Load
 
     if (officer) {
       issue.assignedOfficer = officer._id;
@@ -258,7 +263,7 @@ const createIssue = asyncHandler(async (req, res) => {
 });
 
 const getAllIssues = asyncHandler(async (req, res) => {
-  const issues = await Issue.find().sort({ createdAt: -1 });
+  const issues = await Issue.find().sort({ createdAt: -1 }).lean();
   return res.json(issues);
 });
 
@@ -433,16 +438,14 @@ const updateIssue = asyncHandler(async (req, res) => {
 
 const getMyIssues = asyncHandler(async (req, res) => {
   const { email } = req.query;
-  console.log("GetMyIssues Called - Email:", email); // LOG 3
   if (!email) {
     return res.status(400).json({ error: "Email is required" });
   }
   // Case-insensitive search using regex
   const issues = await Issue.find({
     email: { $regex: new RegExp(`^${email}$`, 'i') }
-  }).sort({ createdAt: -1 });
+  }).sort({ createdAt: -1 }).lean();
 
-  console.log(`Found ${issues.length} issues for ${email} (case-insensitive)`);
   res.json(issues);
 });
 
@@ -518,7 +521,7 @@ const getAssignedIssues = asyncHandler(async (req, res) => {
   const issues = await Issue.find({
     assignedOfficer: user._id,
     status: { $nin: ['Resolved', 'Rejected'] }
-  }).sort({ createdAt: -1 });
+  }).sort({ createdAt: -1 }).lean();
 
   res.json(issues);
 });
@@ -725,8 +728,6 @@ const submitResolution = asyncHandler(async (req, res) => {
   let proofUrl = null;
   if (req.file) {
     // Use existing Cloudinary logic or local
-    const b64 = Buffer.from(req.file.buffer).toString("base64");
-    let dataURI = "data:" + req.file.mimetype + ";base64," + b64;
     const cldRes = await uploadOnCloudinary(req.file.path);
     if (cldRes) proofUrl = cldRes.secure_url;
   }
@@ -810,6 +811,9 @@ const acknowledgeResolution = asyncHandler(async (req, res) => {
       message: "User confirmed resolution. Case Closed.",
       byUser: "User"
     });
+
+    // --- OFFICER RATING LOGIC ---
+    // If feedback is provided immediately with acknowledgement, it can be handled here or via addResolutionFeedback
   } else if (status === 'Disputed') {
     issue.status = 'Dispute'; // Flag for moderator
     issue.timeline.push({
@@ -821,6 +825,48 @@ const acknowledgeResolution = asyncHandler(async (req, res) => {
 
   await issue.save();
   res.status(200).json(issue);
+});
+
+// 4. Time-Based Feedback & Quality Assurance
+const { analyzeSentiment } = require('../utils/feedbackBot');
+
+const addResolutionFeedback = asyncHandler(async (req, res) => {
+  const { issueId, rating, comment } = req.body;
+
+  if (!issueId || !rating) {
+    return res.status(400).json({ error: "Issue ID and Rating are required" });
+  }
+
+  const issue = await Issue.findById(issueId);
+  if (!issue) return res.status(404).json({ error: "Issue not found" });
+
+  if (issue.status !== 'Resolved' && issue.status !== 'Closed') {
+    return res.status(400).json({ error: "Can only add feedback to Resolved/Closed issues." });
+  }
+
+  // AI Sentiment Analysis (Real-time)
+  let sentimentData = { score: 0, label: 'Neutral' };
+  if (comment && comment.length > 5) {
+    sentimentData = await analyzeSentiment(comment);
+  }
+
+  // Add Feedback
+  issue.feedbacks = issue.feedbacks || [];
+  issue.feedbacks.push({
+    rating: Number(rating),
+    comment,
+    givenBy: req.user?._id, // Verified User
+    role: req.user?.role || 'user',
+    sentimentScore: sentimentData.score,
+    sentimentLabel: sentimentData.sentimentLabel || sentimentData.label // Handle potential inconsistency
+  });
+
+  await issue.save();
+
+  res.json({
+    message: "Feedback submitted successfully.",
+    aiAnalysis: sentimentData
+  });
 });
 
 module.exports = {
@@ -840,5 +886,6 @@ module.exports = {
   generateCaption,
   submitResolution,
   reviewResolution,
-  acknowledgeResolution
+  acknowledgeResolution,
+  addResolutionFeedback
 };

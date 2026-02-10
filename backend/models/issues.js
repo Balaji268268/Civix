@@ -113,6 +113,26 @@ const issueSchema = new mongoose.Schema({
       acknowledgedAt: Date,
       remarks: String
     }
+  },
+  // Post-Resolution Feedback Loop
+  feedbacks: [{
+    rating: { type: Number, min: 1, max: 5 },
+    comment: String,
+    givenBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Citizen or Moderator
+    role: { type: String, enum: ['user', 'moderator'] },
+    sentimentScore: Number, // AI Analysis (-1 to 1)
+    sentimentLabel: String, // 'Positive', 'Neutral', 'Negative'
+    createdAt: { type: Date, default: Date.now }
+  }],
+  feedbackTimeline: {
+    lastAnalyzed: Date,
+    checks: {
+      h24: { type: Boolean, default: false },
+      d3: { type: Boolean, default: false },
+      d7: { type: Boolean, default: false },
+      d30: { type: Boolean, default: false },
+      d90: { type: Boolean, default: false }
+    }
   }
 });
 
