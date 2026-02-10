@@ -1,7 +1,9 @@
 // src/components/About.js
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth, useUser } from "@clerk/clerk-react";
+import csrfManager from '../utils/csrfManager';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 import './About.css';
@@ -18,6 +20,41 @@ import {
 } from 'lucide-react';
 
 function About() {
+  const navigate = useNavigate();
+  const { isSignedIn } = useAuth();
+  const { user } = useUser();
+
+  // Smart "Get Started" Logic
+  const handleGetStarted = async () => {
+    if (!isSignedIn) {
+      navigate('/signup');
+      return;
+    }
+
+    // Role-Based Navigation
+    let role = null;
+    try {
+      const res = await csrfManager.secureFetch(`/api/profile/${user.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        role = data.role;
+      }
+    } catch (e) {
+      console.warn("Role fetch fallback failed:", e);
+    }
+
+    // Fallback to metadata if backend fetch fails
+    if (!role) role = user?.publicMetadata?.role;
+
+    switch (role) {
+      case 'admin': navigate('/admin/dashboard'); break;
+      case 'moderator': navigate('/moderator'); break;
+      case 'officer': navigate('/officer/dashboard'); break;
+      case 'user':
+      default: navigate('/user/dashboard');
+    }
+  };
+
   const [isDarkMode, setIsDarkMode] = useState(
     () => window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
   );
@@ -147,15 +184,14 @@ function About() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/signup">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-emerald-500/30 transition-all"
-              >
-                Get Started
-              </motion.button>
-            </Link>
+            <motion.button
+              onClick={handleGetStarted}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-8 py-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-lg shadow-lg shadow-emerald-500/30 transition-all"
+            >
+              Get Started
+            </motion.button>
             <motion.button
               onClick={() => setShowMore(!showMore)}
               whileHover={{ scale: 1.05 }}

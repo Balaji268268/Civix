@@ -20,6 +20,45 @@ const AdminIssueDetail = () => {
     const [reviewRemarks, setReviewRemarks] = useState("");
     const [reviewing, setReviewing] = useState(false);
 
+    // Feedback/Rating State
+    const [rating, setRating] = useState(0);
+    const [hoverRating, setHoverRating] = useState(0);
+    const [feedbackComment, setFeedbackComment] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+
+    const submitFeedback = async () => {
+        if (rating === 0) return;
+        setSubmitting(true);
+        try {
+            const token = await getToken();
+            const res = await csrfManager.secureFetch(`/api/issues/add-feedback`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    issueId: id,
+                    rating,
+                    comment: feedbackComment
+                })
+            });
+
+            if (res.ok) {
+                setFeedbackSubmitted(true);
+                toast.success("Officer evaluation submitted");
+            } else {
+                toast.error("Failed to submit evaluation");
+            }
+        } catch (e) {
+            console.error(e);
+            toast.error("Error submitting evaluation");
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
     useEffect(() => {
         const fetchIssue = async () => {
             try {
@@ -298,6 +337,54 @@ const AdminIssueDetail = () => {
                             </div>
                         </div>
                     )}
+
+                    {/* Officer Performance Rating (Moderator Only) - Hides after submission */}
+                    {!feedbackSubmitted && (issue.status === 'Resolved' || issue.status === 'Closed') && (
+                        <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-lg border border-gray-100 dark:border-gray-700">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <div className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+                                Rate Officer Performance
+                            </h3>
+
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold text-gray-500 uppercase">Quality:</span>
+                                    <div className="flex gap-1">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <button
+                                                key={star}
+                                                onClick={() => setRating(star)}
+                                                onMouseEnter={() => setHoverRating(star)}
+                                                onMouseLeave={() => setHoverRating(0)}
+                                                className={`transition-colors duration-200 ${(hoverRating || rating) >= star ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'
+                                                    }`}
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                                                    <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <textarea
+                                    value={feedbackComment}
+                                    onChange={(e) => setFeedbackComment(e.target.value)}
+                                    placeholder="Internal notes on officer performance..."
+                                    className="w-full p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                                    rows="2"
+                                />
+
+                                <button
+                                    onClick={submitFeedback}
+                                    disabled={submitting || rating === 0}
+                                    className="w-full py-2 bg-yellow-500 hover:bg-yellow-600 text-white font-bold rounded-xl shadow-md transition disabled:opacity-50"
+                                >
+                                    {submitting ? 'Submitting...' : 'Submit Evaluation'}
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Right Column: Actions & Intelligence */}
@@ -406,7 +493,7 @@ const AdminIssueDetail = () => {
                 confirmText="Delete Issue"
                 isDanger={true}
             />
-        </AdminLayout>
+        </AdminLayout >
     );
 };
 

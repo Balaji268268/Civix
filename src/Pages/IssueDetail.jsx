@@ -10,6 +10,40 @@ const IssueDetail = () => {
   const [issue, setIssue] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Feedback State
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+
+  const submitFeedback = async () => {
+    if (rating === 0) return;
+    setSubmitting(true);
+    try {
+      const res = await csrfManager.secureFetch(`${API_BASE_URL}/api/issues/add-feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          issueId: id, // from useParams
+          rating,
+          comment: feedbackComment
+        })
+      });
+
+      if (res.ok) {
+        setFeedbackSubmitted(true);
+        // toast.success("Feedback submitted!");
+      } else {
+        console.error("Feedback failed");
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Dynamic History Logic - Shows only what actually happened
   const getDynamicSteps = (issue) => {
     if (!issue) return [];
@@ -324,40 +358,83 @@ const IssueDetail = () => {
               </div>
             </div>
 
-            {/* Status Message / Polite Feedback */}
-            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
-              {issue.status === 'Resolved' && (
+            {/* Feedback / Quality Assurance Section - Hides after submission */}
+            {!feedbackSubmitted && (issue.status === 'Resolved' || issue.status === 'Closed') && (
+              <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
                 <div className="text-center">
-                  <h3 className="font-bold text-gray-900 dark:text-white mb-2">How did we do?</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">Your feedback helps us improve.</p>
-                  <div className="flex justify-center gap-2">
-                    {[1, 2, 3, 4, 5].map(star => (
-                      <button key={star} className="text-2xl hover:scale-110 transition-transform">⭐</button>
-                    ))}
+                  <h3 className="font-bold text-gray-900 dark:text-white mb-2">Rate Resolution Quality</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    Your feedback impacts the officer's Trust Score.
+                  </p>
+
+                  <div className="space-y-4">
+                    {/* Star Rating */}
+                    <div className="flex justify-center gap-2 mb-2">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          onClick={() => setRating(star)}
+                          onMouseEnter={() => setHoverRating(star)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          className={`transition-transform duration-200 ${(hoverRating || rating) >= star
+                              ? 'text-yellow-400 scale-110'
+                              : 'text-gray-300 dark:text-gray-600'
+                            }`}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            className="w-8 h-8"
+                          >
+                            <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.749 2.305l-4.117 3.527 1.257 5.273c.271 1.136-.964 2.033-1.96 1.425L12 18.354 7.373 21.18c-.996.608-2.231-.29-1.96-1.425l1.257-5.273-4.117-3.527c-.887-.76-.415-2.212.749-2.305l5.404-.433 2.082-5.006z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Optional Comment Box */}
+                    {rating > 0 && (
+                      <div className="animate-in fade-in slide-in-from-top-2">
+                        <textarea
+                          value={feedbackComment}
+                          onChange={(e) => setFeedbackComment(e.target.value)}
+                          placeholder="Optional: Add a remark..."
+                          className="w-full p-3 text-sm rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                          rows="2"
+                        />
+                        <button
+                          onClick={submitFeedback}
+                          disabled={submitting}
+                          className="mt-3 w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 transition-all active:scale-95 disabled:opacity-50"
+                        >
+                          {submitting ? 'Submitting...' : 'Submit Feedback'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {issue.status === 'Rejected' && (
-                <div className="text-center">
-                  <h3 className="font-bold text-gray-900 dark:text-white mb-2">Report Not Accepted</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    We appreciate your vigilance. Unfortunately, this report didn't meet our criteria or was a duplicate.
-                    Please continue to report valid issues!
-                  </p>
-                </div>
-              )}
+            {/* Rejected / Processing States */}
+            {!feedbackSubmitted && issue.status === 'Rejected' && (
+              <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg p-6 border border-gray-100 dark:border-gray-700 text-center">
+                <h3 className="font-bold text-gray-900 dark:text-white mb-2">Report Not Accepted</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  We appreciate your vigilance. Unfortunately, this report didn't meet our criteria or was a duplicate.
+                </p>
+              </div>
+            )}
 
-              {!['Resolved', 'Rejected', 'Closed'].includes(issue.status) && (
-                <div className="text-center">
-                  <h3 className="font-bold text-gray-900 dark:text-white mb-2">Thank You for Your Patience</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    Our system is processing your report. We prioritize issues based on severity and community voting.
-                    We'll update you as soon as there is progress!
-                  </p>
-                </div>
-              )}
-            </div>
+            {!feedbackSubmitted && !['Resolved', 'Rejected', 'Closed'].includes(issue.status) && (
+              <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-lg p-6 border border-gray-100 dark:border-gray-700 text-center">
+                <h3 className="font-bold text-gray-900 dark:text-white mb-2">Processing Report</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  We process issues based on severity. You will be notified once an officer is assigned.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>

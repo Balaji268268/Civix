@@ -1,10 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, CheckCircle, Smartphone, Map, TrendingUp, Vote } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth, useUser } from '@clerk/clerk-react';
+import csrfManager from '../utils/csrfManager';
 
 const UserGuideModal = ({ onComplete }) => {
     const [step, setStep] = useState(0);
     const [isOpen, setIsOpen] = useState(true);
+    const navigate = useNavigate();
+    const { isSignedIn } = useAuth();
+    const { user } = useUser();
 
     const steps = [
         {
@@ -33,17 +39,65 @@ const UserGuideModal = ({ onComplete }) => {
         }
     ];
 
-    const handleNext = () => {
+    const markGuideAsSeen = async () => {
+        try {
+            if (isSignedIn && user) {
+                await csrfManager.secureFetch(`/api/profile/${user.id}/guide-seen`, {
+                    method: 'PUT'
+                });
+            }
+        } catch (e) {
+            console.error("Failed to mark guide as seen:", e);
+        }
+        localStorage.setItem("hasSeenGuide", "true"); // Fallback
+    };
+
+    const handleNext = async () => {
         if (step < steps.length - 1) {
             setStep(step + 1);
         } else {
-            handleClose();
+            // Final Step Logic: "Get Started"
+            await markGuideAsSeen();
+            setIsOpen(false);
+            if (onComplete) onComplete();
+
+            // Smart Navigation if Signed In
+            if (isSignedIn && user) {
+                let role = null;
+                try {
+                    // Try fetch from backend for latest role
+                    const res = await csrfManager.secureFetch(`/api/profile/${user.id}`);
+                    if (res.ok) {
+                        const data = await res.json();
+                        role = data.role;
+                    }
+                } catch (e) {
+                    console.warn("Role fetch fallback failed in Guide:", e);
+                }
+
+
+                // Fallback
+                if (!role) role = user?.publicMetadata?.role;
+
+                switch (role) {
+                    case 'admin': navigate('/admin/dashboard'); break;
+                    case 'moderator': navigate('/moderator'); break;
+                    case 'officer': navigate('/officer/dashboard'); break;
+                    case 'user':
+                    default: navigate('/user/dashboard');
+                }
+            } else {
+                // Even if not signed in, maybe go to signup? 
+                // Or stay on home? Usually modal is on home so staying is fine.
+                // But user might want to start acting.
+                navigate('/signup');
+            }
         }
     };
 
     const handleClose = () => {
+        markGuideAsSeen();
         setIsOpen(false);
-        localStorage.setItem("hasSeenGuide", "true");
         if (onComplete) onComplete();
     };
 
