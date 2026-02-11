@@ -1,8 +1,15 @@
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const User = require('../models/userModel');
 
-// Hardcoded URI for reliability
-const uri = "mongodb+srv://Balaji_268:Balaji%402005@cluster0.xspucdi.mongodb.net/?appName=Cluster0";
+// Use environment variable - NEVER hardcode credentials
+const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
+
+if (!uri) {
+    console.error('❌ ERROR: MONGO_URI not found in environment variables!');
+    console.log('Please set MONGO_URI in backend/.env file');
+    process.exit(1);
+}
 
 async function fixRole() {
     try {
