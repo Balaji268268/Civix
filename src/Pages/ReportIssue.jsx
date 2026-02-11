@@ -163,6 +163,13 @@ const ReportIssue = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
+    // Mandatory Photo Validation
+    if (!formData.files || formData.files.length === 0) {
+      toast.error("Please upload a photo of the issue.", { icon: '📸' });
+      setIsSubmitting(false);
+      return;
+    }
+
     const data = new FormData();
     data.append("title", formData.title);
     data.append("description", formData.description);

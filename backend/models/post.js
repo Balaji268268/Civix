@@ -33,7 +33,11 @@ const postSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    likes: [{
+    upvotes: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }],
+    downvotes: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     }],

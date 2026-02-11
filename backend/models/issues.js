@@ -78,6 +78,18 @@ const issueSchema = new mongoose.Schema({
     unique: true,
     required: true,
   },
+  upvotes: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  downvotes: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  priorityScore: {
+    type: Number,
+    default: 0
+  },
   assignedOfficer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',

@@ -7,6 +7,7 @@ import logo from '../assets/logo.png';
 import { title } from 'process';
 import { Info, Phone, Users, User, LogOut, Shield, LayoutDashboard, BookOpen, Menu, X, AlertTriangle, Vote, Map, Bell } from 'lucide-react';
 import csrfManager from '../utils/csrfManager';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -91,6 +92,7 @@ const Navbar = () => {
     const handleClickOutside = (event) => {
       if (rightDropdownRef.current && !rightDropdownRef.current.contains(event.target)) {
         setRightDropdownOpen(false);
+        setShowNotifications(false); // Close notifications too
       }
     };
 
@@ -259,26 +261,34 @@ const Navbar = () => {
                   )}
                 </button>
 
-                {showNotifications && (
-                  <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-green-100 dark:border-green-900/20 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
-                    <div className="p-3 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
-                      <h4 className="font-bold text-sm">Notifications</h4>
-                      <button onClick={() => setShowNotifications(false)}><X className="w-4 h-4 text-gray-400" /></button>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {notifications.length === 0 ? (
-                        <p className="p-4 text-center text-sm text-gray-500">No new notifications</p>
-                      ) : (
-                        notifications.map((n, i) => (
-                          <div key={i} className="p-3 border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
-                            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{n.title}</p>
-                            <p className="text-xs text-gray-500">{n.message}</p>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
+                <AnimatePresence>
+                  {showNotifications && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-green-100 dark:border-green-900/20 z-50 overflow-hidden"
+                    >
+                      <div className="p-3 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
+                        <h4 className="font-bold text-sm">Notifications</h4>
+                        <button onClick={() => setShowNotifications(false)}><X className="w-4 h-4 text-gray-400" /></button>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <p className="p-4 text-center text-sm text-gray-500">No new notifications</p>
+                        ) : (
+                          notifications.map((n, i) => (
+                            <div key={i} className="p-3 border-b border-gray-50 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition">
+                              <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{n.title}</p>
+                              <p className="text-xs text-gray-500">{n.message}</p>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {rightDropdownOpen && (

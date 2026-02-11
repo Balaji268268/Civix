@@ -28,6 +28,8 @@ router.get("/officers", verifyToken, issueController.getOfficersByDepartment);
 router.get("/ai-suggest/:id", verifyToken, issueController.suggestOfficer);
 // router.post("/report-officer", verifyToken, issueController.reportOfficer); // Legacy
 router.post("/add-feedback", verifyToken, issueController.addResolutionFeedback);
+router.post("/:id/upvote", verifyToken, issueController.upvoteIssue);
+router.post("/:id/downvote", verifyToken, issueController.downvoteIssue);
 
 router.get("/:id", issueController.getIssueById);
 

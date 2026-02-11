@@ -82,4 +82,20 @@ const clearAll = asyncHandler(async (req, res) => {
     res.json({ success: true });
 });
 
-module.exports = { getNotifications, markAsRead, clearAll };
+const getUnreadCount = asyncHandler(async (req, res) => {
+    const userId = req.user?.id;
+    let query = { recipient: userId, read: false };
+
+    // Admin check (simplified)
+    if (req.user?.role === 'admin') {
+        query = {
+            $or: [{ recipient: userId }, { recipient: 'admin' }],
+            read: false
+        };
+    }
+
+    const count = await Notification.countDocuments(query);
+    res.json({ count });
+});
+
+module.exports = { getNotifications, markAsRead, clearAll, getUnreadCount };

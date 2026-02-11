@@ -1,4 +1,5 @@
-import React, { useState, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { useAuth } from '@clerk/clerk-react';
 import { motion } from 'framer-motion';
 import { Users, Newspaper, MessageSquare, Map, Flame, Hash, Bell } from 'lucide-react';
 import TrendingFeed from './TrendingFeed'; // Direct import or lazy
@@ -8,9 +9,10 @@ import EventsPage from '../components/community/EventsPage';
 import CommunitiesPage from '../components/community/CommunitiesPage';
 import DiscussionFeed from '../components/community/DiscussionFeed';
 import ExplorePage from '../components/community/ExplorePage';
-import NotificationPanel from '../components/community/NotificationPanel';
+import NotificationFeed from '../components/community/NotificationFeed';
 import PageLoader from '../components/PageLoader';
 import CivicMap from '../components/community/CivicMap';
+import csrfManager from '../utils/csrfManager';
 
 // Green Papers Animation Variants
 const floatingVariant = {
@@ -26,8 +28,38 @@ const floatingVariant = {
 };
 
 const CommunityHub = () => {
+    const { getToken } = useAuth();
     const [activeTab, setActiveTab] = useState('feed');
-    const [showNotifications, setShowNotifications] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    // Fetch Notification Count
+    useEffect(() => {
+        const fetchUnread = async () => {
+            try {
+                const token = await getToken();
+                if (!token) return;
+                const res = await csrfManager.secureFetch('/api/notifications/unread-count', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setUnreadCount(data.count);
+                }
+            } catch (e) { console.error("Failed to fetch notifications", e); }
+        };
+
+        fetchUnread();
+        // Poll every 60s
+        const interval = setInterval(fetchUnread, 60000);
+        return () => clearInterval(interval);
+    }, [activeTab]); // Refresh on tab change too
+
+    // Clear notifications count when tab is active
+    useEffect(() => {
+        if (activeTab === 'notifications') {
+            setUnreadCount(0);
+        }
+    }, [activeTab]);
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 font-sans">
@@ -71,9 +103,9 @@ const CommunityHub = () => {
                                 <NavButton
                                     icon={Bell}
                                     label="Notifications"
-                                    badge="3" // TODO: Real count
-                                    active={showNotifications}
-                                    onClick={() => setShowNotifications(!showNotifications)}
+                                    badge={unreadCount > 0 ? unreadCount : null}
+                                    active={activeTab === 'notifications'}
+                                    onClick={() => setActiveTab('notifications')}
                                 />
                                 <NavButton icon={MessageSquare} label="Discussions" active={activeTab === 'discussions'} onClick={() => setActiveTab('discussions')} />
                                 <NavButton icon={Flame} label="Events" active={activeTab === 'events'} onClick={() => setActiveTab('events')} />
@@ -104,6 +136,8 @@ const CommunityHub = () => {
                                 <CommunitiesPage />
                             ) : activeTab === 'discussions' ? (
                                 <DiscussionFeed />
+                            ) : activeTab === 'notifications' ? (
+                                <NotificationFeed />
                             ) : activeTab === 'explore' ? (
                                 <ExplorePage />
                             ) : activeTab === 'map' ? (
@@ -130,8 +164,6 @@ const CommunityHub = () => {
 
                 </div>
             </main>
-
-            <NotificationPanel isOpen={showNotifications} onClose={() => setShowNotifications(false)} />
         </div>
     );
 };
@@ -146,7 +178,7 @@ const NavButton = ({ icon: Icon, label, active, onClick, href, badge }) => {
         >
             <div className="relative">
                 <Icon className={`w-6 h-6 ${active ? 'fill-current text-emerald-600' : ''}`} />
-                {badge && <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full border-2 border-white dark:border-gray-900">{badge}</span>}
+                {badge && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 flex items-center justify-center rounded-full border-2 border-white dark:border-gray-900 animate-pulse">{badge}</span>}
             </div>
             <span className={`${active ? 'text-emerald-600' : ''}`}>{label}</span>
         </Component>

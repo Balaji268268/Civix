@@ -869,6 +869,103 @@ const addResolutionFeedback = asyncHandler(async (req, res) => {
   });
 });
 
+// Upvote Issue
+const upvoteIssue = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  let user = req.user;
+  if (!user._id) {
+    user = await User.findOne({ clerkUserId: req.user.id || req.user.sub });
+  }
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  const issue = await Issue.findById(id);
+  if (!issue) return res.status(404).json({ message: "Issue not found" });
+
+  const upvoteIndex = issue.upvotes.findIndex(uid => uid.toString() === user._id.toString());
+  const downvoteIndex = issue.downvotes.findIndex(uid => uid.toString() === user._id.toString());
+
+  if (upvoteIndex !== -1) {
+    issue.upvotes.splice(upvoteIndex, 1);
+  } else {
+    if (downvoteIndex !== -1) {
+      issue.downvotes.splice(downvoteIndex, 1);
+    }
+    issue.upvotes.push(user._id);
+  }
+
+  // Recalculate priority score
+  const netVotes = issue.upvotes.length - issue.downvotes.length;
+  const statusWeight = {
+    'Pending': 0,
+    'Low': 10,
+    'Medium': 30,
+    'High': 60
+  }[issue.priority] || 0;
+
+  issue.priorityScore = netVotes + statusWeight;
+
+  // Auto-upgrade priority if net votes exceed thresholds
+  if (netVotes >= 20 && issue.priority === 'Medium') {
+    issue.priority = 'High';
+    issue.timeline.push({
+      status: issue.status,
+      message: `Priority upgraded to High due to community votes (${netVotes} net votes).`,
+      byUser: 'System'
+    });
+  } else if (netVotes >= 10 && issue.priority === 'Low') {
+    issue.priority = 'Medium';
+    issue.timeline.push({
+      status: issue.status,
+      message: `Priority upgraded to Medium due to community votes (${netVotes} net votes).`,
+      byUser: 'System'
+    });
+  }
+
+  await issue.save();
+  res.json(issue);
+});
+
+// Downvote Issue
+const downvoteIssue = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  let user = req.user;
+  if (!user._id) {
+    user = await User.findOne({ clerkUserId: req.user.id || req.user.sub });
+  }
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  const issue = await Issue.findById(id);
+  if (!issue) return res.status(404).json({ message: "Issue not found" });
+
+  const upvoteIndex = issue.upvotes.findIndex(uid => uid.toString() === user._id.toString());
+  const downvoteIndex = issue.downvotes.findIndex(uid => uid.toString() === user._id.toString());
+
+  if (downvoteIndex !== -1) {
+    issue.downvotes.splice(downvoteIndex, 1);
+  } else {
+    if (upvoteIndex !== -1) {
+      issue.upvotes.splice(upvoteIndex, 1);
+    }
+    issue.downvotes.push(user._id);
+  }
+
+  // Recalculate priority score
+  const netVotes = issue.upvotes.length - issue.downvotes.length;
+  const statusWeight = {
+    'Pending': 0,
+    'Low': 10,
+    'Medium': 30,
+    'High': 60
+  }[issue.priority] || 0;
+
+  issue.priorityScore = netVotes + statusWeight;
+
+  await issue.save();
+  res.json(issue);
+});
+
 module.exports = {
   createIssue,
   getAllIssues,
@@ -887,5 +984,7 @@ module.exports = {
   submitResolution,
   reviewResolution,
   acknowledgeResolution,
-  addResolutionFeedback
+  addResolutionFeedback,
+  upvoteIssue,
+  downvoteIssue
 };

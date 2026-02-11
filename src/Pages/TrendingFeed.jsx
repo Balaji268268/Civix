@@ -51,7 +51,7 @@ const TrendingFeed = () => {
                     <h3 className="text-lg font-black uppercase tracking-wider">Live Updates</h3>
                 </div>
                 <div className="text-xs font-mono bg-red-700 px-2 py-1 rounded">
-                    {new Date().toLocaleTimeString()}
+                    {new Date().toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </div>
             </div>
 
@@ -95,7 +95,7 @@ const TrendingFeed = () => {
 
                                     <div className="flex items-center gap-2 mb-1">
                                         <span className="text-[10px] font-mono text-gray-400 bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded">
-                                            {new Date(issue.updatedAt || issue.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            {new Date(issue.updatedAt || issue.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                         </span>
                                         <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-tighter">
                                             {issue.category || 'General'}
