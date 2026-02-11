@@ -176,6 +176,14 @@ const createIssue = asyncHandler(async (req, res) => {
   await issue.save();
   console.log("Issue Saved with AI Data");
 
+  // === ASYNC IMAGE VALIDATION (Background) ===
+  // Validate image spam/relevance in background without blocking user
+  if (fileUrl) {
+    validateImageAsync(issue._id, fileUrl, finalCategory).catch(err =>
+      console.error('[BG Validation] Silent error:', err.message)
+    );
+  }
+
   if (fileUrl) {
     try {
       // Analyze tags separately if needed
@@ -988,3 +996,86 @@ module.exports = {
   upvoteIssue,
   downvoteIssue
 };
+module.exports = {
+  createIssue,
+  getAllIssues,
+  updateIssueStatus,
+  getIssueById,
+  deleteIssue,
+  updateIssue,
+  getMyIssues,
+  findDuplicatesForIssue,
+  getAssignedIssues,
+  manualAssignIssue,
+  getOfficersByDepartment,
+  suggestOfficer,
+  analyzeIssueImage,
+  generateCaption,
+  submitResolution,
+  reviewResolution,
+  acknowledgeResolution,
+  addResolutionFeedback,
+  upvoteIssue,
+  downvoteIssue
+};
+
+// === ASYNC IMAGE VALIDATION (Background) ===
+// This function runs AFTER issue is created to validate images without blocking user
+async function validateImageAsync(issueId, imageUrl, category) {
+  try {
+    const response = await axios.post(
+      `${ML_URL}/api/validate-issue-image/`,
+      { imageUrl, category: category || 'General' },
+      { timeout: 10000 }
+    );
+
+    const { is_valid, confidence, reason } = response.data;
+
+    // If spam detected with high confidence
+    if (!is_valid && confidence > 0.7) {
+      const issue = await Issue.findById(issueId);
+      if (!issue) return;
+
+      // Update issue status to Spam
+      issue.status = 'Spam';
+      issue.timeline.push({
+        status: 'Spam',
+        message: `Spam detected: ${reason}`,
+        byUser: 'System',
+        timestamp: new Date()
+      });
+      await issue.save();
+
+      // Send notification to user
+      await Notification.create({
+        recipient: issue.reporter.toString(),
+        title: 'Issue Flagged as Spam',
+        message: `Your reported issue "${issue.title}" was flagged as spam. Reason: ${reason}. If this is a mistake, please contact support.`,
+        type: 'warning',
+        relatedId: issueId
+      });
+
+      console.log(`[SPAM DETECTED] Issue ${issueId} flagged: ${reason}`);
+    }
+
+    // If uncertain, flag for moderator review (no notification to user)
+    else if (confidence < 0.6) {
+      const issue = await Issue.findById(issueId);
+      if (!issue) return;
+
+      issue.timeline.push({
+        status: 'Flagged',
+        message: `Auto-flagged for review: ${reason || 'Low validation confidence'}`,
+        byUser: 'System',
+        timestamp: new Date()
+      });
+      await issue.save();
+
+      console.log(`[FLAGGED] Issue ${issueId} flagged for review (confidence: ${confidence})`);
+    }
+
+  } catch (error) {
+    // Silently log errors - don't break the user flow
+    console.error(`[VALIDATION ERROR] Issue ${issueId}:`, error.message);
+  }
+}
