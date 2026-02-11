@@ -155,8 +155,6 @@ const createIssue = asyncHandler(async (req, res) => {
     notifyByEmail,
     issueType,
     isPrivate,
-    issueType, // duplicate key, but harmless
-    isPrivate,
     location,
     coordinates: { lat, lng },
     category: finalCategory,
@@ -182,16 +180,6 @@ const createIssue = asyncHandler(async (req, res) => {
     validateImageAsync(issue._id, fileUrl, finalCategory).catch(err =>
       console.error('[BG Validation] Silent error:', err.message)
     );
-  }
-
-  if (fileUrl) {
-    try {
-      // Analyze tags separately if needed
-      // const imgRes = await axios.post(`${ML_URL}/api/analyze-image/`, { imageUrl: fileUrl });
-      // mlData.tags = imgRes.data.tags; 
-    } catch (e) {
-      console.warn("ML Image analysis failed:", e.message);
-    }
   }
 
   // 3. Pro Duplicate Detection (Using Retrievers)
