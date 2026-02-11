@@ -7,11 +7,18 @@ import csrfManager from "../utils/csrfManager";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
 
-// Custom marker icon (green pin)
+// Custom marker icon (Green pin - General)
 const customIcon = new L.Icon({
   iconUrl: "https://cdn-icons-png.flaticon.com/512/149/149060.png",
   iconSize: [35, 35],
   iconAnchor: [17, 35],
+});
+
+// My Issue Marker (Blue/Red pin)
+const myIssueIcon = new L.Icon({
+  iconUrl: "https://cdn-icons-png.flaticon.com/512/149/149059.png", // Different color variance
+  iconSize: [40, 40], // Slightly larger
+  iconAnchor: [20, 40],
 });
 
 // Fly to selected location
@@ -238,49 +245,55 @@ export default function UserMap() {
                   }
                 />
 
-                {filteredIssues.map((issue, idx) => (
-                  <Marker
-                    key={idx}
-                    position={[issue.lat, issue.lng]}
-                    icon={customIcon}
-                    eventHandlers={{ click: () => setSelectedIssue(issue) }}
-                  >
-                    <Popup className="custom-popup">
-                      <div className="w-80 p-0 m-0">
-                        {/* Popup Header */}
-                        <div className="relative bg-gradient-to-r from-green-500 to-emerald-600 p-4 rounded-t-2xl">
-                          <div className="absolute inset-0 bg-white/10 rounded-t-2xl"></div>
-                          <div className="relative flex items-start gap-3">
-                            <div className="bg-white/20 p-2 rounded-lg">
-                              <MapPin className="w-5 h-5 text-white" />
+                {filteredIssues.map((issue, idx) => {
+                  const isMyIssue = user?.primaryEmailAddress?.emailAddress && issue.email === user.primaryEmailAddress.emailAddress;
+
+                  return (
+                    <Marker
+                      key={idx}
+                      position={[issue.lat, issue.lng]}
+                      icon={isMyIssue ? myIssueIcon : customIcon}
+                      eventHandlers={{ click: () => setSelectedIssue(issue) }}
+                    >
+                      <Popup className="custom-popup">
+                        <div className="w-80 p-0 m-0">
+                          {/* Popup Header */}
+                          <div className={`relative p-4 rounded-t-2xl ${isMyIssue ? 'bg-gradient-to-r from-blue-500 to-indigo-600' : 'bg-gradient-to-r from-green-500 to-emerald-600'}`}>
+                            <div className="absolute inset-0 bg-white/10 rounded-t-2xl"></div>
+                            <div className="relative flex items-start gap-3">
+                              <div className="bg-white/20 p-2 rounded-lg">
+                                <MapPin className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <h3 className="font-bold text-white text-lg leading-tight">{issue.title}</h3>
+                                <p className="text-white/80 text-sm mt-1">
+                                  {isMyIssue ? "Reported by You" : `Reported on ${issue.date}`}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <h3 className="font-bold text-white text-lg leading-tight">{issue.title}</h3>
-                              <p className="text-green-100 text-sm mt-1">Reported on {issue.date}</p>
+                          </div>
+
+                          {/* Popup Content */}
+                          <div className="bg-white dark:bg-slate-800 p-4 rounded-b-2xl">
+                            <p className="text-slate-700 dark:text-slate-300 mb-4 leading-relaxed">{issue.description}</p>
+
+                            {/* Status and Category Badges */}
+                            <div className="flex gap-2 flex-wrap">
+                              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border-2 ${statusClasses[issue.status] || 'border-gray-200'}`}>
+                                <div className="w-2 h-2 rounded-full bg-current animate-pulse"></div>
+                                {issue.status}
+                              </div>
+                              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border-2 ${categoryClasses[issue.category] || 'border-gray-200'}`}>
+                                <Sparkles size={12} />
+                                {issue.category}
+                              </div>
                             </div>
                           </div>
                         </div>
-
-                        {/* Popup Content */}
-                        <div className="bg-white dark:bg-slate-800 p-4 rounded-b-2xl">
-                          <p className="text-slate-700 dark:text-slate-300 mb-4 leading-relaxed">{issue.description}</p>
-
-                          {/* Status and Category Badges */}
-                          <div className="flex gap-2 flex-wrap">
-                            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border-2 ${statusClasses[issue.status] || 'border-gray-200'}`}>
-                              <div className="w-2 h-2 rounded-full bg-current animate-pulse"></div>
-                              {issue.status}
-                            </div>
-                            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border-2 ${categoryClasses[issue.category] || 'border-gray-200'}`}>
-                              <Sparkles size={12} />
-                              {issue.category}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </Popup>
-                  </Marker>
-                ))}
+                      </Popup>
+                    </Marker>
+                  );
+                })}
 
                 {selectedIssue && <FlyToLocation position={[selectedIssue.lat, selectedIssue.lng]} />}
               </MapContainer>

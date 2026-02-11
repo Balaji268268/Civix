@@ -254,7 +254,7 @@ exports.getAllPosts = async (req, res) => {
 
         // Inject isLiked flag
         const postsWithIsLiked = posts.map(post => {
-            const isLiked = mongoUserId ? post.likes.some(id => id.toString() === mongoUserId.toString()) : false;
+            const isLiked = mongoUserId ? (post.likes || []).some(id => id.toString() === mongoUserId.toString()) : false;
             return { ...post, isLiked };
         });
 

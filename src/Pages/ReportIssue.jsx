@@ -159,6 +159,22 @@ const ReportIssue = () => {
     );
   };
 
+  // Geocode Manual Address
+  const geocodeAddress = async (address) => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
+      );
+      const data = await response.json();
+      if (data && data.length > 0) {
+        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+      }
+    } catch (error) {
+      console.error("Geocoding failed:", error);
+    }
+    return null;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -170,6 +186,20 @@ const ReportIssue = () => {
       return;
     }
 
+    // Auto-Geocode if missing coords but has location
+    let finalCoords = formData.coords;
+    if (!finalCoords && formData.location) {
+      toast.loading("Geocoding address...", { id: 'geocode' });
+      const geoResult = await geocodeAddress(formData.location);
+      if (geoResult) {
+        finalCoords = geoResult;
+        toast.success("Location coordinates found!", { id: 'geocode' });
+      } else {
+        toast.dismiss('geocode');
+        toast.error("Could not find coordinates for this address. Map marker may not appear.");
+      }
+    }
+
     const data = new FormData();
     data.append("title", formData.title);
     data.append("description", formData.description);
@@ -179,9 +209,9 @@ const ReportIssue = () => {
     data.append("issueType", issueType);
 
     data.append("phone", formData.contact);
-    if (formData.coords) {
-      data.append("lat", formData.coords.lat);
-      data.append("lng", formData.coords.lng);
+    if (finalCoords) {
+      data.append("lat", finalCoords.lat);
+      data.append("lng", finalCoords.lng);
     }
 
     if (formData.files && formData.files.length > 0) {

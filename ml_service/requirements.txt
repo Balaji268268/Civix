@@ -12,3 +12,4 @@ groq
 gunicorn
 google-generativeai
 pillow
+python-dotenv

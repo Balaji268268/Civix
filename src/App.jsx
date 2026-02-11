@@ -81,7 +81,7 @@ const Sitemap = lazyRetry(() => import('./Pages/Sitemap'));
 const IssueDetail = lazyRetry(() => import('./Pages/IssueDetail'));
 const AdminIssueDetail = lazyRetry(() => import('./Pages/AdminIssueDetail'));
 const VotingSystem = lazyRetry(() => import('./Pages/VotingSystem'));
-const UserMap = lazyRetry(() => import('./Pages/UserMap'));
+const UserMap = lazyRetry(() => import('./pages/UserMap'));
 const Chatroom = lazyRetry(() => import('./Pages/Chatroom'));
 const Analytics = lazyRetry(() => import('./Pages/Analytics'));
 const Documents = lazyRetry(() => import('./Pages/Documents'));

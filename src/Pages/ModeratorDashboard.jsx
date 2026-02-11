@@ -59,7 +59,7 @@ export default function ModeratorDashboard() {
             const data = await res.json();
             // Filter relevant: Pending, Open, In Progress
             const activeIssues = data.filter(i =>
-                ['Pending', 'Open', 'In Progress', 'Assigned'].includes(i.status)
+                ['Pending', 'Open', 'In Progress', 'Assigned', 'Pending Review', 'Resolved'].includes(i.status)
             );
             setIssues(activeIssues);
 
@@ -88,7 +88,12 @@ export default function ModeratorDashboard() {
         i.isAnalyzed || !!i.aiAnalysis?.analyzedAt || (i.status !== 'Pending')
     );
 
-    const currentList = activeListTab === 'queue' ? queueList : analyzedList;
+    // "Resolutions" = Status is 'Pending Review' (Waiting for Moderator)
+    const resolutionList = issues.filter(i => i.status === 'Pending Review');
+
+    const currentList = activeListTab === 'queue' ? queueList
+        : activeListTab === 'resolutions' ? resolutionList
+            : analyzedList;
 
     // --- Actions ---
 
@@ -186,17 +191,31 @@ export default function ModeratorDashboard() {
     // 4. Update Status (Reject/Escalate)
     const confirmStatusUpdate = async () => {
         if (!statusAction) return;
-        const { id, status } = statusAction;
+        const { id, status, isReview } = statusAction;
 
         try {
             const token = await getToken();
-            const res = await csrfManager.secureFetch(`/api/issues/${id}/status`, {
-                method: 'PATCH',
+            let url = `/api/issues/${id}/status`;
+            let method = 'PATCH';
+            let body = { newStatus: status, remarks: actionRemarks };
+
+            // Logic Switch: If it's a Resolution Review
+            if (isReview || selectedIssue.status === 'Pending Review') {
+                url = `/api/issues/${id}/review-resolution`;
+                body = {
+                    isApproved: status === 'Resolved', // True if Resolved, False if Rejected
+                    remarks: actionRemarks,
+                    reviewedBy: "Moderator" // Backend handles user ID from token usually, but sending name helps if needed
+                };
+            }
+
+            const res = await csrfManager.secureFetch(url, {
+                method: method,
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ newStatus: status, remarks: actionRemarks })
+                body: JSON.stringify(body)
             });
 
             if (res.ok) {
@@ -270,8 +289,17 @@ export default function ModeratorDashboard() {
                                 }`}
                         >
                             <ClipboardList className="w-4 h-4 text-orange-500" />
-                            In Queue
+                            New Reports
                             <span className="bg-orange-100 text-orange-700 px-1.5 rounded-md text-xs">{queueList.length}</span>
+                        </button>
+                        <button
+                            onClick={() => { setActiveListTab('resolutions'); setSelectedIssue(null); }}
+                            className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition ${activeListTab === 'resolutions' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            <Shield className="w-4 h-4 text-purple-500" />
+                            Needs Approval
+                            <span className="bg-purple-100 text-purple-700 px-1.5 rounded-md text-xs">{resolutionList.length}</span>
                         </button>
                         <button
                             onClick={() => { setActiveListTab('analyzed'); setSelectedIssue(null); }}
@@ -279,8 +307,7 @@ export default function ModeratorDashboard() {
                                 }`}
                         >
                             <CheckSquare className="w-4 h-4 text-emerald-500" />
-                            Processed & Ready
-                            <span className="bg-emerald-100 text-emerald-700 px-1.5 rounded-md text-xs">{analyzedList.length}</span>
+                            Processed ({analyzedList.length})
                         </button>
                     </div>
 
@@ -494,6 +521,46 @@ export default function ModeratorDashboard() {
                                                     </button>
                                                 )}
                                             </div>
+                                        </div>
+                                    )}
+
+                                    {/* Resolution Proof Section */}
+                                    {selectedIssue.resolution && (selectedIssue.status === 'Pending Review' || selectedIssue.status === 'Resolved') && (
+                                        <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 mt-4">
+                                            <h4 className="text-xs font-bold uppercase text-emerald-700 mb-2 flex items-center gap-2">
+                                                <CheckCircle size={12} /> Officer Resolution Proof
+                                            </h4>
+                                            {selectedIssue.resolution.officerNotes && (
+                                                <p className="text-sm text-gray-700 mb-3 bg-white p-3 rounded-lg border border-emerald-100">
+                                                    <span className="font-bold">Notes:</span> {selectedIssue.resolution.officerNotes}
+                                                </p>
+                                            )}
+                                            {selectedIssue.resolution.proofUrl && (
+                                                <div className="mt-2">
+                                                    <span className="text-xs font-bold text-gray-500 block mb-1">Proof Image:</span>
+                                                    <img
+                                                        src={selectedIssue.resolution.proofUrl}
+                                                        alt="Resolution Proof"
+                                                        className="rounded-lg border border-emerald-200 w-full max-h-64 object-cover"
+                                                    />
+                                                </div>
+                                            )}
+                                            {selectedIssue.status === 'Pending Review' && (
+                                                <div className="mt-3 flex gap-2">
+                                                    <button
+                                                        onClick={() => setStatusAction({ id: selectedIssue._id, status: 'Resolved', isReview: true })}
+                                                        className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg shadow-sm hover:bg-emerald-700"
+                                                    >
+                                                        Approve Work
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setStatusAction({ id: selectedIssue._id, status: 'Rejected', isReview: true })}
+                                                        className="px-3 py-1.5 bg-white border border-red-200 text-red-600 text-xs font-bold rounded-lg hover:bg-red-50"
+                                                    >
+                                                        Reject Proof
+                                                    </button>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 

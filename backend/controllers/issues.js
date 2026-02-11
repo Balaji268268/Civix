@@ -1004,7 +1004,8 @@ module.exports = {
   acknowledgeResolution,
   addResolutionFeedback,
   upvoteIssue,
-  downvoteIssue
+  downvoteIssue,
+  deleteIssue
 };
 
 // === ASYNC IMAGE VALIDATION (Background) ===

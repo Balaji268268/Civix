@@ -279,14 +279,14 @@ const createUser = asyncHandler(async (req, res) => {
 const getCommunityInsights = async (req, res) => {
     try {
         // 1. Fetch recent discussions (last 50 posts)
-        const posts = await Post.find().sort({ createdAt: -1 }).limit(50).select('title content category likes comments');
+        const posts = await Post.find().sort({ createdAt: -1 }).limit(50).select('title content category type eventCategory upvotes comments');
 
         if (!posts.length) {
             return res.status(200).json({ sentiment: { positive: 0, neutral: 100, negative: 0 }, topics: [], summary: "No data yet." });
         }
 
         // 2. Prepare Data for Gemini
-        const postsText = posts.map(p => `- [${p.category}] ${p.title}: ${p.content} (${p.likes.length} likes, ${p.comments.length} comments)`).join('\n');
+        const postsText = posts.map(p => `- [${p.category || p.type || 'Post'}] ${p.title || 'No Title'}: ${p.content} (${p.upvotes?.length || 0} upvotes, ${p.comments?.length || 0} comments)`).join('\n');
 
         // 3. Ask Gemini
         const prompt = `

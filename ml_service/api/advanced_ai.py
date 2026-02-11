@@ -3,9 +3,13 @@ import google.generativeai as genai
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 import logging
+from dotenv import load_dotenv
 
 # Configure Logging
 logger = logging.getLogger(__name__)
+
+# Load Env from Backend
+load_dotenv(os.path.join(os.path.dirname(__file__), '../../backend/.env'))
 
 # Configure Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -14,7 +18,8 @@ if GEMINI_API_KEY:
 
 def get_gemini_model():
     if GEMINI_API_KEY:
-        return genai.GenerativeModel('gemini-2.5-flash')
+        return genai.GenerativeModel('gemini-1.5-flash')
+    logger.error("Gemini Model Init Failed: GEMINI_API_KEY is not set or empty.")
     return None
 
 # --- Helper: Generic Gemini Prompt ---
@@ -161,18 +166,38 @@ def generate_reply(req):
         
         if not description: return Response({"reply": ""})
 
+        # IMPROVED PROMPT for variety and empathy
         prompt = f"""
-        Act as a polite city officer. Write a short, professional response to a citizen report.
-        Issue: {description}
-        Current Status: {status}
+        You are a helpful AI assistant for the Civix city management platform.
+        Your goal is to draft a polite, reassuring, and specific response to a citizen's issue report.
         
-        Keep it under 2 sentences.
+        Issue Report: "{description}"
+        Current Status: "{status}"
+        
+        Instructions:
+        1. Acknowledge the specific issue (mention keywords from the report).
+        2. Explain what the current status "{status}" means (e.g., 'Received' means we are reviewing it, 'In Progress' means a team is on it).
+        3. Be professional but empathetic.
+        4. Keep it under 50 words.
+        
+        Draft the reply now.
         """
         
-        reply = ask_gemini(prompt)
-        return Response({"reply": reply or "Thank you for the report."})
+        try:
+            reply = ask_gemini(prompt)
+            if reply:
+                return Response({"reply": reply})
+            else:
+                logger.warning("Gemini returned empty reply, using fallback.")
+        except Exception as gemini_error:
+            logger.error(f"Gemini generation failed: {gemini_error}")
+
+        # Fallback if AI fails
+        return Response({"reply": f"Thank you for your report. We have marked this as '{status}' and will look into it shortly."})
+        
     except Exception as e:
-        return Response({"reply": "Thank you for reporting."}, status=200)
+        logger.error(f"Generate Reply API Error: {e}")
+        return Response({"reply": "Thank you for reporting. We will update you soon."}, status=200)
 
 # --- 5. Resolution Predictor ---
 @api_view(['POST'])

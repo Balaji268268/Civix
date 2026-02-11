@@ -1,3 +1,4 @@
+require('dotenv').config();
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 // Array of 5 API keys provided by user (Moved to .env)
@@ -9,38 +10,22 @@ const API_KEYS = [
     process.env.GEMINI_KEY_5
 ].filter(Boolean);
 
-// Top 5 Models (Efficiency & Reasoning)
-// Using standard identifiers based on user input, assuming they map to API model names
-const MODELS = [
-    "gemini-2.0-flash",       // Adjusted to likely real version or user's 2.5 if valid
-    "gemini-1.5-flash",       // Stable fallback
-    "gemini-1.5-pro",         // High reasoning
-    "gemini-pro",             // Legacy stable
-    "gemini-1.5-flash-8b"     // Speed
-];
-// NOTE: User asked for "gemini-2.5-flash". 
-// Since 2.5 is futuristic (as of 2024 cutoff), but context is Dec 2025:
-// I will use his exact strings.
-const USER_MODELS = [
-    "gemini-2.5-flash",
-    "gemini-3-flash",
-    "gemini-2.5-flash-lite",
-    "gemma-2-27b-it", // Correcting gemma convention usually allows 'gemma-2' or similar. 
-    // I'll stick to what user said mostly but ensure reliability.
-    "gemini-2.0-flash-exp" // backup
-];
-
+// STRICTLY User Supported Models Only
 const ACTIVE_MODELS = [
     "gemini-2.5-flash",
-    "gemini-3-flash",
     "gemini-2.5-flash-lite",
-    "gemma-3-27b",
-    "gemma-3-12b"
+    "gemini-3-flash",
+    "gemma-3-27b-it"
 ];
 
 let globalKeyIndex = 0;
 
 const callGemini = async (prompt) => {
+    if (API_KEYS.length === 0) {
+        console.error("[AI] Critical: No API Keys found in .env");
+        return null;
+    }
+
     // Outer Loop: Keys
     for (let k = 0; k < API_KEYS.length; k++) {
         const currentKeyIdx = (globalKeyIndex + k) % API_KEYS.length;
@@ -67,48 +52,53 @@ const callGemini = async (prompt) => {
 
                 if (isQuota) {
                     // console.warn(`[AI] Quota: Key(${currentKeyIdx}) | ${modelName} -> next model...`);
-                    continue; // Try next model
                 } else {
-                    // console.error(`[AI] Error: Key(${currentKeyIdx}) | ${modelName} -> ${msg}`);
-                    // For non-quota errors (e.g., model not found), also try next model
-                    continue;
+                    console.error(`[AI] Error: Key(${currentKeyIdx}) | ${modelName} -> ${error.message}`);
                 }
+                // Try next model/key
+                continue;
             }
         }
-        // console.warn(`[AI] Key(${currentKeyIdx}) exhausted all models. Switching key.`);
     }
 
     console.error("[AI] Critical: All Keys and Models failed.");
     return null;
 };
 
-// Simple vision fallback (using first key for now, or similar rotation if needed)
+// Vision fallback
 async function callGeminiVision(prompt, imageUrl) {
+    if (API_KEYS.length === 0) return null;
+
     const axios = require('axios');
     const apiKey = API_KEYS[globalKeyIndex]; // Use current active key
 
-    // Fallback to flash for vision
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // Vision-capable models from user list? 
+    // Gemini 2.5 Flash is usually multimodal.
+    const visionModels = ["gemini-2.5-flash", "gemini-1.5-flash"];
 
-    try {
-        const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
-        const base64Image = Buffer.from(imageResponse.data).toString('base64');
-        const mimeType = imageResponse.headers['content-type'];
+    for (const model of visionModels) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-        const response = await axios.post(url, {
-            contents: [{
-                parts: [
-                    { text: prompt },
-                    { inline_data: { mime_type: mimeType, data: base64Image } }
-                ]
-            }]
-        }, { headers: { 'Content-Type': 'application/json' } });
+        try {
+            const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+            const base64Image = Buffer.from(imageResponse.data).toString('base64');
+            const mimeType = imageResponse.headers['content-type'];
 
-        return response.data?.candidates?.[0]?.content?.parts?.[0]?.text || null;
-    } catch (error) {
-        console.error("Vision Error:", error.message);
-        return null;
+            const response = await axios.post(url, {
+                contents: [{
+                    parts: [
+                        { text: prompt },
+                        { inline_data: { mime_type: mimeType, data: base64Image } }
+                    ]
+                }]
+            }, { headers: { 'Content-Type': 'application/json' } });
+
+            return response.data?.candidates?.[0]?.content?.parts?.[0]?.text || null;
+        } catch (error) {
+            console.error(`Vision Error (${model}):`, error.response?.data?.error?.message || error.message);
+        }
     }
+    return null;
 }
 
 module.exports = { callGemini, callGeminiVision };

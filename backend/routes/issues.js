@@ -33,4 +33,6 @@ router.post("/:id/downvote", verifyToken, issueController.downvoteIssue);
 
 router.get("/:id", issueController.getIssueById);
 
+router.delete("/:id", verifyToken, issueController.deleteIssue);
+
 module.exports = router;

@@ -75,6 +75,9 @@ const verifyToken = async (req, res, next) => {
       }
 
       try {
+        // ATOMIC UPSERT STRATEGY: Try to set details only if user exists, otherwise create.
+        // But since we have a race condition, strict creation with fallback is better.
+
         dbUser = await User.create({
           clerkUserId: decoded.sub,
           email: email,
@@ -83,26 +86,36 @@ const verifyToken = async (req, res, next) => {
           profilePictureUrl: imageUrl,
           isApproved: true,
           profileSetupCompleted: false,
-          password: "CLERK_AUTH_USER_PLACEHOLDER_HASH" // Required by Schema
+          password: "CLERK_AUTH_USER_PLACEHOLDER_HASH"
         });
         console.log(`[Auth] Synced User: ${email} as ${role}`);
       } catch (createErr) {
-        console.error("Auto-Sync Failed (Duplicate?):", createErr.message);
-
-        // HEAL STRATEGY: If duplicate email, link the accounts
+        // HEAL STRATEGY: Atomic Update to fix race conditions
         if (createErr.message.includes('E11000') || createErr.code === 11000) {
-          console.log(`[Auth] Healing: Found existing user with email ${email}. Linking Clerk ID...`);
-          dbUser = await User.findOne({ email: email });
-          if (dbUser) {
-            dbUser.clerkUserId = decoded.sub; // Update Clerk ID
-            if (!dbUser.name || dbUser.name === 'New User') dbUser.name = firstName;
-            if (!dbUser.profilePictureUrl) dbUser.profilePictureUrl = imageUrl;
-            await dbUser.save();
+          console.log(`[Auth] Healing: User ${email} exists. Atomically linking Clerk ID...`);
+
+          try {
+            dbUser = await User.findOneAndUpdate(
+              { email: email },
+              {
+                $set: {
+                  clerkUserId: decoded.sub,
+                  profilePictureUrl: imageUrl
+                },
+                // Only update name if it's "New User" or missing (using aggregation if needed, but simple overwrite is safer for sync)
+                // Let's just update name to keep it synced with Clerk
+                $setOnInsert: { isApproved: true }
+              },
+              { new: true, upsert: false }
+            );
             console.log(`[Auth] Healed User: Linked ${email} to Clerk ID ${decoded.sub}`);
+          } catch (updateErr) {
+            console.error("[Auth] Atomic Healing Failed:", updateErr.message);
+            // Last resort: just fetch
+            dbUser = await User.findOne({ email: email });
           }
         } else {
-          // Race condition fallback: try finding again
-          dbUser = await User.findOne({ clerkUserId: decoded.sub });
+          console.error("[Auth] Create Failed (Non-Duplicate):", createErr.message);
         }
       }
     }

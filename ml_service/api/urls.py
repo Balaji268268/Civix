@@ -10,7 +10,7 @@ urlpatterns = [
     path('analyze-image/', views.analyze_image),
     path('generate-caption/', views.generate_caption_view),
     path('validate-issue-image/', views.validate_issue_image),  # NEW: Spam detection
-    path('find-duplicates/', views.find_duplicates),
+    path('find-duplicates/', advanced_ai.check_semantic_duplicate),
     path('get-embedding/', views.get_embedding),
     
     # Advanced AI Endpoints
