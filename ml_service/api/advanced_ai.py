@@ -2,7 +2,6 @@ import os
 import google.generativeai as genai
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-import whisper
 import logging
 
 # Configure Logging
@@ -12,24 +11,11 @@ logger = logging.getLogger(__name__)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
-    
-# Global Model Cache (Only Whisper is local now)
-MODELS = {
-    "whisper": None,
-    "gemini": None
-}
 
 def get_gemini_model():
-    if not MODELS["gemini"] and GEMINI_API_KEY:
-        # Use 'gemini-2.5-flash' as requested by user
-        MODELS["gemini"] = genai.GenerativeModel('gemini-2.5-flash')
-    return MODELS["gemini"]
-
-def load_whisper_model():
-    if MODELS["whisper"] is None:
-        logger.info("Loading Whisper Model (Base)...")
-        MODELS["whisper"] = whisper.load_model("base")
-    return MODELS["whisper"]
+    if GEMINI_API_KEY:
+        return genai.GenerativeModel('gemini-2.5-flash')
+    return None
 
 # --- Helper: Generic Gemini Prompt ---
 def ask_gemini(prompt, retries=1):
@@ -113,33 +99,58 @@ def analyze_toxicity(req):
     except Exception as e:
         return Response({"error": str(e)}, status=500)
 
-# --- 3. Audio Transcription (Whisper - LOCAL) ---
+# --- 3. Audio Transcription (Gemini 2.5 Flash Native Audio) ---
 @api_view(['POST'])
 def transcribe_audio(req):
-    # KEPT AS IS (User Requested Local Whisper)
+    """
+    Transcribe audio using Gemini 2.5 Flash native audio capability.
+    Free and unlimited - no Whisper dependency needed.
+    """
     try:
         audio_file = req.FILES.get('audio')
         if not audio_file:
             return Response({"error": "No audio file provided"}, status=400)
-            
+        
+        if not GEMINI_API_KEY:
+            return Response({"error": "Gemini API not configured"}, status=500)
+        
+        # Save temporary file
         temp_path = f"temp_{audio_file.name}"
         with open(temp_path, 'wb+') as destination:
             for chunk in audio_file.chunks():
                 destination.write(chunk)
-                
-        model = load_whisper_model()
-        result = model.transcribe(temp_path)
         
-        if os.path.exists(temp_path):
-            os.remove(temp_path)
-        
-        return Response({"text": result["text"]})
+        try:
+            # Upload audio file to Gemini
+            audio_upload = genai.upload_file(temp_path)
+            
+            # Use Gemini 2.5 Flash with native audio
+            model = genai.GenerativeModel('gemini-2.5-flash')
+            
+            prompt = """
+            Transcribe this audio accurately. Return ONLY the transcribed text, nothing else.
+            If the audio contains a civic complaint or issue report, transcribe it verbatim.
+            """
+            
+            response = model.generate_content([prompt, audio_upload])
+            
+            # Cleanup
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            
+            transcribed_text = response.text.strip()
+            
+            return Response({"text": transcribed_text})
+            
+        except Exception as e:
+            # Cleanup on error
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+            raise e
+            
     except Exception as e:
-        # Cleanup
-        if 'audio_file' in locals() and os.path.exists(f"temp_{audio_file.name}"):
-            os.remove(f"temp_{audio_file.name}")
-        logger.error(f"Whisper Error: {e}")
-        return Response({"error": str(e)}, status=500)
+        logger.error(f"Gemini Audio Transcription Error: {e}")
+        return Response({"error": f"Transcription failed: {str(e)}"}, status=500)
 
 # --- 4. Smart Auto-Reply ---
 @api_view(['POST'])

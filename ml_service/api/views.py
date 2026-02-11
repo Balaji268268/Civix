@@ -7,7 +7,6 @@ from api.advanced_ai import (
     ask_gemini, 
     check_semantic_duplicate, 
     analyze_toxicity, 
-    transcribe_audio, 
     generate_reply, 
     predict_resolution_time,
     GEMINI_API_KEY
@@ -153,3 +152,102 @@ def generate_caption_view(request):
     except Exception as e:
         logger.error(f"Generate Caption Error: {e}")
         return Response({'description': ''})
+
+# --- IMAGE VALIDATION FOR SPAM DETECTION ---
+@api_view(['POST'])
+def validate_issue_image(request):
+    """
+    Validate if uploaded image is relevant to civic issues.
+    Uses Gemini Vision for smart multimodal classification.
+    Prevents spam images (memes, selfies, food) from being submitted.
+    """
+    image_url = request.data.get('imageUrl')
+    category = request.data.get('category', 'General')
+    
+    if not image_url:
+        return Response({'is_valid': False, 'reason': 'No image provided'})
+    
+    if not GEMINI_API_KEY:
+        logger.warning("Gemini API key not configured - image validation unavailable")
+        return Response({
+            'is_valid': True,
+            'confidence': 0.0,
+            'reason': 'Validation service not configured',
+            'requires_manual_review': True
+        })
+    
+    try:
+        # Fetch image using existing utility
+        from civix_ml.image_model import fetch_image
+        img = fetch_image(image_url)
+        
+        if not img:
+            return Response({'is_valid': False, 'reason': 'Failed to load image'})
+        
+        # Use Gemini Vision (same model already in use)
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        
+        prompt = f"""
+        Analyze this image for a civic issue report (category: {category}).
+        
+        Determine if the image is VALID or SPAM:
+        
+        VALID = Shows actual civic infrastructure problems:
+        - Potholes, road damage, cracks
+        - Broken public facilities (streetlights, benches, signs)
+        - Water/sewage leaks
+        - Garbage accumulation
+        - Damaged sidewalks, curbs
+        - Any real public infrastructure issue
+        
+        SPAM = Irrelevant content:
+        - Selfies, portraits, group photos
+        - Food, meals, restaurants
+        - Memes, screenshots, text-only images
+        - Indoor scenes (unless clearly public building issue)
+        - Random objects unrelated to civic issues
+        - Pets, animals (unless stray/safety hazard)
+        
+        Return ONLY this JSON (no markdown):
+        {{
+            "is_valid": boolean,
+            "confidence": 0.0 to 1.0,
+            "reason": "brief explanation",
+            "detected_content": "what you see in the image"
+        }}
+        """
+        
+        response = model.generate_content([prompt, img])
+        
+        # Parse response
+        text = response.text.strip()
+        # Remove markdown fences if present
+        text = text.replace('```json', '').replace('```', '').strip()
+        data = json.loads(text)
+        
+        return Response({
+            'is_valid': data.get('is_valid', True),
+            'confidence': data.get('confidence', 0.5),
+            'reason': data.get('reason', ''),
+            'detected_content': data.get('detected_content', ''),
+            'method': 'GEMINI_VISION'
+        })
+        
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse Gemini response: {e}, Response: {text if 'text' in locals() else 'N/A'}")
+        return Response({
+            'is_valid': True,
+            'confidence': 0.0,
+            'reason': 'Validation parsing error',
+            'requires_manual_review': True
+        })
+    except Exception as e:
+        logger.error(f"Image validation error: {e}")
+        # Graceful degradation - allow but flag for manual review
+        return Response({
+            'is_valid': True,
+            'confidence': 0.0,
+            'reason': 'Validation service unavailable',
+            'requires_manual_review': True
+        })
+

@@ -9,6 +9,7 @@ urlpatterns = [
     path('categorize/', views.categorize),
     path('analyze-image/', views.analyze_image),
     path('generate-caption/', views.generate_caption_view),
+    path('validate-issue-image/', views.validate_issue_image),  # NEW: Spam detection
     path('find-duplicates/', views.find_duplicates),
     path('get-embedding/', views.get_embedding),
     
