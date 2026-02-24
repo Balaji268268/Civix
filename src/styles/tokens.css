@@ -1,0 +1,104 @@
+/* ==========================================================================
+   Civix Design Tokens — Single Source of Truth
+   WCAG 2.1 AA Compliant (Minimum 4.5:1 contrast for normal text, 3:1 for large)
+   ========================================================================== */
+
+:root {
+  /* --- Neutrals & Surfaces --- */
+  --bg: 250 250 249;          /* Stone 50 */
+  --surface: 255 255 255;      /* Pure White */
+  --surface-raised: 248 250 252; /* Slate 50 */
+  --border: 226 232 240;      /* Slate 200 */
+  --border-strong: 203 213 225; /* Slate 300 */
+  
+  /* --- Typography Colors --- */
+  --text: 15 23 42;           /* Slate 900 */
+  --text-2: 71 85 105;        /* Slate 600 */
+  --text-muted: 148 163 184;  /* Slate 400 */
+  --text-inverse: 255 255 255;
+
+  /* --- Primary Civic Brand Accent --- */
+  --accent: 13 148 136;       /* Teal 600 */
+  --accent-hover: 15 118 110; /* Teal 700 */
+  --accent-soft: 204 251 241;  /* Teal 100 */
+  --accent-ring: 45 212 191;  /* Teal 400 */
+
+  /* --- Semantic Status Tokens (THE Map & Issue Lifecycle System) --- */
+  --st-pending: 217 119 6;     /* Amber 600 */
+  --st-pending-bg: 254 243 199;/* Amber 100 */
+  --st-pending-text: 146 64 14;/* Amber 800 */
+
+  --st-progress: 2 132 199;    /* Sky 600 */
+  --st-progress-bg: 224 242 254;/* Sky 100 */
+  --st-progress-text: 7 89 133; /* Sky 800 */
+
+  --st-assigned: 79 70 229;    /* Indigo 600 */
+  --st-assigned-bg: 238 242 255;/* Indigo 100 */
+  --st-assigned-text: 55 48 163;/* Indigo 800 */
+
+  --st-resolved: 22 163 74;    /* Green 600 */
+  --st-resolved-bg: 220 252 231;/* Green 100 */
+  --st-resolved-text: 22 101 52;/* Green 800 */
+
+  --st-rejected: 107 114 128;  /* Slate 500 (Clean neutral grey, not alert red) */
+  --st-rejected-bg: 241 245 249;/* Slate 100 */
+  --st-rejected-text: 51 65 85; /* Slate 700 */
+
+  --st-spam: 168 85 247;       /* Purple 500 */
+  --st-spam-bg: 243 232 255;   /* Purple 100 */
+  --st-spam-text: 107 33 168;  /* Purple 800 */
+
+  --danger: 220 38 38;         /* Red 600 */
+  --danger-bg: 254 226 226;    /* Red 100 */
+  --danger-text: 153 27 27;    /* Red 800 */
+
+  /* --- Radii Tokens --- */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+
+  /* --- Elevation Shadows --- */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+}
+
+.dark {
+  --bg: 15 23 42;             /* Slate 900 */
+  --surface: 30 41 59;         /* Slate 800 */
+  --surface-raised: 51 65 85;  /* Slate 700 */
+  --border: 51 65 85;          /* Slate 700 */
+  --border-strong: 71 85 105;  /* Slate 600 */
+  
+  --text: 248 250 252;        /* Slate 50 */
+  --text-2: 203 213 225;       /* Slate 300 */
+  --text-muted: 148 163 184;   /* Slate 400 */
+  --text-inverse: 15 23 42;
+
+  --accent: 45 212 191;        /* Teal 400 */
+  --accent-hover: 20 184 166;  /* Teal 500 */
+  --accent-soft: 19 78 74;     /* Teal 900 */
+  --accent-ring: 94 234 212;
+
+  --st-pending-bg: 69 26 3;
+  --st-pending-text: 253 230 138;
+
+  --st-progress-bg: 12 74 110;
+  --st-progress-text: 186 230 253;
+
+  --st-assigned-bg: 49 46 129;
+  --st-assigned-text: 199 210 254;
+
+  --st-resolved-bg: 20 83 45;
+  --st-resolved-text: 187 247 208;
+
+  --st-rejected-bg: 51 65 85;
+  --st-rejected-text: 226 232 240;
+
+  --st-spam-bg: 88 28 135;
+  --st-spam-text: 233 213 255;
+
+  --danger-bg: 127 29 29;
+  --danger-text: 254 202 202;
+}
