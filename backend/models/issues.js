@@ -1,8 +1,16 @@
 const mongoose = require('mongoose');
 
 const issueSchema = new mongoose.Schema({
-  title: String,
-  description: String,
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  description: {
+    type: String,
+    required: true,
+    trim: true,
+  },
   phone: String,
   email: String,
   fileUrl: String,
@@ -11,27 +19,67 @@ const issueSchema = new mongoose.Schema({
     lat: Number,
     lng: Number
   },
+  // GeoJSON field for high-performance geospatial 2dsphere queries (only when coordinates exist)
+  geo: {
+    type: {
+      type: String,
+      enum: ['Point']
+    },
+    coordinates: {
+      type: [Number] // [lng, lat] per GeoJSON standard
+    }
+  },
+  // H3 Spatial Indexing
+  h3_9: { type: String, index: true }, // ~165m hexagon (same-place)
+  h3_8: { type: String, index: true }, // ~500m hexagon (region)
+  clusterId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'IssueCluster',
+    index: true,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now,
+    index: true
   },
   status: {
     type: String,
-    default: 'Pending'
+    enum: ['Received', 'Assigned', 'In Progress', 'Pending Review', 'Resolved', 'Closed', 'Rejected', 'Spam', 'Pending'],
+    default: 'Received',
+    index: true
+  },
+  closeReason: {
+    type: String,
+    enum: [
+      'DUPLICATE',
+      'FAKE_TEXT',
+      'FAKE_IMAGE',
+      'MISMATCH',
+      'OUT_OF_AREA',
+      'UNACTIONABLE',
+      'RESOLVED_CONFIRMED',
+      'RESOLVED_AUTO',
+      'OTHER'
+    ],
+    default: null
   },
   notifyByEmail: {
     type: Boolean,
-    default: false, // Default to false if not specified
+    default: false,
   },
   priority: {
     type: String,
     enum: ['High', 'Medium', 'Low', 'Pending'],
-    default: 'Pending'
+    default: 'Medium',
+    index: true
   },
   category: {
     type: String,
-    default: 'General'
+    default: 'other',
+    index: true
   },
+  category_legacy: String,
   isFake: {
     type: Boolean,
     default: false
@@ -39,6 +87,11 @@ const issueSchema = new mongoose.Schema({
   fakeConfidence: {
     type: Number,
     default: 0
+  },
+  needsReview: {
+    type: Boolean,
+    default: false,
+    index: true
   },
   duplicateAnalysis: {
     isDuplicate: Boolean,
@@ -53,7 +106,17 @@ const issueSchema = new mongoose.Schema({
     fakeConfidence: Number,
     category: String,
     reasoning: String,
-    analyzedAt: { type: Date }
+    matchVerdict: String,
+    matchScore: Number,
+    geo_mismatch_km: Number,
+    analyzedAt: { type: Date },
+    jobs: [{
+      job: String,
+      state: String,
+      processedAt: Date,
+      durationMs: Number,
+      result: mongoose.Schema.Types.Mixed
+    }]
   },
   isAnalyzed: {
     type: Boolean,
@@ -67,16 +130,18 @@ const issueSchema = new mongoose.Schema({
   },
   isPrivate: {
     type: Boolean,
-    default: false
+    default: false,
+    index: true
   },
   embedding: {
-    type: [Number],  // For Vector Search (optional/future proofing)
-    select: false    // Don't return by default
+    type: [Number],
+    select: false
   },
   complaintId: {
     type: String,
     unique: true,
     required: true,
+    index: true
   },
   upvotes: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -93,7 +158,8 @@ const issueSchema = new mongoose.Schema({
   assignedOfficer: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    default: null
+    default: null,
+    index: true
   },
   department: {
     type: String,
@@ -103,9 +169,8 @@ const issueSchema = new mongoose.Schema({
     status: String,
     timestamp: { type: Date, default: Date.now },
     message: String,
-    byUser: String // Name or Role
+    byUser: String
   }],
-  // New Resolution Tracking Fields
   resolution: {
     proofUrl: String,
     officerNotes: String,
@@ -126,26 +191,48 @@ const issueSchema = new mongoose.Schema({
       remarks: String
     }
   },
-  // Post-Resolution Feedback Loop
   feedbacks: [{
     rating: { type: Number, min: 1, max: 5 },
     comment: String,
-    givenBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Citizen or Moderator
+    givenBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     role: { type: String, enum: ['user', 'moderator'] },
-    sentimentScore: Number, // AI Analysis (-1 to 1)
-    sentimentLabel: String, // 'Positive', 'Neutral', 'Negative'
+    sentimentScore: Number,
+    sentimentLabel: String,
     createdAt: { type: Date, default: Date.now }
   }],
-  feedbackTimeline: {
-    lastAnalyzed: Date,
-    checks: {
-      h24: { type: Boolean, default: false },
-      d3: { type: Boolean, default: false },
-      d7: { type: Boolean, default: false },
-      d30: { type: Boolean, default: false },
-      d90: { type: Boolean, default: false }
-    }
+  sla: {
+    breached: { type: Boolean, default: false },
+    escalatedAt: Date,
+    deadline: Date
   }
 });
+
+// --- Pre-save Hook: Sync GeoJSON point and Coordinates ---
+issueSchema.pre('save', function (next) {
+  if (
+    this.coordinates &&
+    this.coordinates.lat != null &&
+    this.coordinates.lng != null &&
+    !isNaN(Number(this.coordinates.lat)) &&
+    !isNaN(Number(this.coordinates.lng))
+  ) {
+    this.geo = {
+      type: 'Point',
+      coordinates: [Number(this.coordinates.lng), Number(this.coordinates.lat)] // [lng, lat]
+    };
+  } else {
+    this.geo = undefined;
+  }
+  next();
+});
+
+// --- High-Performance Compound & Geospatial Indexes ---
+issueSchema.index({ geo: '2dsphere' }, { sparse: true });
+issueSchema.index({ "coordinates.lat": 1, "coordinates.lng": 1 });
+issueSchema.index({ h3_8: 1, status: 1, createdAt: -1 });
+issueSchema.index({ h3_9: 1, category: 1 });
+issueSchema.index({ status: 1, createdAt: -1 });
+issueSchema.index({ email: 1, createdAt: -1 });
+issueSchema.index({ category: 1, createdAt: -1 });
 
 module.exports = mongoose.model('Issue', issueSchema);
