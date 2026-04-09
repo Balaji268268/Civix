@@ -1,11 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const issueController = require("../controllers/issues");
-const { verifyToken, isAdmin, isModerator } = require("../middlewares/validate");
+const { verifyToken, verifyTokenOptional, isAdmin, isModerator } = require("../middlewares/validate");
 const { upload } = require("../middlewares/multer.middleware");
 
-
-router.post("/", verifyToken, upload.single("file"), issueController.createIssue);
+router.post("/", verifyTokenOptional, upload.single("file"), issueController.createIssue);
 router.post("/analyze-image", upload.single("file"), issueController.analyzeIssueImage);
 router.post("/generate-caption", upload.single("file"), issueController.generateCaption);
 
