@@ -190,6 +190,7 @@ if (cluster.isPrimary) {
 
   app.use("/api/auth", authRoutes);
   app.use("/api/issues", issueRoutes);
+  app.use("/api/v1", require("./routes/v1")); // Versioned v1 API
   app.use("/api/profile", profileRoutes);
   app.use("/api/admin", adminRoutes);
   app.use("/api/admin", analyticsRoutes);
@@ -203,6 +204,10 @@ if (cluster.isPrimary) {
   app.use("/api/ai", require("./routes/aiRoutes"));
   app.use("/api/gamification", gamificationRoutes);
   app.use("/api/ml", require("./routes/mlProxy")); // ML Service Proxy
+
+  // Initialize Asynchronous Worker Engine
+  const { initWorkers } = require("./workers");
+  initWorkers();
 
   // --- Feedback Bot (Unified Sharding) ---
   // All workers run the bot, but they process different data shards based on worker.id
@@ -257,14 +262,27 @@ if (cluster.isPrimary) {
   });
 
   let activeUsers = 0;
+  global.io = io;
 
   io.on("connection", (socket) => {
     activeUsers++;
     io.emit("userCount", activeUsers);
     console.log(`User connected: ${socket.id}. Total: ${activeUsers}`);
 
+    socket.on("joinMapRoom", (room) => {
+      if (room) {
+        socket.join(room);
+        console.log(`Socket ${socket.id} joined map room: ${room}`);
+      }
+    });
+
+    socket.on("leaveMapRoom", (room) => {
+      if (room) {
+        socket.leave(room);
+      }
+    });
+
     socket.on("sendMessage", (data) => {
-      // Broadcast to everyone including sender (or use broadcast.emit for others only)
       io.emit("receiveMessage", data);
     });
 
