@@ -1,0 +1,32 @@
+{
+  "generator": "generate_citizen_corpus",
+  "version": 1,
+  "seed": 7,
+  "total": 10000,
+  "taxonomy_version": 4,
+  "dept_counts": {
+    "street_lighting": 1040,
+    "roads": 1565,
+    "solid_waste": 1337,
+    "building_inspection": 197,
+    "water_supply": 877,
+    "public_safety": 289,
+    "traffic": 729,
+    "sewerage_drainage": 673,
+    "markets_trade": 92,
+    "other": 99,
+    "trees": 205,
+    "health_hospitals": 368,
+    "parks_public_space": 480,
+    "encroachment": 176,
+    "public_transport": 455,
+    "gas_fire_hazards": 112,
+    "public_conveniences": 91,
+    "flood_management": 329,
+    "electricity": 599,
+    "noise": 287
+  },
+  "subtypes_covered": 106,
+  "sha256": "aa18d8154b67caf2a8759587271c905d30bd17db1fc55ca02987f1ab8b1d8835",
+  "note": "seed-pinned; 60% of rows cluster around 8 hotspots (natural dup clusters for D5)"
+}
