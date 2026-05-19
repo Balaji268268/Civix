@@ -1,0 +1,19 @@
+{
+  "generator": "generate_spam_corpus",
+  "version": 1,
+  "seed": 42,
+  "total": 2000,
+  "family_counts": {
+    "symbol_digit": 145,
+    "lorem": 187,
+    "repeated_char": 141,
+    "mixed_script": 221,
+    "repeated_word": 217,
+    "scam_template": 410,
+    "boundary_real": 210,
+    "keyboard_mash": 296,
+    "random_ascii": 173
+  },
+  "sha256": "dce5520a2ce7cad9e689372804a7f114395f4c0ce030224962a0bf626c5ce129",
+  "note": "seed-pinned: same seed => byte-identical output"
+}
