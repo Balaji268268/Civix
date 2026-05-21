@@ -1,0 +1,142 @@
+{
+  "dataset": "category_text_v1_sample",
+  "input": "datasets/processed/category_text_v1_sample.jsonl",
+  "input_sha256": "aa18d8154b67caf2a8759587271c905d30bd17db1fc55ca02987f1ab8b1d8835",
+  "rows": 10000,
+  "primary_label": "category_id",
+  "class_balance": [
+    [
+      "roads",
+      1565
+    ],
+    [
+      "solid_waste",
+      1337
+    ],
+    [
+      "street_lighting",
+      1040
+    ],
+    [
+      "water_supply",
+      877
+    ],
+    [
+      "traffic",
+      729
+    ],
+    [
+      "sewerage_drainage",
+      673
+    ],
+    [
+      "electricity",
+      599
+    ],
+    [
+      "parks_public_space",
+      480
+    ],
+    [
+      "public_transport",
+      455
+    ],
+    [
+      "health_hospitals",
+      368
+    ],
+    [
+      "flood_management",
+      329
+    ],
+    [
+      "public_safety",
+      289
+    ],
+    [
+      "noise",
+      287
+    ],
+    [
+      "trees",
+      205
+    ],
+    [
+      "building_inspection",
+      197
+    ],
+    [
+      "encroachment",
+      176
+    ],
+    [
+      "gas_fire_hazards",
+      112
+    ],
+    [
+      "other",
+      99
+    ],
+    [
+      "markets_trade",
+      92
+    ],
+    [
+      "public_conveniences",
+      91
+    ]
+  ],
+  "imbalance_ratio": 17.2,
+  "text_len": {
+    "p10": 75,
+    "p50": 99,
+    "p90": 119,
+    "min": 23,
+    "max": 159
+  },
+  "exact_dup_rows": 65,
+  "near_dup_rows_real": 0,
+  "near_dup_rows_synthetic": 8640,
+  "source_mix": [
+    [
+      "layerB:synthetic",
+      10000
+    ]
+  ],
+  "script_composition_sample": [
+    [
+      "latin",
+      193056
+    ],
+    [
+      "other",
+      404
+    ]
+  ],
+  "null_label_counts": {
+    "category_id": 0,
+    "priority": 0,
+    "is_fake": 0,
+    "coords": 0,
+    "status": 10000
+  },
+  "gates": {
+    "min_class_support": {
+      "pass": true,
+      "limit": 80
+    },
+    "exact_dup_rate_lt_15pct": {
+      "pass": true,
+      "value": 0.65
+    },
+    "near_dup_real_rows_lt_30pct": {
+      "pass": true,
+      "value": "n/a"
+    },
+    "no_zero_texts": {
+      "pass": true,
+      "value": 23
+    }
+  },
+  "all_gates_pass": true
+}
