@@ -1,0 +1,105 @@
+{
+  "dataset": "spam_text_v1_sample",
+  "input": "datasets/processed/spam_text_v1_sample.jsonl",
+  "input_sha256": "dce5520a2ce7cad9e689372804a7f114395f4c0ce030224962a0bf626c5ce129",
+  "rows": 2000,
+  "primary_label": "spam_family",
+  "class_balance": [
+    [
+      "scam_template",
+      410
+    ],
+    [
+      "keyboard_mash",
+      296
+    ],
+    [
+      "mixed_script",
+      221
+    ],
+    [
+      "repeated_word",
+      217
+    ],
+    [
+      "boundary_real",
+      210
+    ],
+    [
+      "lorem",
+      187
+    ],
+    [
+      "random_ascii",
+      173
+    ],
+    [
+      "symbol_digit",
+      145
+    ],
+    [
+      "repeated_char",
+      141
+    ]
+  ],
+  "imbalance_ratio": 2.9,
+  "text_len": {
+    "p10": 21,
+    "p50": 60,
+    "p90": 144,
+    "min": 10,
+    "max": 429
+  },
+  "exact_dup_rows": 156,
+  "near_dup_rows": 866,
+  "source_mix": [
+    [
+      "layerB:synthetic",
+      2000
+    ]
+  ],
+  "script_composition_sample": [
+    [
+      "latin",
+      136725
+    ],
+    [
+      "devanagari",
+      2248
+    ],
+    [
+      "telugu",
+      2112
+    ],
+    [
+      "other",
+      40
+    ]
+  ],
+  "null_label_counts": {
+    "category_id": 1790,
+    "priority": 2000,
+    "is_fake": 0,
+    "coords": 2000,
+    "status": 2000
+  },
+  "gates": {
+    "min_class_support": {
+      "pass": false,
+      "limit": 800
+    },
+    "exact_dup_rate_lt_15pct": {
+      "pass": true,
+      "value": 7.8
+    },
+    "near_dup_rate_lt_30pct": {
+      "pass": false,
+      "value": 43.3
+    },
+    "no_zero_texts": {
+      "pass": true,
+      "value": 10
+    }
+  },
+  "all_gates_pass": false
+}
