@@ -2,53 +2,65 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser, useAuth } from "@clerk/clerk-react";
 import { toast } from 'react-hot-toast';
-import { MapPin, Upload, ShieldCheck, Loader2, ArrowRight, User } from 'lucide-react';
+import {
+  MapPin,
+  Upload,
+  ShieldCheck,
+  Loader2,
+  ArrowRight,
+  ArrowLeft,
+  Send,
+  Building2,
+  User,
+  Sparkles,
+  Info
+} from 'lucide-react';
 import csrfManager from "../utils/csrfManager";
 import UserLayout from "../components/layout/UserLayout";
-import API_BASE_URL from '../config'; // Import Config
-
+import Button from "../components/ui/Button";
+import Field from "../components/ui/Field";
+import Select from "../components/ui/Select";
+import Card from "../components/ui/Card";
 import DuplicateIssueModal from "../components/DuplicateIssueModal";
 import VoiceInput from '../components/VoiceInput';
-
-import useFormPersistence from "../hooks/useFormPersistence"; // Import Hook
+import useFormPersistence from "../hooks/useFormPersistence";
+import { PUBLIC_CATEGORIES, PERSONAL_CATEGORIES } from '../constants/categories';
 
 const ReportIssue = () => {
   const navigate = useNavigate();
   const { user } = useUser();
   const { getToken } = useAuth();
 
-  // State for Flow
-  const [step, setStep] = useState('select-type'); // select-type, form
-  const [issueType, setIssueType] = useState('Public'); // Public, Personal
+  // 2-Step Flow: 'classify' -> 'details'
+  const [step, setStep] = useState('classify');
+  const [issueType, setIssueType] = useState('Public'); // 'Public' or 'Personal'
 
-  // Modal State
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [duplicateData, setDuplicateData] = useState(null);
 
-  // Form State
-  const [formData, setFormData, clearFormData] = useFormPersistence('report_issue_form', { // PERSISTENCE
+  // Form State with Persistence
+  const [formData, setFormData, clearFormData] = useFormPersistence('report_issue_form', {
     title: '',
     description: '',
     location: '',
-    category: 'Roads',
+    category: 'roads',
     contact: '',
     isAnonymous: false,
     files: null,
     coords: null
-  }, false); // Use localStorage (false) instead of sessionStorage
+  }, false);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
-  const [isAnalyzingFiles, setIsAnalyzingFiles] = useState(false);
-  const [aiCaption, setAiCaption] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
-  // Type Selection Handler
   const handleTypeSelect = (type) => {
     setIssueType(type);
     setFormData(prev => ({
       ...prev,
-      category: type === 'Personal' ? 'Profile' : 'Roads'
+      category: type === 'Personal' ? 'billing' : 'roads'
     }));
-    setStep('form');
   };
 
   const handleVoiceTranscription = (text) => {
@@ -58,10 +70,6 @@ const ReportIssue = () => {
     }));
   };
 
-  const categories = issueType === 'Public'
-    ? ["Roads", "Electricity", "Water", "Sanitation", "Traffic", "Public Transport", "Garbage", "Other"]
-    : ["Profile", "Billing", "Account Access", "Technical Support", "Feedback", "Other"];
-
   const detectLocation = () => {
     if (!navigator.geolocation) {
       toast.error("Geolocation is not supported by your browser.");
@@ -70,485 +78,391 @@ const ReportIssue = () => {
 
     setIsLocating(true);
 
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
-    };
-
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        let location = '';
-        let success = false;
-
         try {
-          // 1. Try BigDataCloud (Free, Fast, Open Data) - Often better at locality names
-          try {
-            const bdcResponse = await fetch(
-              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-            );
-            const bdcData = await bdcResponse.json();
+          const bdcResponse = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+          );
+          const bdcData = await bdcResponse.json();
 
-            if (bdcData && (bdcData.city || bdcData.locality)) {
-              const locality = bdcData.locality || "";
-              const city = bdcData.city || "";
-              const principalSubdivision = bdcData.principalSubdivision || ""; // State
+          const locality = bdcData.locality || bdcData.city || "Detected Location";
+          const principalSubdivision = bdcData.principalSubdivision || "";
+          const locString = [locality, principalSubdivision].filter(Boolean).join(", ");
 
-              const parts = [locality, city, principalSubdivision].filter(Boolean);
-              // Remove duplicates (sometimes locality == city)
-              const uniqueParts = [...new Set(parts)];
-
-              if (uniqueParts.length > 0) {
-                location = uniqueParts.join(", ");
-                success = true;
-              }
-            }
-          } catch (bdcError) {
-            console.warn("BigDataCloud API failed, trying OSM...");
-          }
-
-          // 2. Fallback to OpenStreetMap (Nominatim)
-          if (!success) {
-            const response = await fetch(
-              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
-            );
-            const data = await response.json();
-
-            if (data.address) {
-              const road = data.address.road || data.address.pedestrian || "";
-              const area = data.address.suburb || data.address.neighbourhood || data.address.residential || "";
-              const city = data.address.city || data.address.town || data.address.village || "";
-              const district = data.address.state_district || data.address.county || "";
-              const state = data.address.state || "";
-
-              const parts = [area, city, district].filter(Boolean);
-
-              if (parts.length > 0) {
-                location = parts.join(", ");
-              } else if (state) {
-                location = state;
-              }
-              success = true;
-            }
-          }
-
-          if (success && location) {
-            setFormData(prev => ({ ...prev, location: location, coords: { lat: latitude, lng: longitude } }));
-            toast.success(`Location detected: ${location}`);
-          } else {
-            console.log("No address found for coords:", latitude, longitude);
-            setFormData(prev => ({ ...prev, location: `${latitude}, ${longitude}`, coords: { lat: latitude, lng: longitude } }));
-          }
-        } catch (error) {
-          console.error("Geocoding error:", error);
-          // If network fails (common on some networks blocking OSM), just ask user to fill it.
-          // Do NOT fill with raw coords if geocoding failed, it looks ugly.
-          toast.error("Could not fetch address details (Network Error). Please enter location manually.");
-          setFormData(prev => ({ ...prev, coords: { lat: latitude, lng: longitude } }));
+          setFormData(prev => ({
+            ...prev,
+            location: locString,
+            coords: { lat: latitude, lng: longitude }
+          }));
+          toast.success("Location detected!");
+        } catch (err) {
+          setFormData(prev => ({
+            ...prev,
+            location: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`,
+            coords: { lat: latitude, lng: longitude }
+          }));
+          toast.success("Coordinates captured.");
         } finally {
           setIsLocating(false);
         }
       },
       (error) => {
-        console.error("Geolocation error:", error);
-        toast.error("Unable to retrieve your location.");
         setIsLocating(false);
+        toast.error("Could not retrieve your location. Please enter manually.");
       },
-      options
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
-  // Geocode Manual Address
-  const geocodeAddress = async (address) => {
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
-      );
-      const data = await response.json();
-      if (data && data.length > 0) {
-        return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 8 * 1024 * 1024) {
+        toast.error("Image file must be under 8 MB");
+        return;
       }
-    } catch (error) {
-      console.error("Geocoding failed:", error);
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
     }
-    return null;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
 
-    // Mandatory Photo Validation
-    if (!formData.files || formData.files.length === 0) {
-      toast.error("Please upload a photo of the issue.", { icon: '📸' });
-      setIsSubmitting(false);
+    if (!formData.title.trim() || !formData.description.trim()) {
+      toast.error("Title and description are required.");
       return;
     }
 
-    // Auto-Geocode if missing coords but has location
-    let finalCoords = formData.coords;
-    if (!finalCoords && formData.location) {
-      toast.loading("Geocoding address...", { id: 'geocode' });
-      const geoResult = await geocodeAddress(formData.location);
-      if (geoResult) {
-        finalCoords = geoResult;
-        toast.success("Location coordinates found!", { id: 'geocode' });
-      } else {
-        toast.dismiss('geocode');
-        toast.error("Could not find coordinates for this address. Map marker may not appear.");
-      }
+    const email = user?.primaryEmailAddress?.emailAddress || formData.contact;
+    const phone = user?.primaryPhoneNumber?.phoneNumber || formData.contact || "9876543210";
+
+    if (!email) {
+      toast.error("Please provide your contact email.");
+      return;
     }
 
-    const data = new FormData();
-    data.append("title", formData.title);
-    data.append("description", formData.description);
-    if (formData.location) data.append("location", formData.location);
-    data.append("category", formData.category);
-    data.append("email", user?.primaryEmailAddress?.emailAddress || "");
-    data.append("issueType", issueType);
-
-    data.append("phone", formData.contact);
-    if (finalCoords) {
-      data.append("lat", finalCoords.lat);
-      data.append("lng", finalCoords.lng);
-    }
-
-    if (formData.files && formData.files.length > 0) {
-      // Backend expects 'file' for single upload based on router.post("/", upload.single("file")...)
-      // Assuming for now we just take the first one or changing backend to array?
-      // Since backend has `upload.single("file")`, we must send field 'file' and only one.
-      data.append("file", formData.files[0]);
-    }
+    setIsSubmitting(true);
 
     try {
-      // Use csrfManager.secureFetch to handle tokens and credentials automatically
-      const token = await getToken();
-      const response = await csrfManager.secureFetch("/api/issues", {
+      const data = new FormData();
+      data.append("title", formData.title.trim());
+      data.append("description", formData.description.trim());
+      data.append("email", email);
+      data.append("phone", phone);
+      data.append("category", formData.category);
+      data.append("issueType", issueType);
+      data.append("isPrivate", String(issueType === 'Personal'));
+      data.append("location", formData.location || "");
+
+      if (formData.coords) {
+        data.append("lat", formData.coords.lat);
+        data.append("lng", formData.coords.lng);
+      }
+
+      if (selectedFile) {
+        data.append("file", selectedFile);
+      }
+
+      let headers = {};
+      try {
+        const token = await getToken();
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+      } catch (tokenErr) {
+        // Token retrieval failure is non-blocking
+      }
+
+      const response = await csrfManager.secureFetch("/api/v1/issues", {
         method: "POST",
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        headers,
         body: data
       });
 
       const result = await response.json();
 
-      if (response.status === 409) {
-        // Handle Duplicate
-        setDuplicateData(result);
-        setShowDuplicateModal(true);
-        setIsSubmitting(false); // Stop loading state
-        return;
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to submit report");
       }
 
-      if (!response.ok) throw new Error(result.error || "Failed to submit issue");
-
-      toast.success("Issue Submitted Successfully!");
-      clearFormData(); // Clear persistence
-      navigate('/user/dashboard');
-
-    } catch (error) {
-      console.error(error);
-      if (error.message === "Failed to fetch") {
-        toast.error("Upload failed. Please refresh the page and re-select your file.", { duration: 5000 });
-      } else {
-        toast.error(error.message || "Something went wrong");
-      }
+      toast.success("Report submitted! AI verification queued.");
+      clearFormData();
+      navigate("/user/dashboard");
+    } catch (err) {
+      toast.error(err.message || "Submission failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const activeCategories = issueType === 'Public' ? PUBLIC_CATEGORIES : PERSONAL_CATEGORIES;
+
   return (
-    <UserLayout title="Report an Issue" subtitle="Help us improve our community">
-      <DuplicateIssueModal
-        isOpen={showDuplicateModal}
-        onClose={() => setShowDuplicateModal(false)}
-        duplicateData={duplicateData}
-      />
-
-      {step === 'select-type' ? (
-        <div className="max-w-4xl mx-auto mt-10 grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in zoom-in duration-300">
-          {/* Public Issue Card */}
-          <div
-            onClick={() => handleTypeSelect('Public')}
-            className="group bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-lg border-2 border-transparent hover:border-emerald-500 cursor-pointer transition-all duration-300 hover:shadow-emerald-500/20 hover:-translate-y-2"
-          >
-            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <MapPin className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-3">Public Issue</h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-6">
-              Report problems that affect the community, such as potholes, street lights, sanitation, or traffic.
-            </p>
-            <div className="flex items-center text-emerald-600 font-medium group-hover:gap-2 transition-all">
-              Select Public Issue <ArrowRight className="w-4 h-4 ml-1" />
-            </div>
-          </div>
-
-          {/* Personal Issue Card */}
-          <div
-            onClick={() => handleTypeSelect('Personal')}
-            className="group bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-lg border-2 border-transparent hover:border-blue-500 cursor-pointer transition-all duration-300 hover:shadow-blue-500/20 hover:-translate-y-2"
-          >
-            <div className="w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-              <User className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-3">Personal Issue</h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-6">
-              Report issues related to your account, billing, specific services, or sensitive personal matters.
-            </p>
-            <div className="flex items-center text-blue-600 font-medium group-hover:gap-2 transition-all">
-              Select Personal Issue <ArrowRight className="w-4 h-4 ml-1" />
-            </div>
-          </div>
+    <UserLayout title="Report an Issue">
+      <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6">
+        
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 tracking-tight">
+            Report a Civic Issue
+          </h1>
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+            Submit municipal concerns directly to departmental response crews.
+          </p>
         </div>
-      ) : (
-        /* Form Step */
-        <div className="max-w-3xl mx-auto bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 border border-gray-100 dark:border-gray-700 animate-in slide-in-from-right-4 duration-300">
-          <button onClick={() => setStep('select-type')} className="text-sm text-gray-500 hover:text-gray-800 mb-6 flex items-center hover:-translate-x-1 transition-transform">
-            <ArrowRight className="w-4 h-4 mr-1 rotate-180" /> Change Issue Type
+
+        {/* 2-Step Progress Indicator */}
+        <div className="flex items-center gap-3 mb-8">
+          <button
+            type="button"
+            onClick={() => setStep('classify')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+              step === 'classify'
+                ? 'bg-teal-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+            }`}
+          >
+            <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[10px]">1</span>
+            <span>Category & Location</span>
           </button>
 
-          <div className="mb-8 flex items-center gap-3">
-            <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${issueType === 'Public' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
-              {issueType} Issue
-            </span>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Issue Details</h2>
-          </div>
+          <div className="h-px w-8 bg-slate-200 dark:bg-slate-700" />
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Issue Title</label>
-              <input
-                required
-                id="title"
-                name="title"
-                autoComplete="off"
-                type="text"
-                placeholder={issueType === 'Public' ? "e.g., Deep Pothole on Main St" : "e.g., Incorrect Bill Amount"}
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                value={formData.title}
-                onChange={e => setFormData({ ...formData, title: e.target.value })}
-              />
-            </div>
+          <button
+            type="button"
+            onClick={() => setStep('details')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
+              step === 'details'
+                ? 'bg-teal-600 text-white'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+            }`}
+          >
+            <span className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center text-[10px]">2</span>
+            <span>Details & Evidence</span>
+          </button>
+        </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
-              <select
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                value={formData.category}
-                onChange={e => setFormData({ ...formData, category: e.target.value })}
-              >
-                {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Detailed Description</label>
-
-              {/* Voice Input Module */}
-              <VoiceInput onTranscribe={handleVoiceTranscription} />
-
-              <textarea
-                required
-                rows="4"
-                placeholder="Describe the issue... (Type or use Voice Recording above)"
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
-                value={formData.description}
-                onChange={e => setFormData({ ...formData, description: e.target.value })}
-              />
-              <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3 text-emerald-500" /> AI will check description validity and intent
-              </p>
-            </div>
-
-            {issueType === 'Public' && (
+        {/* Main Content Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
+          
+          {step === 'classify' ? (
+            <Card padding="normal" className="space-y-6">
+              
+              {/* Type Switcher */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Location</label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <MapPin className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" />
-                    <input
-                      id="issue-location"
-                      name="location"
-                      autoComplete="street-address"
-                      type="text"
-                      placeholder="e.g., Near City Center Bus Stop"
-                      className="w-full pl-10 px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500"
-                      value={formData.location}
-                      onChange={e => setFormData({ ...formData, location: e.target.value })}
-                    />
-                    <p className="text-xs text-gray-400 mt-1 pl-1">
-                      Auto-location is approximate. Please edit if incorrect.
-                    </p>
-                  </div>
+                <label className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 block mb-2">
+                  Complaint Type
+                </label>
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={detectLocation}
-                    disabled={isLocating}
-                    className="px-4 py-2 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-xl font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
+                    onClick={() => handleTypeSelect('Public')}
+                    className={`p-3.5 rounded-lg border text-left flex items-start gap-3 transition-all ${
+                      issueType === 'Public'
+                        ? 'border-teal-600 bg-teal-50/50 dark:bg-teal-950/30 text-teal-900 dark:text-teal-200 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                    }`}
                   >
-                    {isLocating ? <Loader2 className="w-4 h-4 animate-spin" /> : <MapPin className="w-4 h-4" />}
-                    {isLocating ? "Detecting..." : "Detect"}
+                    <Building2 className="w-5 h-5 text-teal-600 mt-0.5 shrink-0" />
+                    <div>
+                      <span className="text-sm font-bold block">Public Civic Issue</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Roads, lights, sanitation, water, drainage</span>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleTypeSelect('Personal')}
+                    className={`p-3.5 rounded-lg border text-left flex items-start gap-3 transition-all ${
+                      issueType === 'Personal'
+                        ? 'border-teal-600 bg-teal-50/50 dark:bg-teal-950/30 text-teal-900 dark:text-teal-200 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    <User className="w-5 h-5 text-teal-600 mt-0.5 shrink-0" />
+                    <div>
+                      <span className="text-sm font-bold block">Personal Request</span>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">Billing, account access, technical help</span>
+                    </div>
                   </button>
                 </div>
               </div>
-            )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone Contact</label>
-              <input
-                required
-                id="contact"
-                name="contact"
-                autoComplete="tel"
-                type="tel"
-                inputMode="numeric"
-                placeholder="e.g., 9876543210"
-                pattern="[0-9]{10}"
-                className="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500"
-                value={formData.contact}
-                onChange={e => setFormData({ ...formData, contact: e.target.value })}
-              />
-              <p className="text-xs text-gray-400 mt-1">Required for issue updates.</p>
-            </div>
-
-            <div>
-              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition cursor-pointer relative group overflow-hidden">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple={false}
-                  onChange={async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-
-                    setIsAnalyzingFiles(true);
-
-                    // 1. Create FormData for Analysis
-                    const formDataObj = new FormData();
-                    formDataObj.append('file', file);
-
-                    try {
-                      const token = await getToken();
-                      const headers = { 'Authorization': `Bearer ${token}` };
-
-                      const [analyzeRes, captionRes] = await Promise.allSettled([
-                        csrfManager.secureFetch('/api/issues/analyze-image', { method: 'POST', body: formDataObj, headers }),
-                        csrfManager.secureFetch('/api/issues/generate-caption', { method: 'POST', body: formDataObj, headers })
-                      ]);
-
-                      // Handle Classification
-                      if (analyzeRes.status === 'fulfilled') {
-                        const data = await analyzeRes.value.json();
-                        if (data.tags && data.tags.length > 0) {
-                          const mainTag = data.tags[0]; // e.g. "pothole"
-                          let suggestedCat = 'Other';
-                          if (['pothole', 'street', 'road', 'traffic_light'].some(t => mainTag.includes(t))) suggestedCat = 'Roads';
-                          if (['garbage', 'waste', 'trash', 'ashcan'].some(t => mainTag.includes(t))) suggestedCat = 'Garbage';
-                          if (['water', 'pipe', 'fountain'].some(t => mainTag.includes(t))) suggestedCat = 'Water';
-
-                          if (suggestedCat !== 'Other') {
-                            setFormData(prev => ({ ...prev, category: suggestedCat }));
-                            toast.success(`AI Detected: ${mainTag} -> set to ${suggestedCat}`, { icon: '🤖' });
-                          } else {
-                            toast.success(`AI Detected: ${mainTag}`, { icon: '👁️' });
-                          }
-                        }
-                      }
-
-                      // Handle Captioning
-                      if (captionRes.status === 'fulfilled') {
-                        try {
-                          const captionData = await captionRes.value.json();
-                          if (captionData.description) {
-                            setAiCaption(captionData.description);
-                          }
-                        } catch (e) { console.warn("Caption Parse Error", e); }
-                      }
-
-                    } catch (err) {
-                      console.error("AI Analysis Failed", err);
-                    }
-
-                    // Store file
-                    setFormData(prev => ({ ...prev, files: [file] }));
-                    setIsAnalyzingFiles(false);
-                  }}
-                  disabled={isAnalyzingFiles}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 disabled:cursor-wait"
+              {/* Department Category Select */}
+              <Field label="Department Category" required>
+                <Select
+                  options={activeCategories.map(c => ({ value: c.id, label: c.label }))}
+                  value={formData.category}
+                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
                 />
+              </Field>
 
-                {isAnalyzingFiles ? (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm z-20">
-                    <Loader2 className="w-8 h-8 text-emerald-500 animate-spin mb-2" />
-                    <span className="text-sm font-bold text-emerald-600 animate-pulse">AI Analyzing Image & Generating Caption...</span>
-                  </div>
-                ) : (
-                  <>
-                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2 group-hover:text-emerald-500 transition-colors" />
-                    <p className="text-sm text-gray-500">
-                      {formData.files ? (
-                        <span className="text-emerald-600 font-medium flex items-center justify-center gap-2">
-                          <ShieldCheck className="w-4 h-4" /> Analyzed & Ready
-                        </span>
-                      ) : "Click to upload & Analyze with AI"}
-                    </p>
-                  </>
-                )}
+              {/* Location Picker */}
+              <Field
+                label="Incident Location"
+                helperText="Specify the landmark, road, or use GPS detection."
+              >
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="e.g. Near M.G. Road Bus Stand"
+                    value={formData.location || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                    className="flex-1 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                  />
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    loading={isLocating}
+                    onClick={detectLocation}
+                    iconLeft={<MapPin className="w-4 h-4 text-teal-600" />}
+                  >
+                    Locate Me
+                  </Button>
+                </div>
+              </Field>
+
+              {/* Step 1 CTA */}
+              <div className="flex justify-end pt-2">
+                <Button
+                  variant="primary"
+                  size="md"
+                  onClick={() => setStep('details')}
+                  iconRight={<ArrowRight className="w-4 h-4" />}
+                >
+                  Continue to Details
+                </Button>
               </div>
+            </Card>
+          ) : (
+            <Card padding="normal" className="space-y-6">
+              
+              {/* Title */}
+              <Field label="Issue Title" required helperText="A clear, concise summary of the problem.">
+                <input
+                  type="text"
+                  placeholder="e.g. Deep pothole causing skidding near hospital gate"
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500"
+                />
+              </Field>
 
-              {aiCaption && (
-                <div className="mt-3 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-xl p-3 flex gap-3 animate-in fade-in slide-in-from-top-2">
-                  <div className="bg-emerald-100 dark:bg-emerald-800 p-2 rounded-lg h-fit">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide mb-1">
-                      AI Visual Description
-                    </p>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 italic">
-                      "{aiCaption}"
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setFormData(p => ({ ...p, description: p.description ? p.description + "\n\n" + aiCaption : aiCaption }))}
-                      className="text-xs text-emerald-600 font-semibold underline mt-1 hover:text-emerald-700"
-                    >
-                      Add to Description
-                    </button>
+              {/* Description + Voice Input */}
+              <Field label="Detailed Description" required helperText="Describe the severity, exact spot, and how long the issue has persisted.">
+                <div className="space-y-2">
+                  <textarea
+                    rows={4}
+                    placeholder="Provide full context for municipal officers..."
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-3.5 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 resize-y"
+                  />
+                  <div className="flex items-center justify-between">
+                    <VoiceInput onTranscript={handleVoiceTranscription} />
+                    <span className="text-xs text-slate-400">
+                      {formData.description.length} characters
+                    </span>
                   </div>
                 </div>
-              )}
+              </Field>
 
-              <p className="text-xs text-gray-400 mt-2 ml-1">
-                Our Computer Vision model will attempt to auto-categorize and caption the issue.
-              </p>
-            </div>
+              {/* Photo Evidence Upload */}
+              <Field label="Photo Evidence (Optional, Recommended)" helperText="Clear photos of the problem speed up verification.">
+                <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-6 text-center hover:border-teal-500/60 transition-colors">
+                  {previewUrl ? (
+                    <div className="space-y-3">
+                      <img
+                        src={previewUrl}
+                        alt="Evidence preview"
+                        className="max-h-48 mx-auto rounded-md object-cover border border-slate-200 dark:border-slate-700 shadow-sm"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedFile(null);
+                          setPreviewUrl(null);
+                        }}
+                      >
+                        Remove Photo
+                      </Button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer flex flex-col items-center gap-2">
+                      <div className="p-3 bg-teal-50 dark:bg-teal-950/40 rounded-full text-teal-600">
+                        <Upload className="w-6 h-6" />
+                      </div>
+                      <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                        Click to upload photo evidence
+                      </span>
+                      <span className="text-xs text-slate-400">
+                        PNG, JPG or WebP up to 8 MB
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
+                </div>
+              </Field>
 
-            <div className="pt-4">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl font-bold shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex justify-center items-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" /> Verifying & Submitting...
-                  </>
-                ) : (
-                  "Submit Report"
-                )}
-              </button>
-              <p className="text-center text-xs text-gray-400 mt-4">
-                By submitting, you agree that your report is truthful.
-              </p>
-            </div>
-          </form>
-        </div>
-      )}
+              {/* Honeypot Spam Field (Hidden from real users) */}
+              <input
+                type="text"
+                name="website"
+                style={{ display: 'none' }}
+                tabIndex={-1}
+                autoComplete="off"
+              />
+
+              {/* Notice Banner */}
+              <div className="p-3.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-400">
+                <Info className="w-4 h-4 text-teal-600 shrink-0 mt-0.5" />
+                <span>
+                  <strong>AI Verification Policy:</strong> Automated category, quality, and duplicate screening runs asynchronously post-submission without delaying your ticket.
+                </span>
+              </div>
+
+              {/* Step 2 Actions */}
+              <div className="flex items-center justify-between pt-2">
+                <Button
+                  variant="ghost"
+                  size="md"
+                  onClick={() => setStep('classify')}
+                  iconLeft={<ArrowLeft className="w-4 h-4" />}
+                >
+                  Back
+                </Button>
+
+                <Button
+                  variant="primary"
+                  size="lg"
+                  type="submit"
+                  loading={isSubmitting}
+                  iconLeft={isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                >
+                  Submit Report
+                </Button>
+              </div>
+            </Card>
+          )}
+        </form>
+
+        {showDuplicateModal && duplicateData && (
+          <DuplicateIssueModal
+            isOpen={showDuplicateModal}
+            onClose={() => setShowDuplicateModal(false)}
+            data={duplicateData}
+          />
+        )}
+      </div>
     </UserLayout>
   );
 };
