@@ -18,8 +18,9 @@ const TrendingFeed = () => {
             const res = await csrfManager.secureFetch('/api/issues');
             const data = await res.json();
 
+            const list = Array.isArray(data) ? data : (data.issues || []);
             // Sort by Recency (Latest created or Latest Resolved) - prioritizing UpdatedAt to show activity
-            const sorted = data.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+            const sorted = [...list].sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt));
             setIssues(sorted.slice(0, 15)); // Take top 15
         } catch (err) {
             console.error("Failed to load live issues", err);
