@@ -14,8 +14,9 @@ const DuplicateIssues = () => {
                 const response = await csrfManager.secureFetch(`/api/issues?t=${Date.now()}`);
                 if (response.ok) {
                     const data = await response.json();
+                    const list = Array.isArray(data) ? data : (data.issues || []);
                     // Filter only rejected issues
-                    const rejected = data.filter(issue => issue.status === 'Rejected');
+                    const rejected = list.filter(issue => issue.status === 'Rejected');
                     setIssues(rejected);
                 }
             } catch (error) {
