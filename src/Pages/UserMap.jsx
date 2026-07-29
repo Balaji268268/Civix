@@ -1,314 +1,386 @@
-import React, { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, useMap, Popup } from "react-leaflet";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import { Globe, MapPin, ArrowLeft, Filter, Layers, Sparkles } from "lucide-react";
-import csrfManager from "../utils/csrfManager";
+import {
+  Layers,
+  Filter,
+  ArrowLeft,
+  Search,
+  ThumbsUp,
+  MapPin,
+  RefreshCw,
+  ExternalLink,
+  Flame,
+  CheckCircle2,
+  AlertTriangle
+} from "lucide-react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { useNavigate } from "react-router-dom";
+import StatusBadge from "../components/ui/StatusBadge";
+import Button from "../components/ui/Button";
+import Drawer from "../components/ui/Drawer";
+import Card from "../components/ui/Card";
+import Select from "../components/ui/Select";
+import { PUBLIC_CATEGORIES, getCategoryMeta } from "../constants/categories";
+import io from "socket.io-client";
+import API_BASE_URL from "../config";
+import csrfManager from "../utils/csrfManager";
 
-// Custom marker icon (Green pin - General)
-const customIcon = new L.Icon({
-  iconUrl: "https://cdn-icons-png.flaticon.com/512/149/149060.png",
-  iconSize: [35, 35],
-  iconAnchor: [17, 35],
-});
+// Color mapping for SVG pins based on status tokens
+const STATUS_PIN_COLORS = {
+  'Received': '#d97706',
+  'Pending': '#d97706',
+  'Assigned': '#4f46e5',
+  'In Progress': '#0284c7',
+  'Pending Review': '#0d9488',
+  'Resolved': '#16a34a',
+  'Closed': '#64748b',
+  'Rejected': '#6b7280',
+  'Spam': '#a855f7'
+};
 
-// My Issue Marker (Blue/Red pin)
-const myIssueIcon = new L.Icon({
-  iconUrl: "https://cdn-icons-png.flaticon.com/512/149/149059.png", // Different color variance
-  iconSize: [40, 40], // Slightly larger
-  iconAnchor: [20, 40],
-});
+// Create custom SVG marker
+const createSvgPin = (status = 'Pending', isMine = false) => {
+  const color = STATUS_PIN_COLORS[status] || '#d97706';
+  const size = isMine ? 36 : 28;
+  const strokeColor = isMine ? '#2563eb' : '#ffffff';
+  const strokeWidth = isMine ? 3 : 2;
 
-// Fly to selected location
-function FlyToLocation({ position }) {
-  const map = useMap();
-  if (position) map.flyTo(position, 14, { duration: 1.5 });
+  const svgHtml = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 32" width="${size}" height="${size * 1.33}" style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); cursor: pointer;">
+      <path d="M12 0C5.373 0 0 5.373 0 12c0 9 12 20 12 20s12-11 12-20c0-6.627-5.373-12-12-12z" fill="${color}" stroke="${strokeColor}" stroke-width="${strokeWidth}" />
+      <circle cx="12" cy="11" r="4.5" fill="#ffffff" />
+    </svg>
+  `;
+
+  return L.divIcon({
+    html: svgHtml,
+    className: "custom-svg-pin",
+    iconSize: [size, size * 1.33],
+    iconAnchor: [size / 2, size * 1.33],
+    popupAnchor: [0, -size * 1.33]
+  });
+};
+
+// Map Viewport Event Listener
+function MapViewportTracker({ onViewportChange }) {
+  const map = useMapEvents({
+    moveend: () => {
+      const bounds = map.getBounds();
+      const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+      onViewportChange(bbox);
+    }
+  });
   return null;
 }
 
 export default function UserMap() {
-  const { userId } = useAuth();
   const { user } = useUser();
   const navigate = useNavigate();
+  const [issues, setIssues] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [statusFilter, setStatusFilter] = useState("All");
   const [categoryFilter, setCategoryFilter] = useState("All");
-  const [mapView, setMapView] = useState("street");
-  const [issues, setIssues] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [isHeatmapActive, setIsHeatmapActive] = useState(false);
+  const [currentBbox, setCurrentBbox] = useState(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const socketRef = useRef(null);
 
-  const handleBackClick = () => {
-    navigate("/user/dashboard");
-  };
-
+  // Check Dark Mode
   useEffect(() => {
-    fetchIssues();
+    const isDark = document.documentElement.classList.contains("dark");
+    setIsDarkMode(isDark);
   }, []);
 
-  const fetchIssues = async () => {
+  // Fetch Issues from Server-Side Bbox Endpoint
+  const fetchMapIssues = useCallback(async (bbox = currentBbox) => {
     try {
-      // Fetch all issues (using admin endpoint for global map is simplest, or specifically a public map endpoint)
-      // Assuming /api/issues returns all public issues or issues permissible to view
-      const response = await csrfManager.secureFetch('/api/issues');
-      const data = await response.json();
-      // Filter valid locations and format for map
-      // RULE: Show issue ONLY if it is 'Resolved' OR if it belongs to the current user
-      const userEmail = user?.primaryEmailAddress?.emailAddress;
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (bbox) params.append("bbox", bbox);
+      if (statusFilter !== "All") params.append("status", statusFilter);
+      if (categoryFilter !== "All") params.append("category", categoryFilter);
+      if (user?.primaryEmailAddress?.emailAddress) {
+        params.append("userEmail", user.primaryEmailAddress.emailAddress);
+      }
 
-      const mapped = data.filter(issue => {
-        const isPublicStatus = ['Resolved', 'In Progress', 'Pending'].includes(issue.status); // Allow more statuses for public map per user request
-        // Prioritize: Resolved/In Progress are definitely public. Pending might be okay to show "Reported".
-        // User said: "show the issues from all the issues submited and their status showing the state"
-        return isPublicStatus;
-      }).map(issue => {
-        // Try parse coordinates from location string "lat, lng" OR explicit coords field
-        let lat = null, lng = null;
-
-        if (issue.coordinates?.lat && issue.coordinates?.lng) {
-          lat = issue.coordinates.lat;
-          lng = issue.coordinates.lng;
-        } else if (issue.location && issue.location.includes(',')) {
-          const parts = issue.location.split(',').map(p => parseFloat(p.trim()));
-          if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-            lat = parts[0];
-            lng = parts[1];
-          }
-        }
-
-        // Fallback for demo: Randomize near city center if no coords? No, user wants real data.
-        // Only return if we have coords
-        if (lat && lng) {
-          return { ...issue, lat, lng, date: new Date(issue.createdAt).toLocaleDateString() };
-        }
-        return null;
-      }).filter(Boolean);
-
-      setIssues(mapped);
-    } catch (error) {
-      console.error("Failed to fetch map data", error);
+      const res = await csrfManager.secureFetch(`/api/v1/map/issues?${params.toString()}`);
+      if (res.ok) {
+        const data = await res.json();
+        setIssues(data.issues || []);
+      }
+    } catch (err) {
+      console.error("[UserMap] Failed to fetch map issues:", err);
     } finally {
       setLoading(false);
     }
+  }, [currentBbox, statusFilter, categoryFilter, user]);
+
+  // Initial Fetch & Realtime Socket Setup
+  useEffect(() => {
+    fetchMapIssues();
+
+    // Socket.io Real-time Bus
+    const socket = io(API_BASE_URL, {
+      transports: ["websocket", "polling"],
+      withCredentials: true,
+      reconnectionAttempts: 5
+    });
+    socketRef.current = socket;
+
+    socket.on("issue:status", (event) => {
+      setIssues(prev => prev.map(iss => {
+        if (iss.id === event.issueId || iss.complaintId === event.complaintId) {
+          return { ...iss, status: event.status, closeReason: event.closeReason || iss.closeReason };
+        }
+        return iss;
+      }));
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [fetchMapIssues]);
+
+  const handleViewportChange = (bbox) => {
+    setCurrentBbox(bbox);
+    fetchMapIssues(bbox);
   };
 
-  const filteredIssues = issues.filter(
-    (issue) =>
-      (statusFilter === "All" || issue.status === statusFilter) &&
-      (categoryFilter === "All" || issue.category === categoryFilter)
-  );
+  const statusOptions = [
+    { value: "All", label: "All Statuses" },
+    { value: "Received", label: "Received" },
+    { value: "Assigned", label: "Assigned" },
+    { value: "In Progress", label: "In Progress" },
+    { value: "Pending Review", label: "Pending Review" },
+    { value: "Resolved", label: "Resolved" },
+    { value: "Rejected", label: "Rejected" },
+    { value: "Closed", label: "Closed" }
+  ];
 
-  // Default Center (could be user loction if available)
-  const defaultCenter = [20.5937, 78.9629]; // India Center
+  const categoryOptions = [
+    { value: "All", label: "All Categories" },
+    ...PUBLIC_CATEGORIES.map(c => ({ value: c.id, label: c.label }))
+  ];
 
-  const statusClasses = {
-    Pending: "text-amber-800 border-amber-300 bg-amber-50 dark:text-amber-200 dark:bg-amber-900/30 dark:border-amber-700",
-    "In Progress": "text-blue-800 border-blue-300 bg-blue-50 dark:text-blue-200 dark:bg-blue-900/30 dark:border-blue-700",
-    Resolved: "text-green-800 border-green-300 bg-green-50 dark:text-green-200 dark:bg-green-900/30 dark:border-green-700",
-    "Under Review": "text-purple-800 border-purple-300 bg-purple-50 dark:text-purple-200 dark:bg-purple-900/30 dark:border-purple-700",
-  };
-
-  const categoryClasses = {
-    Roads: "text-orange-800 border-orange-300 bg-orange-50 dark:text-orange-200 dark:bg-orange-900/30 dark:border-orange-700",
-    Waste: "text-red-800 border-red-300 bg-red-50 dark:text-red-200 dark:bg-red-900/30 dark:border-red-700",
-    Lighting: "text-indigo-800 border-indigo-300 bg-indigo-50 dark:text-indigo-200 dark:bg-indigo-900/30 dark:border-indigo-700",
-    Water: "text-teal-800 border-teal-300 bg-teal-50 dark:text-teal-200 dark:bg-teal-900/30 dark:border-teal-700",
-    Safety: "text-rose-800 border-rose-300 bg-rose-50 dark:text-rose-200 dark:bg-rose-900/30 dark:border-rose-700",
-  };
+  const tileUrl = isDarkMode
+    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50/20 via-white to-emerald-50/30 dark:from-slate-900 dark:via-slate-800 dark:to-green-950/30 p-4 sm:p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header Section */}
-        <div className="relative">
-          {/* Back Button */}
-          <button
-            onClick={handleBackClick}
-            className="absolute left-0 top-0 group flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm shadow-lg shadow-green-500/5 hover:shadow-xl hover:shadow-green-500/10 border border-green-200/50 dark:border-green-700/50 text-green-700 dark:text-green-300 font-medium transition-all duration-300 hover:scale-105"
+    <div className="relative w-full h-[calc(100vh-64px)] overflow-hidden bg-slate-100 dark:bg-slate-900 font-sans">
+      
+      {/* Floating Control Bar */}
+      <div className="absolute top-4 left-4 right-4 z-[400] flex flex-wrap items-center justify-between gap-3 pointer-events-none">
+        
+        {/* Left: Back & Filter Bar */}
+        <div className="flex items-center gap-2 pointer-events-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-1.5 shadow-md">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/user/dashboard")}
+            iconLeft={<ArrowLeft className="w-4 h-4" />}
+            className="text-slate-700 dark:text-slate-200"
           >
-            <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform duration-300" />
-            Back to Dashboard
+            Dashboard
+          </Button>
+
+          <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 mx-1" />
+
+          {/* Status Filter */}
+          <div className="w-36 sm:w-44">
+            <Select
+              options={statusOptions}
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="py-1 text-xs"
+            />
+          </div>
+
+          {/* Category Filter */}
+          <div className="w-40 sm:w-48 hidden sm:block">
+            <Select
+              options={categoryOptions}
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="py-1 text-xs"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => fetchMapIssues()}
+            disabled={loading}
+            className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+            title="Refresh issues in view"
+            aria-label="Refresh map"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-teal-600' : ''}`} />
           </button>
-
-          {/* Title Section */}
-          <div className="text-center space-y-4 pt-16 sm:pt-0">
-            <div className="relative inline-block">
-              <div className="absolute inset-0 bg-gradient-to-r from-green-400/60 to-emerald-500/60 rounded-full blur-xl opacity-30 animate-pulse"></div>
-              <div className="relative bg-gradient-to-r from-green-500 to-emerald-600 p-4 rounded-full shadow-lg shadow-green-500/20">
-                <MapPin className="w-8 h-8 text-white" />
-              </div>
-            </div>
-            <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-green-700 via-emerald-600 to-green-800 bg-clip-text text-transparent">
-              Civic Issues Map
-            </h1>
-            <p className="text-slate-600 dark:text-slate-400 text-lg max-w-2xl mx-auto leading-relaxed">
-              Real-time visualization of civic issues. Explore reported problems and their resolution status.
-            </p>
-          </div>
         </div>
 
-        {/* Controls Section */}
-        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          {/* Filters */}
-          <div className="relative">
-            <div className="absolute inset-0 bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-xl shadow-green-500/5 border border-green-100/50 dark:border-slate-700/50"></div>
-            <div className="relative flex items-center gap-4 p-4">
-              <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
-                <Filter size={20} />
-                <span className="font-semibold">Filters</span>
-              </div>
-
-              <select
-                className="bg-white/90 dark:bg-slate-700/90 backdrop-blur-sm border-2 border-green-200/50 dark:border-slate-600/50 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-green-400 focus:ring-4 focus:ring-green-400/10 transition-all duration-300 cursor-pointer hover:bg-white dark:hover:bg-slate-700"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="All">All Status</option>
-                <option value="Pending">🟡 Pending</option>
-                <option value="In Progress">🔵 In Progress</option>
-                <option value="Resolved">🟢 Resolved</option>
-                <option value="Under Review">🟣 Under Review</option>
-              </select>
-
-              <select
-                className="bg-white/90 dark:bg-slate-700/90 backdrop-blur-sm border-2 border-green-200/50 dark:border-slate-600/50 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-green-400 focus:ring-4 focus:ring-green-400/10 transition-all duration-300 cursor-pointer hover:bg-white dark:hover:bg-slate-700"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-              >
-                <option value="All">All Categories</option>
-                <option value="Roads">🛣️ Roads</option>
-                <option value="Waste">🗑️ Waste</option>
-                <option value="Lighting">💡 Lighting</option>
-                <option value="Water">💧 Water</option>
-                <option value="Safety">⚠️ Safety</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Map View Toggle */}
-          <div className="relative">
-            <div className="absolute inset-0 bg-white/40 dark:bg-slate-800/40 backdrop-blur-xl rounded-3xl shadow-xl shadow-green-500/5 border border-green-100/50 dark:border-slate-700/50"></div>
-            <div className="relative flex items-center gap-2 p-2">
-              <div className="flex items-center gap-2 text-green-700 dark:text-green-300 px-2">
-                <Layers size={18} />
-                <span className="font-medium text-sm">View</span>
-              </div>
-
-              <button
-                onClick={() => setMapView("street")}
-                className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 ${mapView === "street"
-                  ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20"
-                  : "bg-white/60 dark:bg-slate-700/60 text-green-600 dark:text-green-400 hover:bg-white/80 dark:hover:bg-slate-700/80 border border-green-200/50 dark:border-green-700/50"
-                  }`}
-              >
-                <MapPin size={16} className={mapView === "street" ? "animate-pulse" : ""} />
-                Street
-              </button>
-
-              <button
-                onClick={() => setMapView("satellite")}
-                className={`group flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 ${mapView === "satellite"
-                  ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/20"
-                  : "bg-white/60 dark:bg-slate-700/60 text-green-600 dark:text-green-400 hover:bg-white/80 dark:hover:bg-slate-700/80 border border-green-200/50 dark:border-green-700/50"
-                  }`}
-              >
-                <Globe size={16} className={mapView === "satellite" ? "animate-pulse" : ""} />
-                Satellite
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Map Container */}
-        <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 to-emerald-500/20 rounded-3xl blur-xl"></div>
-          <div className="relative bg-white/60 dark:bg-slate-800/60 backdrop-blur-xl rounded-3xl shadow-2xl shadow-green-500/10 border border-green-200/30 dark:border-green-700/30 p-2 overflow-hidden">
-            <div className="w-full h-[600px] rounded-2xl overflow-hidden relative">
-              {loading && (
-                <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
-                </div>
-              )}
-
-              <MapContainer center={defaultCenter} zoom={5} style={{ height: "100%", width: "100%" }}>
-                <TileLayer
-                  url={
-                    mapView === "satellite"
-                      ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-                      : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  }
-                  attribution={
-                    mapView === "satellite"
-                      ? '&copy; <a href="https://www.esri.com/">Esri</a> &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
-                      : '&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors'
-                  }
-                />
-
-                {filteredIssues.map((issue, idx) => {
-                  const isMyIssue = user?.primaryEmailAddress?.emailAddress && issue.email === user.primaryEmailAddress.emailAddress;
-
-                  return (
-                    <Marker
-                      key={idx}
-                      position={[issue.lat, issue.lng]}
-                      icon={isMyIssue ? myIssueIcon : customIcon}
-                      eventHandlers={{ click: () => setSelectedIssue(issue) }}
-                    >
-                      <Popup className="custom-popup">
-                        <div className="w-80 p-0 m-0">
-                          {/* Popup Header */}
-                          <div className={`relative p-4 rounded-t-2xl ${isMyIssue ? 'bg-gradient-to-r from-blue-500 to-indigo-600' : 'bg-gradient-to-r from-green-500 to-emerald-600'}`}>
-                            <div className="absolute inset-0 bg-white/10 rounded-t-2xl"></div>
-                            <div className="relative flex items-start gap-3">
-                              <div className="bg-white/20 p-2 rounded-lg">
-                                <MapPin className="w-5 h-5 text-white" />
-                              </div>
-                              <div>
-                                <h3 className="font-bold text-white text-lg leading-tight">{issue.title}</h3>
-                                <p className="text-white/80 text-sm mt-1">
-                                  {isMyIssue ? "Reported by You" : `Reported on ${issue.date}`}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Popup Content */}
-                          <div className="bg-white dark:bg-slate-800 p-4 rounded-b-2xl">
-                            <p className="text-slate-700 dark:text-slate-300 mb-4 leading-relaxed">{issue.description}</p>
-
-                            {/* Status and Category Badges */}
-                            <div className="flex gap-2 flex-wrap">
-                              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border-2 ${statusClasses[issue.status] || 'border-gray-200'}`}>
-                                <div className="w-2 h-2 rounded-full bg-current animate-pulse"></div>
-                                {issue.status}
-                              </div>
-                              <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border-2 ${categoryClasses[issue.category] || 'border-gray-200'}`}>
-                                <Sparkles size={12} />
-                                {issue.category}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </Popup>
-                    </Marker>
-                  );
-                })}
-
-                {selectedIssue && <FlyToLocation position={[selectedIssue.lat, selectedIssue.lng]} />}
-              </MapContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Footer */}
-        <div className="text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm rounded-2xl border border-green-200/30 dark:border-green-700/30 text-sm text-slate-600 dark:text-slate-400">
-            <MapPin size={16} className="text-green-500" />
-            Showing {filteredIssues.length} issues (Real-time)
-          </div>
+        {/* Right: Legend & Layer Toggles */}
+        <div className="flex items-center gap-2 pointer-events-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-1.5 shadow-md text-xs">
+          <span className="font-semibold text-slate-700 dark:text-slate-300">
+            {issues.length} {issues.length === 1 ? 'Report' : 'Reports'}
+          </span>
+          <div className="h-4 w-px bg-slate-200 dark:bg-slate-700" />
+          <button
+            type="button"
+            onClick={() => setIsHeatmapActive(!isHeatmapActive)}
+            className={`flex items-center gap-1.5 px-2 py-1 rounded font-medium transition-colors ${
+              isHeatmapActive
+                ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Flame className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Density Heat</span>
+          </button>
         </div>
       </div>
+
+      {/* Leaflet Map Engine */}
+      <MapContainer
+        center={[16.5062, 80.6480]}
+        zoom={13}
+        className="w-full h-full z-0"
+        zoomControl={false}
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://carto.com/">CARTO</a> & <a href="https://openstreetmap.org">OSM</a>'
+          url={tileUrl}
+        />
+
+        <MapViewportTracker onViewportChange={handleViewportChange} />
+
+        {/* Map Markers */}
+        {issues.map((issue) => (
+          <Marker
+            key={issue.id}
+            position={[issue.lat, issue.lng]}
+            icon={createSvgPin(issue.status, issue.isMine)}
+            eventHandlers={{
+              click: () => setSelectedIssue(issue)
+            }}
+          />
+        ))}
+      </MapContainer>
+
+      {/* Status Legend Overlay (Bottom Left) */}
+      <div className="absolute bottom-6 left-4 z-[400] bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-800 rounded-lg p-2.5 shadow-lg flex flex-wrap gap-3 text-[11px] font-medium text-slate-700 dark:text-slate-300 pointer-events-auto">
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+          <span>Pending</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-sky-500" />
+          <span>In Progress</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+          <span>Resolved</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-slate-400" />
+          <span>Rejected / Closed</span>
+        </div>
+      </div>
+
+      {/* Side Slide-Over Inspection Drawer */}
+      <Drawer
+        isOpen={!!selectedIssue}
+        onClose={() => setSelectedIssue(null)}
+        title={selectedIssue?.title}
+        subtitle={`Complaint ID: ${selectedIssue?.complaintId}`}
+        footer={
+          <div className="w-full flex items-center justify-between gap-3">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {selectedIssue?.createdAt ? new Date(selectedIssue.createdAt).toLocaleDateString() : ''}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedIssue(null)}
+              >
+                Close
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={() => navigate(`/user/issue/${selectedIssue?.id}`)}
+                iconRight={<ExternalLink className="w-3.5 h-3.5" />}
+              >
+                Full Details
+              </Button>
+            </div>
+          </div>
+        }
+      >
+        {selectedIssue && (
+          <div className="space-y-4">
+            {/* Status & Category */}
+            <div className="flex items-center justify-between">
+              <StatusBadge
+                status={selectedIssue.status}
+                size="md"
+                reasonCode={selectedIssue.closeReason}
+              />
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded">
+                {getCategoryMeta(selectedIssue.category)?.label || selectedIssue.category}
+              </span>
+            </div>
+
+            {/* Rejection / Status Reason notice */}
+            {selectedIssue.status === 'Rejected' && (
+              <div className="p-3 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-700 dark:text-slate-300">
+                <span className="font-semibold block mb-0.5">Rejection Reason:</span>
+                <span>{selectedIssue.closeReason ? `Code: ${selectedIssue.closeReason}` : 'Report did not meet municipal action criteria.'}</span>
+              </div>
+            )}
+
+            {/* Coordinates & Proximity */}
+            <Card padding="tight" className="text-xs space-y-1.5">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                <span className="flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-teal-600" />
+                  <span>Coordinates</span>
+                </span>
+                <span className="font-mono">{selectedIssue.lat.toFixed(5)}, {selectedIssue.lng.toFixed(5)}</span>
+              </div>
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+                <span>Priority</span>
+                <span className="font-semibold text-slate-800 dark:text-slate-200">{selectedIssue.priority || 'Medium'}</span>
+              </div>
+            </Card>
+
+            {/* Confirmation & Upvote CTA */}
+            <div className="p-3.5 rounded-lg border border-teal-200 dark:border-teal-900 bg-teal-50/50 dark:bg-teal-950/30">
+              <h4 className="text-xs font-bold text-teal-900 dark:text-teal-200 mb-1">
+                Affected by this issue too?
+              </h4>
+              <p className="text-[11px] text-teal-700 dark:text-teal-400 mb-3">
+                Confirm this existing report to increase priority rather than filing a duplicate.
+              </p>
+              <Button
+                variant="primary"
+                size="sm"
+                block
+                iconLeft={<ThumbsUp className="w-3.5 h-3.5" />}
+                onClick={() => {
+                  csrfManager.secureFetch(`/api/issues/${selectedIssue.id}/upvote`, { method: 'POST' }).catch(() => {});
+                  setSelectedIssue(prev => prev ? { ...prev, upvoted: true } : null);
+                }}
+              >
+                Confirm This Issue
+              </Button>
+            </div>
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }
