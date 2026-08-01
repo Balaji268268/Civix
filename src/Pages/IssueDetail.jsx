@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, Clock, AlertTriangle, ArrowLeft, MapPin, Calendar, Activity, XCircle } from 'lucide-react';
 import csrfManager from "../utils/csrfManager";
 import { format } from 'date-fns';
+import API_BASE_URL from '../config';
 
 const IssueDetail = () => {
   const { id } = useParams();
