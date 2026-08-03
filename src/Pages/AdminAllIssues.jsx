@@ -15,13 +15,8 @@ const AdminAllIssues = () => {
                 const response = await csrfManager.secureFetch(`/api/issues?t=${Date.now()}`);
                 if (response.ok) {
                     const data = await response.json();
-                    // Filter out rejected issues from main view, similar to Dashboard
-                    // or keep them if this is truly "ALL" issues? 
-                    // Usually "All Issues" implies active workflow. Let's show everything distinct from Archives.
-                    // But maybe user wants see everything. 
-                    // Let's filter out Rejected by default to match Dashboard logic, allowing Archives to handle those.
-                    // Actually, "View All" usually means the operational list.
-                    const activeIssues = data.filter(i => i.status !== 'Rejected');
+                    const list = Array.isArray(data) ? data : (data.issues || []);
+                    const activeIssues = list.filter(i => i.status !== 'Rejected');
                     setIssues(activeIssues);
                 }
             } catch (error) {
