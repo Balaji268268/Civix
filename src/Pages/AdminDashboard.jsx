@@ -38,8 +38,9 @@ const AdminDashboard = () => {
 
         if (issuesRes.ok) {
           const data = await issuesRes.json();
+          const list = Array.isArray(data) ? data : (data.issues || []);
           // Filter out rejected issues from main view
-          const activeIssues = data.filter(i => i.status !== 'Rejected');
+          const activeIssues = list.filter(i => i.status !== 'Rejected');
           setRecentIssues(activeIssues.slice(0, 5));
         }
         setLoading(false);
