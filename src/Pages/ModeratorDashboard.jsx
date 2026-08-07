@@ -57,8 +57,9 @@ export default function ModeratorDashboard() {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await res.json();
+            const list = Array.isArray(data) ? data : (data.issues || []);
             // Filter relevant: Pending, Open, In Progress
-            const activeIssues = data.filter(i =>
+            const activeIssues = list.filter(i =>
                 ['Pending', 'Open', 'In Progress', 'Assigned', 'Pending Review', 'Resolved'].includes(i.status)
             );
             setIssues(activeIssues);
