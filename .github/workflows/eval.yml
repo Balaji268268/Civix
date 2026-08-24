@@ -1,0 +1,33 @@
+name: ML Golden Regression Gate
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *' # Daily regression check
+
+jobs:
+  eval-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install ML dependencies
+        run: |
+          cd ml_service
+          pip install -r requirements.txt
+
+      - name: Evaluate against locked golden sets
+        run: |
+          cd ml_service
+          python eval/run_eval.py --out eval_report.md
+
+      - name: Upload Evaluation Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: eval-report
+          path: ml_service/eval_report.md
